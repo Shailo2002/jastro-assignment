@@ -221,3 +221,42 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Trade-off: command ids must be unique, which the store layer (Step 6) owns.
 - Evidence/test: `derives a traceable entry id from the command`.
 - Related step/commit: Step 4.
+
+## Step 5 decisions
+
+### 2026-08-26 - A purpose-built store instead of Zustand
+
+- Context: `project_plan.md` suggested Zustand + Immer; the exit gate requires that no UI-facing generic state mutation bypass exists.
+- Options considered: Zustand (its `set` accepts an arbitrary state producer, which is precisely the escape hatch `CLAUDE.md` forbids); a small hand-written subscribable store (chosen).
+- Decision: `createDocumentStore` exposes `getState`, `subscribe`, `commit`, `restore`, `reset` and nothing else. It is compatible with `useSyncExternalStore`, so no React binding library is needed either.
+- Why: the store's value here is what it *refuses* to do. A generic setter would make the whole validation pipeline optional by accident.
+- Trade-off: no devtools/middleware ecosystem, and no automatic selector memoisation; a UI store in a later step may re-evaluate for transient state, where the risk is different.
+- Evidence/test: `src/store/document-store.test.ts` (`mutation surface` block asserts the exact exported key set).
+- Related step/commit: Step 5.
+
+### 2026-08-26 - Untrusted stored data is quarantined, not deleted
+
+- Context: `ARCHITECTURE.md` requires corrupt or unsupported data to be kept isolated with a recoverable message and a deliberate reset.
+- Decision: on corrupt or version-mismatched data, the raw string is copied to `scoped-ai-template-editor.project.quarantine`, the original key is left untouched, and the store starts from the fixture with `hydration: 'recovered-corrupt' | 'recovered-unsupported'` plus a message. Only an explicit `reset()` removes either key.
+- Why: silently deleting a user's saved project to recover from our own parse failure is the worst possible outcome; keeping it means a future migration or manual recovery is still possible.
+- Trade-off: a permanently broken value keeps failing on every load until the user resets. That is intentional and visible, not silent.
+- Evidence/test: `src/store/persistence.test.ts` (`untrusted data`), `src/store/document-store.test.ts` (`falls back to the fixture and explains itself when storage is corrupt`).
+- Related step/commit: Step 5.
+
+### 2026-08-26 - `baseRevision` is optional on a draft but explicit for prepared edits
+
+- Context: if the store always injected the current revision, stale-revision protection from Step 3 could never fire.
+- Decision: `EditDraft.baseRevision` is optional. Omitted, it means "composed from the document as it is right now" (a canvas control). Any surface holding state prepared earlier - an AI proposal, a code draft, a restore - passes the revision it captured.
+- Why: it keeps the common canvas path simple without quietly disabling the safety check that the assignment explicitly asks us to demonstrate.
+- Trade-off: a caller that forgets to pass a captured revision loses staleness detection for that path. Step 10/11 must pass the proposal's captured revision, and there are tests on both sides.
+- Evidence/test: `detects a stale edit when the caller passes the revision it captured`, `uses the current revision when the draft does not capture one`.
+- Related step/commit: Step 5.
+
+### 2026-08-26 - Only the document is persisted
+
+- Context: `IMPLEMENTATION_STEPS.md` asks for a documented decision about what is persisted.
+- Decision: the canonical document only. Selection, preview viewport, edit scope, active panel, unsaved code drafts, and pending AI proposals are not persisted.
+- Why: a rehydrated proposal or code draft would be prepared against a document revision that no longer exists, which is the exact failure mode the product is designed to prevent. Transient UI state is cheap to re-establish.
+- Trade-off: after a refresh the reviewer must reselect an element and reopen a panel.
+- Evidence/test: the stored envelope contains `storageVersion`, `documentSchemaVersion`, `savedAt`, and `document`, and nothing else (`writes a versioned envelope`).
+- Related step/commit: Step 5.

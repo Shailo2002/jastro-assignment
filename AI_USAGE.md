@@ -163,3 +163,17 @@ Copy after each substantial AI session:
 - Manual check: serialized one history entry and read it. It carries `id`, `elementId`, `scope`, `source`, `documentRevision`, `before`, `after`, `changedPaths`, and `createdAt` - enough to explain the change and to restore exactly one element and one scope, with no reference to any other element.
 - Remaining risk: two existing test fixtures had to be updated because `changedPaths` is a required field and because apply now writes history; both were intentional behaviour changes for this step, not test weakening. Step 8 will likely need `code` added to `REPLACE_CAPABLE_SOURCES`.
 - Commit: pending user approval.
+
+### 2026-08-26 - Step 5 - Document store and versioned persistence
+
+- Model/tool: Claude Code (Opus 5).
+- Bounded request: implement only Step 5 - a document store whose durable mutation action goes through the existing commit engine, plus a versioned localStorage adapter with runtime validation, corrupt-data fallback, and deliberate reset. No editor UI.
+- Files changed: `src/store/persistence.ts`, `src/store/document-store.ts`, `src/store/persistence.test.ts`, `src/store/document-store.test.ts` (all new). No dependency added.
+- Diff reviewed: yes.
+- Dependency decision: Zustand and Immer were listed as planned in `README.md` but were **not** installed. Zustand's `set` accepts an arbitrary state producer, which would reintroduce the generic mutation bypass this step's exit gate forbids. A ~150-line store built on a listener set is enough and works with React's `useSyncExternalStore` without a binding library.
+- Suggestion accepted: injecting `StorageLike` rather than reaching for `window.localStorage` inside the adapter - it made the corrupt-data, quota-failure, and unavailable-storage paths testable without mocking globals.
+- Suggestion corrected/rejected: the first draft deleted corrupt stored data before falling back to the fixture. Corrected to copy it to a quarantine key and leave the original in place, per `ARCHITECTURE.md` - deleting a user's saved project to recover from our own parse failure is the worst available outcome. One `as never` cast written in the store tests was also replaced with the real `revisionEntryId()` constructor.
+- Tests actually run: `pnpm test -- store persistence` (3 files, 52 tests passed), `pnpm test` (14 files, 268 tests passed), `pnpm typecheck` (pass), `pnpm lint` (pass), `pnpm build` (pass).
+- Manual check: printed the persisted envelope - key `scoped-ai-template-editor.project`, ~11.7 KB, containing exactly `storageVersion`, `documentSchemaVersion`, `savedAt`, and `document`, with no selection, draft, or proposal data. The real browser-refresh check is **not** possible yet because no UI reads the store; it is covered in-process by `restores a previously saved project (the refresh path)` and is scheduled as an end-to-end test in Step 13.
+- Remaining risk: `reset()` is currently unguarded at the store level; the confirmation step belongs to the UI in Step 13. The store is not yet wired into any component, so nothing in the running app persists anything today.
+- Commit: pending user approval.
