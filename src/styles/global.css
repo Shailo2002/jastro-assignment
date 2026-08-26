@@ -26,6 +26,13 @@ body {
   outline-offset: 2px;
 }
 
+/* `hidden` must win over a component's own display rule. Collapsed editor
+   panels rely on this: they stay mounted, keep their state, and are removed
+   from both the layout and the accessibility tree. */
+[hidden] {
+  display: none !important;
+}
+
 /* The editor shell owns page scrolling; the body must never scroll sideways. */
 body {
   overflow-x: hidden;

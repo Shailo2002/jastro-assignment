@@ -34,7 +34,13 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 
 | Date | AI suggestion | Why rejected/corrected | Resulting change | Evidence |
 | --- | --- | --- | --- | --- |
-| TODO | TODO | TODO | TODO | diff/test/commit |
+| 2026-08-26 | On corrupt stored data, delete the key and reload the fixture | Destroys the user's only copy to recover from our own parse failure | Quarantine the value under a second key, load the fixture, explain it in a recovery notice | `src/store/persistence.test.ts`, `e2e/persistence.spec.ts` *corrupt stored data produces an explained editor, not a crash* |
+| 2026-08-26 | `applyEditCommand` returns the re-parsed document from its own verification | The re-parse rebuilds every object, destroying the structural sharing that proves untargeted elements were untouched | Return the structurally shared document; re-parse only to verify | `src/engine/apply-edit-command.test.ts` |
+| 2026-08-26 | A generic recursive deep merge over `unknown` for viewport resolution | Would deep-merge `{value, unit}` dimensions into a meaningless half-and-half result, and needs `any` or a re-parse per render | Shape-aware merge functions with the rules stated in one comment block | `src/engine/responsive-resolver.test.ts` |
+| 2026-08-26 | Implement restore with the existing `merge` patch mode | Merge cannot remove a field, so a restore would silently keep anything added later | Added `replace` mode, restricted to `source: 'restore'` | `src/engine/history-restore.test.ts` |
+| 2026-08-26 | Use Zustand for the document store | `set(state => …)` is a generic mutation path around the validated commit boundary | Purpose-built ~150-line store exposing only `commit`, `restore`, `reset` | `src/store/document-store.ts`, `src/store/document-store.test.ts` |
+| 2026-08-26 | `PreviewFrame` reports its scale through an `onScaleChange` prop | A side effect during the render phase | Prop removed; scale derived from measurement | `src/editor/editor-shell.viewport.test.tsx` |
+| 2026-08-26 | Zod `unrecognized_keys` mapped to a generic validation failure | The UI cannot then say *you cannot change `parentId`* | Distinct `forbidden-field` error code | `src/engine/edit-command.test.ts` |
 
 
 ## Step 0 decisions
@@ -313,6 +319,8 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Trade-off: one runtime dependency and hash URLs that are less polished than clean pathnames. Data-router loaders/actions would be unnecessary complexity and are deliberately not used.
 - Evidence/test: App navigation and unknown-template redirect tests plus the direct-route Playwright smoke test.
 - Related step/commit: Step 6A.
+
+## Step 8 decisions
 
 ### 2026-08-26 - Reordering is a property edit, not a structural command
 

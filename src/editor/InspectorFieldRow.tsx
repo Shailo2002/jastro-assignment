@@ -1,4 +1,4 @@
-import { useRef, type JSX } from 'react'
+import { useEffect, useRef, type JSX } from 'react'
 
 import type { DimensionUnit } from '../model/properties'
 import { DIMENSION_UNITS } from '../model/properties'
@@ -24,19 +24,55 @@ import {
  * edit produces a single history entry instead of one per keystroke. The parent
  * remounts the row when the canonical value changes, which is what keeps the
  * control in step with the document without a synchronising effect.
+ *
+ * Two consequences of that remount are handled here rather than left to the
+ * user. A blur that carries the value the document already holds commits
+ * NOTHING: otherwise merely tabbing through a field would bump the revision,
+ * write an empty history entry, and remount the control under the moving focus
+ * - a keyboard trap. And a deliberate Enter commit asks the parent to hand
+ * focus back to the rebuilt control, so committing does not drop the user out
+ * of the panel.
  */
 export function InspectorFieldRow(props: {
   field: InspectorField
   reading: FieldReading
   scope: EditScope
   error: string | undefined
-  onCommit: (value: FieldValue) => void
+  onCommit: (value: FieldValue, options: { readonly keepFocus: boolean }) => void
   /** Input that is not even the right shape; never reaches the document. */
   onInvalid: (message: string) => void
+  /**
+   * Asks the parent whether this freshly mounted row is the one that just
+   * committed from the keyboard. Consumes the claim, so exactly one row can
+   * take focus back.
+   */
+  claimFocus?: (() => boolean) | undefined
 }): JSX.Element {
   const { field, reading, scope, error } = props
   const amountRef = useRef<HTMLInputElement>(null)
   const unitRef = useRef<HTMLSelectElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
+  /** True while an Enter keypress is driving the blur that commits. */
+  const committingWithEnter = useRef(false)
+
+  const claimFocus = props.claimFocus
+  useEffect(() => {
+    // This row may be a remount of one that was just committed from the
+    // keyboard; if so it takes focus back. The claim is consumed, so no later
+    // commit from another surface can pull focus into the inspector.
+    if (claimFocus === undefined || !claimFocus()) return
+    const control = rowRef.current?.querySelector<HTMLElement>('.field__control')
+    control?.focus()
+    if (control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement) {
+      control.select()
+    }
+    // Mount-only on purpose: the row is keyed by scope, revision, and targets.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** A value the document already holds is not an edit. */
+  const isUnchanged = (value: FieldValue): boolean =>
+    reading.state === 'value' && JSON.stringify(reading.value) === JSON.stringify(value)
 
   const mixed = reading.state === 'mixed'
   const describedBy = [
@@ -54,7 +90,8 @@ export function InspectorFieldRow(props: {
       if (parsed.message !== undefined) props.onInvalid(parsed.message)
       return
     }
-    props.onCommit(parsed.value)
+    if (isUnchanged(parsed.value)) return
+    props.onCommit(parsed.value, { keepFocus: committingWithEnter.current })
   }
 
   const commitDimension = (rawAmount: string, unit: DimensionUnit): void => {
@@ -64,7 +101,9 @@ export function InspectorFieldRow(props: {
       return
     }
     const amount = parsed.value
-    props.onCommit(composeDimension(amount === 'auto' ? 'auto' : Number(amount), unit))
+    const value = composeDimension(amount === 'auto' ? 'auto' : Number(amount), unit)
+    if (isUnchanged(value)) return
+    props.onCommit(value, { keepFocus: committingWithEnter.current })
   }
 
   const shared = {
@@ -88,7 +127,10 @@ export function InspectorFieldRow(props: {
           defaultValue={mixed ? '' : stringValue}
           onChange={(event) => {
             if (event.target.value === '') return
+            // A select commits on change, and focus stays on it by itself.
+            committingWithEnter.current = true
             commitRaw(event.target.value)
+            committingWithEnter.current = false
           }}
         >
           {(mixed || reading.state === 'empty') && <option value="">Mixed or unset</option>}
@@ -133,7 +175,9 @@ export function InspectorFieldRow(props: {
             onKeyDown={(event) => {
               if (event.key !== 'Enter') return
               event.preventDefault()
+              committingWithEnter.current = true
               event.currentTarget.blur()
+              committingWithEnter.current = false
             }}
           />
           <label className="field__unit-label" htmlFor={`${field.id}-unit`}>
@@ -146,7 +190,9 @@ export function InspectorFieldRow(props: {
               onChange={(event) => {
                 const amount = amountRef.current?.value ?? ''
                 const unit = event.target.value
+                committingWithEnter.current = true
                 commitDimension(amount, isDimensionUnit(unit) ? unit : 'px')
+                committingWithEnter.current = false
               }}
             >
               {DIMENSION_UNITS.map((unit) => (
@@ -175,14 +221,16 @@ export function InspectorFieldRow(props: {
         onKeyDown={(event) => {
           if (event.key !== 'Enter') return
           event.preventDefault()
+          committingWithEnter.current = true
           event.currentTarget.blur()
+          committingWithEnter.current = false
         }}
       />
     )
   }
 
   return (
-    <div className="field" data-invalid={error !== undefined}>
+    <div className="field" ref={rowRef} data-invalid={error !== undefined}>
       <label className="field__label" htmlFor={field.id}>
         {field.label}
         {field.unit === undefined ? null : (

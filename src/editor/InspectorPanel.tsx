@@ -1,4 +1,4 @@
-import { useState, type JSX } from 'react'
+import { useRef, useState, type JSX } from 'react'
 
 import type { ResolvedDocument } from '../engine/responsive-resolver'
 import type { ElementId } from '../model/ids'
@@ -41,18 +41,32 @@ export function InspectorPanel(props: {
   const [error, setError] = useState<{ fieldId: string; message: string } | undefined>(
     undefined,
   )
+  /**
+   * The field whose remounted row should take focus back after a keyboard
+   * commit. A ref, not state: it is written during the commit and consumed by
+   * the next mount, so it never causes a render of its own and can never leak
+   * focus into the inspector after a commit from the canvas, code, or AI.
+   */
+  const pendingFocusFieldId = useRef<string | undefined>(undefined)
 
   const targetIds = targets.map((target) => target.element.id)
   const fields = fieldsForTypes(targets.map((target) => target.element.type))
   const sections = sectionsForFields(fields)
 
-  const commitField = (field: InspectorField, value: FieldValue): void => {
+  const commitField = (
+    field: InspectorField,
+    value: FieldValue,
+    options: { readonly keepFocus: boolean },
+  ): void => {
     const changes: Record<ElementId, EditablePropertyPatch> = {}
     for (const id of targetIds) {
       changes[id] = patchForField(field, value)
     }
 
     const messages = props.onCommit({ targetIds, changes })
+    if (messages.length === 0 && options.keepFocus) {
+      pendingFocusFieldId.current = field.id
+    }
     setError(
       messages.length === 0
         ? undefined
@@ -126,8 +140,13 @@ export function InspectorPanel(props: {
                 reading={readField(targets, field, scope)}
                 scope={scope}
                 error={error?.fieldId === field.id ? error.message : undefined}
-                onCommit={(value) => {
-                  commitField(field, value)
+                claimFocus={() => {
+                  if (pendingFocusFieldId.current !== field.id) return false
+                  pendingFocusFieldId.current = undefined
+                  return true
+                }}
+                onCommit={(value, options) => {
+                  commitField(field, value, options)
                 }}
                 onInvalid={(message) => {
                   setError({ fieldId: field.id, message })

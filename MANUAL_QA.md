@@ -4,10 +4,12 @@ Run the relevant section after each implementation step. Run the full checklist 
 
 ## Environment
 
-- Browser(s): TODO
-- Commit/build: TODO
-- Date: TODO
-- Tester: TODO
+- Browser(s): Chromium via Playwright for the automated gate (`playwright.config.ts`); the manual pass below is intended for a current Chromium-based browser plus one other engine.
+- Commit/build: run against the Step 16 working tree (base commit `a6ddd18`), Node v26.5.0, pnpm 9.15.9, production build 404.59 kB / 122.62 kB gzipped.
+- Date: 2026-08-27 (automated gate). Manual pass: to be dated by the tester.
+- Tester: the automated gate was run by Claude Code; every unticked box below is a human check and is deliberately left unticked - no box in this file is ticked on the strength of an automated test alone.
+
+Automated gate on this build: `pnpm lint` clean, `pnpm typecheck` clean, `pnpm test` 44 files / 631 tests passed, `pnpm test:e2e` 20 tests passed, `pnpm build` passed.
 
 ## Template gallery
 

@@ -3,8 +3,11 @@
  *
  * Raw color, spacing, radius, and duration values belong ONLY in this file.
  * Components must reference the semantic custom properties, never the literals.
- * Values are the placeholders defined in DESIGN_SYSTEM.md; component-level
- * tokens are added in later UI steps.
+ * Values follow DESIGN_SYSTEM.md. Two of its draft values are deliberately
+ * adjusted, because the same document requires WCAG 2.2 AA and those two pairs
+ * do not reach it; each is marked below with its measured ratio. The contrast
+ * of every text/surface pair used by the shell is asserted in `tokens.test.ts`,
+ * so a future palette change cannot quietly reintroduce the failure.
  */
 :root {
   color-scheme: dark;
@@ -19,8 +22,14 @@
   /* Text */
   --text-primary: #fafafa;
   --text-secondary: #a3a3a3;
-  --text-muted: #737373;
-  --text-on-accent: #ffffff;
+  /* DESIGN_SYSTEM draft #737373 measures 4.01:1 on --surface-panel and 3.44:1
+     on --surface-hover; lightened to clear 4.5:1 on every surface it is used
+     on (5.88:1 / 5.04:1). */
+  --text-muted: #8f8f8f;
+  /* Ink for text sitting ON an accent or status fill. White measures 3.23:1 on
+     --action-primary and 2.77:1 on --status-danger; near-black reaches 6.31:1
+     and 7.37:1 while keeping the bright blue action colour intact. */
+  --text-on-accent: #050506;
 
   /* Borders */
   --border-default: #262626;
@@ -37,6 +46,8 @@
 
   /* Focus and emphasis */
   --focus-ring: #8ab4ff;
+  /* Modal scrim; the only full-page overlay, kept out of component files. */
+  --overlay-scrim: rgb(0 0 0 / 68%);
   --selection-fill: rgb(91 141 239 / 14%);
   --glow-accent: 0 0 48px rgb(59 130 246 / 18%);
 

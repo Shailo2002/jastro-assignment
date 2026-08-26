@@ -14,6 +14,9 @@ import { useRovingFocus } from './use-roving-focus'
  * and layers can never drift into two different notions of what is selected.
  */
 export function LayersPanel(props: {
+  /** Collapsed by the shell. Hidden rather than unmounted, so the roving
+      focus position and the tree's scroll offset survive a collapse. */
+  hidden?: boolean
   rows: readonly ElementTreeRow[]
   selection: SelectionApi
 }): JSX.Element {
@@ -36,7 +39,7 @@ export function LayersPanel(props: {
   }
 
   return (
-    <section className="layers" aria-labelledby="layers-heading">
+    <section className="layers" id="layers-panel" aria-labelledby="layers-heading" hidden={props.hidden ?? false}>
       <h2 className="layers__heading" id="layers-heading">
         Layers
       </h2>

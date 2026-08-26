@@ -51,14 +51,9 @@
   background: var(--surface-hover);
 }
 
-.shell__back svg {
-  width: 20px;
-  height: 20px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
+.shell__back:active {
+  background: var(--surface-elevated);
+  transform: translateY(1px);
 }
 
 .shell__controls {
@@ -149,8 +144,96 @@
   border-color: var(--border-selection);
 }
 
+.toolbar-button:active {
+  background: var(--surface-elevated);
+  border-color: var(--border-strong);
+  transform: translateY(1px);
+}
+
+.toolbar-button[aria-pressed='true'] {
+  background: var(--surface-hover);
+}
+
 .toolbar-button[aria-pressed='true']::after {
   content: ' \2713';
+}
+
+/* Disabled is legible, not invisible: the control keeps AA contrast and the
+   panel that owns it explains the prerequisite in text. */
+.toolbar-button:disabled,
+.icon-button:disabled,
+.segmented__item:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  background: var(--surface-panel);
+  border-style: dashed;
+  transform: none;
+}
+
+.segmented__item:active {
+  background: var(--surface-elevated);
+}
+
+/* Icon-only control ------------------------------------------------------- */
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--target-touch-min);
+  height: var(--target-touch-min);
+  padding: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  transition: background var(--duration-instant), color var(--duration-instant);
+}
+
+.icon-button:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.icon-button:active {
+  background: var(--surface-elevated);
+}
+
+/* An open panel is stated by the border and the checkmark dot, never by hue
+   alone; the button also carries aria-pressed and aria-expanded. */
+.icon-button[aria-pressed='true'] {
+  position: relative;
+  color: var(--text-primary);
+  border-color: var(--border-selection);
+}
+
+.icon-button[aria-pressed='true']::after {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 6px;
+  height: 6px;
+  background: var(--action-primary);
+  border-radius: var(--radius-pill);
+  content: '';
+}
+
+.shell__panel-toggles {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Icons ------------------------------------------------------------------- */
+
+.icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 /* Scope indicator (disabled placeholder until scoped editing exists) ------- */
@@ -195,14 +278,35 @@
   min-height: 0;
 }
 
+/* A collapsed panel is hidden, not unmounted, so its track has to be removed
+   as well - otherwise the canvas keeps a dead 240 px column beside it. */
+.shell__body[data-layers='closed'] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+}
+
+.shell__body[data-sidebar='closed'] {
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+}
+
+.shell__body[data-layers='closed'][data-sidebar='closed'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (width <= 1200px) {
-  .shell__body {
+  .shell__body,
+  .shell__body[data-layers='open'][data-sidebar='closed'] {
     grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  }
+
+  .shell__body[data-layers='closed'] {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (width <= 900px) {
-  .shell__body {
+  .shell__body,
+  .shell__body[data-layers='closed'],
+  .shell__body[data-sidebar='closed'] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -724,4 +828,773 @@ textarea.field__control {
   color: var(--text-muted);
   cursor: not-allowed;
   border-style: dashed;
+}
+
+/* Sidebar tabs ------------------------------------------------------------ */
+
+.sidebar-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.sidebar-tabs__tab {
+  flex: 1 1 0;
+  min-height: var(--target-touch-min);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  transition: background var(--duration-instant), color var(--duration-instant);
+}
+
+.sidebar-tabs__tab:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.sidebar-tabs__tab[aria-selected='true'] {
+  color: var(--text-primary);
+  background: var(--surface-canvas);
+  border-color: var(--border-selection);
+}
+
+.sidebar-tabs__tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.shell__panel {
+  min-width: 0;
+}
+
+/* Structured code panel --------------------------------------------------- */
+
+.code-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.code-panel__targets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.code-panel__target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.code-panel__target-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.code-panel__editor {
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  tab-size: 2;
+  white-space: pre;
+  background: var(--surface-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  resize: vertical;
+}
+
+.code-panel__editor:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.code-panel__editor[aria-invalid='true'] {
+  border-color: var(--status-danger);
+}
+
+.code-panel__notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  background: var(--surface-elevated);
+  border-left: 3px solid var(--status-warning);
+  border-radius: var(--radius-control);
+}
+
+.code-panel__notice::before {
+  content: 'Stale draft: ';
+  font-weight: 600;
+}
+
+.code-panel__errors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  list-style: none;
+  border: 1px solid var(--status-danger);
+  border-radius: var(--radius-control);
+}
+
+.code-panel__error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.code-panel__error::before {
+  content: '\26A0 Invalid draft';
+  font-weight: 600;
+  color: var(--status-danger);
+}
+
+.code-panel__error-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.code-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* AI panel ---------------------------------------------------------------- */
+
+.ai-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.ai-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ai-panel__examples {
+  padding: var(--space-3);
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.ai-panel__examples summary {
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.ai-panel__examples summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ai-panel__example-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ai-panel__example {
+  width: 100%;
+  min-height: var(--target-touch-min);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  transition: background var(--duration-instant), color var(--duration-instant);
+}
+
+.ai-panel__example:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.ai-panel__example:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.ai-panel__example:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.ai-panel__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.ai-panel__results-heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-panel__results-heading:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.ai-panel__scope,
+.ai-panel__summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.ai-panel__scope strong {
+  color: var(--text-primary);
+}
+
+.ai-panel__skipped {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-6);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  background: var(--surface-panel);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-control);
+}
+
+.ai-panel__cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Proposal card ----------------------------------------------------------- */
+
+.proposal-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
+  border-left-width: 3px;
+  border-radius: var(--radius-card);
+}
+
+/* Status is carried by the card text; the edge is a secondary cue only. */
+.proposal-card[data-status='accepted'] {
+  border-left-color: var(--status-success);
+}
+
+.proposal-card[data-status='rejected'] {
+  border-left-color: var(--border-strong);
+}
+
+.proposal-card[data-status='stale'] {
+  border-left-color: var(--status-warning);
+}
+
+.proposal-card[data-status='invalid'] {
+  border-left-color: var(--status-danger);
+}
+
+.proposal-card[data-status='pending'] {
+  border-left-color: var(--action-primary);
+}
+
+.proposal-card__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.proposal-card__meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.proposal-card__id {
+  font-family: var(--font-mono);
+}
+
+.proposal-card__summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.proposal-card__changes {
+  width: 100%;
+  font-size: 12px;
+  text-align: left;
+  border-collapse: collapse;
+}
+
+.proposal-card__changes th,
+.proposal-card__changes td {
+  padding: var(--space-1) var(--space-2);
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.proposal-card__changes thead th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.proposal-card__changes tbody th {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.proposal-card__changes tbody td {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.proposal-card__status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.proposal-card__status:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.proposal-card__status-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.proposal-card__status-label::after {
+  content: ':';
+}
+
+.proposal-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-panel__example {
+    transition: none;
+  }
+}
+
+/* History panel ----------------------------------------------------------- */
+
+.history-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.history-panel__announcement:empty {
+  display: none;
+}
+
+.history-panel__announcement {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.history-panel__element {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-default);
+}
+
+.history-panel__element-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.history-panel__element-meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.history-panel__id {
+  font-family: var(--font-mono);
+}
+
+.history-panel__empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.history-panel__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.history-panel__group-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.history-panel__entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* Revision card ----------------------------------------------------------- */
+
+.revision-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
+  border-left-width: 3px;
+  border-radius: var(--radius-card);
+}
+
+/* The source is stated in the card's own title; the edge is a second cue. */
+.revision-card[data-source='canvas'] {
+  border-left-color: var(--action-primary);
+}
+
+.revision-card[data-source='code'] {
+  border-left-color: var(--border-strong);
+}
+
+.revision-card[data-source='ai'] {
+  border-left-color: var(--status-warning);
+}
+
+.revision-card[data-source='restore'] {
+  border-left-color: var(--status-success);
+}
+
+.revision-card__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.revision-card__meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.revision-card__scope {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.revision-card__fields {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.revision-card__details summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.revision-card__details summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.revision-card__changes {
+  width: 100%;
+  font-size: 12px;
+  text-align: left;
+  border-collapse: collapse;
+}
+
+.revision-card__changes th,
+.revision-card__changes td {
+  padding: var(--space-1) var(--space-2);
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.revision-card__changes thead th {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.revision-card__changes tbody th {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.revision-card__changes tbody td {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.revision-card__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+}
+
+.revision-card__confirm-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.revision-card__confirm-title:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.revision-card__confirm-target {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.revision-card__status {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.revision-card__status:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
+.revision-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Persistence status, recovery, and reset ---------------------------------- */
+
+.persistence-chip {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+}
+
+.persistence-chip__dot {
+  width: 8px;
+  height: 8px;
+  background: var(--text-muted);
+  border-radius: var(--radius-pill);
+}
+
+.persistence-chip[data-tone='saved'] .persistence-chip__dot {
+  background: var(--status-success);
+}
+
+.persistence-chip[data-tone='warning'] {
+  color: var(--text-primary);
+  border-color: var(--status-warning);
+}
+
+.persistence-chip[data-tone='warning'] .persistence-chip__dot {
+  background: var(--status-warning);
+}
+
+.recovery-notice {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-elevated);
+  border-bottom: 1px solid var(--status-warning);
+}
+
+.recovery-notice__icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.recovery-notice__text {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.recovery-notice__label {
+  color: var(--text-primary);
+}
+
+/* Modal ------------------------------------------------------------------- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--overlay-scrim);
+}
+
+.dialog {
+  width: min(440px, 100%);
+  padding: var(--space-6);
+  background: var(--surface-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.dialog__title {
+  margin: 0 0 var(--space-3);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dialog__body {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.dialog__body p {
+  margin: 0 0 var(--space-3);
+}
+
+.dialog__list {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-5);
+}
+
+.dialog__list li {
+  margin-bottom: var(--space-1);
+}
+
+.dialog__note {
+  color: var(--text-primary);
+}
+
+.dialog__actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+}
+
+/* Danger styling appears here only - at confirmation time, never on the
+   routine toolbar control that opens this dialog. */
+.dialog__danger {
+  min-height: var(--target-touch-min);
+  padding: 0 var(--space-4);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-on-accent);
+  cursor: pointer;
+  background: var(--status-danger);
+  border: 1px solid var(--status-danger);
+  border-radius: var(--radius-control);
+}
+
+.dialog__danger:hover {
+  filter: brightness(1.08);
+}
+
+.dialog__danger:active {
+  filter: brightness(0.94);
+  transform: translateY(1px);
 }

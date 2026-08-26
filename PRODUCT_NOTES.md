@@ -1,6 +1,6 @@
 # Product Notes
 
-This document is a working submission draft. Replace TODO evidence with observed behavior before submission.
+Product decisions for the Scoped AI Template Editor, finalised against shipped behaviour. Every claim below is implemented; the file paths and test names given are the evidence.
 
 ## Primary user, job, and safe completion
 
@@ -82,7 +82,25 @@ In a moderated five-task usability check, compare completion with and without Sc
 - higher answer accuracy when asked “what will this action change?”;
 - improved confidence rating after the task.
 
-Implementation evidence: TODO after Scope Lock step.
+### Implementation evidence
+
+Scope Lock ships as a persistent block in the editor's left rail, above the inspector: `src/editor/ScopeLock.tsx`, with its wording derived by the pure functions in `src/editor/edit-scope.ts` (`describeScopeLock`, `protectedViewports`, `EDIT_SCOPE_LABELS`).
+
+What it actually states, before any action:
+
+- how many elements are selected and their readable names (`src/editor/element-names.ts`);
+- the active **edit scope**, which is a separate control from the **preview viewport** - the editor never infers one from the other;
+- for a viewport-scoped edit, the two views the edit provably cannot reach, named;
+- for a shared (All) edit, the caveat that an existing override still wins for its own field;
+- an empty selection as *not editable*, in words.
+
+None of it is carried by colour: count, scope, affected names, and protected views are text inside a bordered block with an icon, and the summary is announced politely while the canvas status line keeps the single `status` role.
+
+The same scope information is repeated at the point of AI review: each proposal card names its target, that target's stable id, and the scope the change would be committed at (`src/editor/AiPanel.tsx`, `src/editor/proposal-review.ts`).
+
+Tests: `src/editor/scope-lock.test.ts` (target count and scope text, the named protected views, the shared-edit caveat, empty selection, name ordering), `src/editor/viewport-isolation.test.tsx` and `e2e/smoke.spec.ts` (*a scoped inspector edit changes one viewport and protects the others*) for the behaviour the indicator promises, and `e2e/accessibility.spec.ts` for reaching and changing scope with the keyboard alone.
+
+The validation hypothesis above has **not** been tested with users; no usability study was run for this assignment, and no claim about measured user confidence is made here.
 
 ## Cuts and assumptions
 

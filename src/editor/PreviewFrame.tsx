@@ -15,6 +15,13 @@ import { fitScale, useElementSize } from './use-element-size'
  * sized to the scaled dimensions so the scaled frame does not leave a hole in
  * the layout.
  *
+ * The rendered template is `inert`. It is a projection, not a live page: its
+ * own links and buttons must not take pointer input, must not appear in the
+ * editor's tab order, and must not offer an assistive-technology user a "Start
+ * editing this template" action that would navigate out of the editor. The
+ * selection overlay above it is the accessible surface, and it carries every
+ * element's name and selected state.
+ *
  * The frame renders no editor affordances of its own. A caller that needs one -
  * the selection overlay - is handed the frame element and its current scale via
  * `renderOverlay`, so measured chrome shares the frame's transform without the
@@ -55,7 +62,9 @@ export function PreviewFrame(props: {
           data-viewport={viewport}
           data-scale={scale}
         >
-          <TemplateRenderer document={document} viewport={viewport} />
+          <div className="preview__document" inert>
+            <TemplateRenderer document={document} viewport={viewport} />
+          </div>
           {props.renderOverlay?.({ frameRef, scale })}
         </div>
       </div>

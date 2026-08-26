@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 
 import type { EditScope } from '../model/viewport'
+import { Icon } from './Icon'
 import { describeScopeLock } from './edit-scope'
 
 /**
@@ -27,9 +28,7 @@ export function ScopeLock(props: {
       data-editable={description.canEdit}
     >
       <h2 className="scope-lock__heading" id="scope-lock-heading">
-        <span className="scope-lock__icon" aria-hidden="true">
-          &#128274;
-        </span>
+        <Icon name="lock" className="scope-lock__icon" />
         Scope Lock
       </h2>
 

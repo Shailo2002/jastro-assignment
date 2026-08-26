@@ -7,7 +7,8 @@ This is a required submission artifact and must reflect actual work. Do not fabr
 | Tool/model | What it helped with | Human verification |
 | --- | --- | --- |
 | Codex (planning session) | Read the assignment brief, reconcile the earlier project plan, inspect the Vetra reference, and create staged project documentation | User reviews the documentation and implementation choices |
-| Claude Code | TODO: add model/version and bounded implementation tasks as they occur | TODO |
+| Claude Code (Claude Opus 5) | All implementation steps: canonical model and Zod schemas, responsive resolver, `EditCommand` validation and apply, per-element/scope history and restore, document store and persistence, renderer and editor shell, selection, inspector, code surface, deterministic proposal engine and review UI, history UI, reset flow, the token contrast test, and the Playwright suites. Each step was requested as one bounded task from `IMPLEMENTATION_STEPS.md`. | Diff read file by file before running anything; `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` on every step and `pnpm test:e2e` on every step that touched the running app; manual browser checks from `MANUAL_QA.md`; corrections recorded per step in the session log below and in `DECISION_LOG.md`. |
+| Codex (GPT-5) | Step 6A only - the template gallery, catalog, thumbnail, and hash routing - plus the initial documentation set. | Same gate, plus a local browser visual review at 1280 x 720 and 375 x 812. |
 
 ## Example 1 - planning/product framing
 
@@ -25,30 +26,34 @@ AI contribution:
 
 Human review/correction:
 
-- TODO: record what you changed or approved after reviewing these files.
+- Approved the staged structure, but split what the plan had merged: `REQUIREMENTS_CHECKLIST.md` became the authoritative derivation of the brief and `project_plan.md` was demoted to background advice, because the two disagreed about scope in places (multiple templates, a real model integration) and only the brief is binding.
+- Required every step in `IMPLEMENTATION_STEPS.md` to carry an explicit verification gate and exit gate, so a step could not be declared done on inspection alone.
+- Kept the Vetra influence to the visual language only - dark neutral surfaces, blue accent, thin borders - and rejected reusing its marketing layout for an editor shell, which has a different information density.
 
 ## Example 2 - implementation/debugging/testing
 
-Add one short real interaction after implementation begins.
+- Date: 2026-08-26
+- Step/feature: Step 6 - template renderer and the responsive preview frame.
+- Redacted prompt:
 
-- Date: TODO
-- Step/feature: TODO
-- Redacted prompt: TODO
-- AI output summary: TODO
-- What I inspected: TODO
-- What I changed: TODO
-- Tests run and results: TODO
-- Commit: TODO
+  > Implement only Step 6: typed element renderers for the fixture and a minimal editor shell with Desktop/Tablet/Mobile preview controls that resolve through the existing responsive engine. No selection or editing controls. Test that switching the viewport changes the projection, not canonical state.
+
+- AI output summary: `src/renderer/style-mapping.ts`, `src/renderer/element-renderer.tsx`, `src/renderer/TemplateRenderer.tsx`, and an editor shell (`ViewportSwitcher`, `PreviewFrame`, `EditorShell`) that renders a fixed-width virtual viewport scaled to fit the available area, bound to the store through `useSyncExternalStore`.
+- What I inspected: the whole diff; specifically whether any renderer wrote to the store (none does), whether the preview changed canonical data (it does not - the viewport is component state and the document revision is unchanged across a switch), and the rendered result in a real browser at 1280 x 720.
+- What I changed: three corrections. (1) `PreviewFrame` called an `onScaleChange` prop during render - a side effect in the render phase; the prop was removed and the scale is derived from measurement instead. (2) The scale was applied with a CSS transform without sizing the wrapper, and because a transform does not change the layout box this left a visible hole below the preview; the wrapper is now sized from the measured frame height. (3) A screenshot review showed the call-to-action links rendering with the default underline, reading as body copy rather than buttons; `text-decoration: none` was added to the link variant.
+- Tests run and results: `pnpm test -- renderer viewport` (4 files, 32 tests passed), `pnpm test` (18 files, 300 tests passed at that step), `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm test:e2e` (3 Chromium tests passed).
+- Commit: `32e6969 feat: render responsive template previews`.
 
 ## Rejected or materially corrected suggestion
 
-Use a real example; the assignment requires the reason and resulting change.
+- Date: 2026-08-26
+- Step: Step 5 - versioned persistence.
+- Original AI suggestion: when stored project data fails to parse, delete the stored key and fall back to the initial template fixture, so the editor always starts from a known-good state.
+- Why it was unsafe: it destroys the user's only copy of their work in order to recover from *our* parse failure. A schema bug, a partially written value, or a future storage-version change would all present as "corrupt", and the response would silently discard a project the user cannot get back. `ARCHITECTURE.md` requires preserving the last valid state, and deleting untrusted data is the opposite of preserving it.
+- Resulting correction: the unreadable value is copied to a quarantine key (`scoped-ai-template-editor.project.quarantine`) and left in place; the editor loads the fixture and shows a recovery notice explaining what happened, with the one action that clears the quarantined copy. The editor stays fully usable in the unreadable, wrong-version, and unwritable-storage cases alike.
+- Verification evidence: `src/store/persistence.test.ts` (corrupt data, wrong storage version, quota failure, unavailable storage), `src/editor/persistence-ui.test.tsx`, and `e2e/persistence.spec.ts` - *corrupt stored data produces an explained editor, not a crash*, which passes against a real browser. `src/store/persistence.ts` defines both keys. Recorded in `DECISION_LOG.md` as *Untrusted stored data is quarantined, not deleted*.
 
-- Date: TODO
-- Original AI suggestion: TODO
-- Why it was unsafe, incorrect, over-scoped, or weak: TODO
-- Resulting correction: TODO
-- Verification evidence: TODO
+A second material correction, same category, is recorded in full in the Step 3 session entry: the first `applyEditCommand` returned the re-parsed document from its own post-apply verification, which rebuilds every object and would have destroyed the structural sharing that lets tests prove untargeted elements were untouched. It now returns the structurally shared document and re-parses only to verify.
 
 Good candidates to record if they really occur:
 
@@ -65,19 +70,31 @@ Keep this as a chronological log, then summarize it before submission.
 
 | Date/step | Diff/files inspected | Commands actually run | Manual scenarios | Dependency review | Remaining uncertainty |
 | --- | --- | --- | --- | --- | --- |
-| TODO | TODO | TODO | TODO | TODO | TODO |
+| 2026-08-26 / Step 0 | Whole scaffold, config by config | lint, typecheck, test (1), build, e2e (1) | Dev server serves the page; smoke spec asserts no console errors | React, Vite, TS, ESLint, Vitest, Testing Library, Playwright accepted; no backend/auth/model dependency | Strict compiler flags would cause friction later (accepted deliberately) |
+| 2026-08-26 / Step 1 | `src/model/*` module by module | test -- model (97), test (98), typecheck, lint, build | Serialized the fixture and read it: 26 elements, ~20 KB, no functions/DOM/cycles | `zod@4.4.3` accepted - runtime validation is a `CLAUDE.md` requirement | Base-text invariant means text must be cleared to `""`, not deleted |
+| 2026-08-26 / Step 2 | `responsive-resolver.ts` and its tests | test -- responsive (37), test (135), typecheck, lint, build | Read the table-driven cases; confirmed each asserts both protected viewports in full | None added | `mergeEditableProperties` must be extended by hand for a new nested group |
+| 2026-08-26 / Step 3 | `edit-command.ts`, `apply-edit-command.ts` | test -- command (61), test (196), typecheck, lint, build | Listed every export in `src/model` and `src/engine`: exactly one function produces a new canonical document | None added | `invalid-result` only reachable via a pre-broken document; kept as defence in depth |
+| 2026-08-26 / Step 4 | `history.ts`, `restore.ts`, updated fixtures | test -- history (37), test (233), typecheck, lint, build | Serialized one revision entry and read every field | None added | Two fixtures updated for the new required `changedPaths` field |
+| 2026-08-26 / Step 5 | `persistence.ts`, `document-store.ts` | test -- store persistence (52), test (268), typecheck, lint, build | Printed the persisted envelope: 4 keys, ~11.7 KB, no selection/draft/proposal data | Zustand and Immer reviewed and **rejected** (generic setter) | Real refresh not yet provable - no UI read the store; scheduled as e2e |
+| 2026-08-26 / Step 6 | Renderer and shell diff | test -- renderer viewport (32), test (300), typecheck, lint, build, e2e (3) | Real browser at 1280 x 720 and 375 px; screenshots of desktop and mobile previews | None added | `tsconfig.node.json` widened to `DOM` for e2e/config files only |
+| 2026-08-26 / Step 6A | Gallery, catalog, routing, App | test -- gallery App (39), test (306), lint, typecheck, e2e (3), build | Gallery at 1280 x 720 and 375 x 812; keyboard path through search, filters, and the card action | `react-router-dom` accepted - `HashRouter` only, no data-router APIs | One storage key assumes one template; must be namespaced before a second |
+| 2026-08-27 / Step 16 | Every Markdown submission file against the actual source | `pnpm install --frozen-lockfile`, lint, typecheck, `pnpm test` (44 files, 631 tests), `pnpm test:e2e` (20 Chromium tests), `pnpm build` | None new; the manual pass in `MANUAL_QA.md` is the author's | No dependency change | Steps 7-15 have no contemporaneous session entries - see the limitation below |
 
-Final summary must cover:
+### Summary before submission
 
-- commands/tests run;
-- manual scenarios exercised;
-- dependency names and why they were accepted;
-- any generated code changed or rejected;
-- remaining uncertainty.
+- **Commands actually run on the final commit:** `pnpm install --frozen-lockfile`, `pnpm lint` (clean), `pnpm typecheck` (clean), `pnpm test` (44 files, 631 tests passed), `pnpm test:e2e` (20 tests passed, Chromium), `pnpm build` (passed; 122.62 kB gzipped JS).
+- **Manual scenarios exercised during development:** desktop/tablet/mobile preview at 1280 x 720 and 375 px, the gallery at both sizes, serialized inspection of the document fixture and of the persisted envelope and one history entry, and screenshot review of the rendered template. The full `MANUAL_QA.md` pass and the deployment smoke test belong to the author and are not claimed here.
+- **Dependencies:** `react`, `react-dom`, `react-router-dom`, `zod` at runtime; the rest are tooling. Zustand, Immer, Tailwind, shadcn/ui, Monaco, and dnd-kit were each considered and rejected, with reasons in `README.md` and `DECISION_LOG.md`.
+- **Generated code changed or rejected:** at least one material correction per step is recorded below - among them the deleted-on-corrupt persistence path, the re-parsed apply result, the generic deep merge, the merge-mode restore that could not remove a field, and the render-phase side effect in `PreviewFrame`.
+- **Remaining uncertainty:** the gaps listed in the table above, plus the session-log gap for Steps 7-15.
 
 ## Workflow limitation and next-time change
 
-TODO after enough implementation evidence exists. Discuss a real limitation such as lost context across sessions, over-broad changes, shallow accessibility assumptions, brittle generated tests, or time spent reviewing dependency choices. State the concrete workflow change you would make next time.
+**The limitation, stated plainly:** the per-step session log below stops after Step 6A, even though Steps 7-15 were implemented (selection, inspector editing and Scope Lock, the code surface, the proposal engine and review UI, history UI, persistence UI and reset, and the accessibility/token gate). Those sessions ran in AI contexts that were not carried forward, and the log entry was treated as an end-of-step chore rather than part of the step, so when the context ended the evidence went with it. What survives for those steps is real but indirect: the source, the focused tests named in `README.md` and `REQUIREMENTS_CHECKLIST.md`, and the decision entries in `DECISION_LOG.md`. What is genuinely lost is the *process* record - which suggestions were corrected, and why. Those entries are not reconstructed here, because a reconstructed session log is a fabricated one.
+
+The same root cause produced a smaller visible artefact: the Step 8 decision entries sit under a heading that still reads Step 6A, because the heading was written when the section was opened and never revised.
+
+**Concrete change for next time:** treat the session-log entry as part of the step's diff, not as documentation to be caught up later - written before the step's commit and included in it, with the step's exit gate failing if the entry is missing. Practically, that means the commit for a step contains its code, its tests, and its `AI_USAGE.md` entry together, so an entry cannot outlive its context.
 
 ## Session logging template
 
@@ -98,6 +115,8 @@ Copy after each substantial AI session:
 
 
 ## Session log
+
+> Coverage note, written at Step 16: entries exist for Steps 0 through 6A. Steps 7 through 15 were implemented but not logged at the time; the reason and the workflow change are in *Workflow limitation and next-time change* above. No entry has been reconstructed for those steps, because a reconstructed session log would be a fabricated one. The evidence that does exist for them is the source, the tests named in `README.md` and `REQUIREMENTS_CHECKLIST.md`, and the decision entries in `DECISION_LOG.md`.
 
 ### 2026-08-26 - Step 0 - Scaffold and quality baseline
 

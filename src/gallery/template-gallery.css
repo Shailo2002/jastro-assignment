@@ -152,6 +152,11 @@
     border-color var(--duration-instant);
 }
 
+.gallery-filters button:active {
+  background: var(--surface-elevated);
+  transform: translateY(1px);
+}
+
 .gallery-filters button:hover {
   color: var(--text-primary);
   background: var(--surface-hover);
