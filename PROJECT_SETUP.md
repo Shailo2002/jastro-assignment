@@ -22,6 +22,7 @@ The original discussion-derived plan remains available in [project_plan.md](./pr
 | `IMPLEMENTATION_STEPS.md` | Ordered build stages, tests, manual checks, and commit gates | At every completed step |
 | `ARCHITECTURE.md` | Canonical model, command pipeline, responsive resolution, history | When a technical decision changes |
 | `DESIGN_SYSTEM.md` | Vetra-inspired editor tokens, components, states, and accessibility | During UI implementation |
+| `CODE_WALKTHROUGH.md` | Per-step reading guide: what changed, where, and why | After every completed step |
 | `TEST_PLAN.md` | Unit, integration, and end-to-end coverage | Whenever behavior is added |
 | `MANUAL_QA.md` | Keyboard, viewport, persistence, and failure-path checks | After each UI-bearing step |
 | `REQUIREMENTS_CHECKLIST.md` | Assignment-to-evidence traceability | When evidence exists |

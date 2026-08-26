@@ -113,3 +113,72 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Trade-off: an edit that deletes the `content.text` key entirely will be rejected; clearing text to `""` is the supported path.
 - Evidence/test: `src/model/element.test.ts`.
 - Related step/commit: Step 1.
+
+## Step 2 decisions
+
+### 2026-08-26 - Two-layer resolution, no viewport cascade
+
+- Context: three previews must resolve from one document without leaking edits between viewports.
+- Options considered: a CSS-like cascade (mobile inherits tablet inherits desktop); exactly two layers, `base` plus the requested viewport's override (chosen).
+- Decision: `resolved = merge(element.base, element.overrides[viewport])`. No other viewport is read.
+- Why: a cascade would make "edit mobile only" silently depend on tablet, which is exactly the safety property the assignment asks us to prove. Two layers make isolation a structural guarantee rather than a test we hope covers every case.
+- Trade-off: a change meant for "tablet and smaller" must be written to both override slots by the command layer; there is no inheritance shortcut.
+- Evidence/test: `src/engine/responsive-resolver.test.ts` - the isolation table runs over all three viewports and asserts the two protected viewports in full, plus `never copies one viewport override into another`.
+- Related step/commit: Step 2.
+
+### 2026-08-26 - Explicit merge semantics per shape, not a generic deep merge
+
+- Context: a naive recursive merge would blend halves of two dimensions and would need an `any`-shaped implementation.
+- Decision: property groups merge field by field; `spacing.padding` and `spacing.margin` merge one level deeper; dimensions (`{value, unit}`) and arrays are atomic and replace wholesale.
+- Why: partial dimension blending (`{value: 100}` over `{value: 760, unit: 'px'}`) is never a meaningful edit, and keeping the merge shape-aware keeps the engine fully typed.
+- Trade-off: adding a new nested property group means extending `mergeEditableProperties`; the compiler does not force that, so it is called out here and covered by tests.
+- Evidence/test: `merge semantics` block, especially `merges padding and margin one level deeper` and `treats a dimension as atomic`.
+- Related step/commit: Step 2.
+
+### 2026-08-26 - Presence is decided by `!== undefined`, never truthiness
+
+- Context: `0`, `''`, and `false` are all valid editable values (opacity 0, empty text, zero padding).
+- Decision: the resolver copies only keys whose value is not `undefined`, via a single `definedOnly` helper, and an explicitly `undefined` override field means "not specified" rather than "erase".
+- Why: `override.fontSize || base.fontSize` style code silently loses zero-valued edits; overrides remove a field by omitting the key, which is what the command layer will emit.
+- Trade-off: `definedOnly` carries one contained, commented type assertion (`Object.fromEntries(...) as T`) - the only assertion in the engine. Its behaviour is pinned by the `falsy but valid values` tests.
+- Evidence/test: `falsy but valid values` block (4 tests).
+- Related step/commit: Step 2.
+
+## Step 3 decisions
+
+### 2026-08-26 - A multi-target command is atomic
+
+- Context: `IMPLEMENTATION_STEPS.md` asks for an explicit decision on multi-target atomicity.
+- Options considered: partial application (apply the valid targets, report the rest); all-or-nothing (chosen).
+- Decision: every target is validated before any target is applied; one invalid target rejects the whole command.
+- Why: a partially applied manual edit leaves the user unable to say what the document now contains, and it makes `baseRevision` meaningless for the targets that did land. Independent per-element AI outcomes are still supported, by emitting one command per accepted proposal in Step 11.
+- Trade-off: a marquee selection containing one bad element fails entirely; the error names the offending element so the user can deselect it.
+- Evidence/test: `src/engine/edit-command.test.ts` (`rejects the whole multi-target command when one target is unknown`), `src/engine/apply-edit-command.test.ts` (`rejections never reach current state`).
+- Related step/commit: Step 3.
+
+### 2026-08-26 - Validate, apply, then re-validate the result
+
+- Context: an individually valid patch could still produce an invalid element or document.
+- Decision: `applyEditCommand` runs `parseTemplateDocument` on the newly built document and refuses to return it if it fails, reporting `invalid-result`.
+- Why: it makes "invalid state can never become current state" a property of the pipeline rather than a property of every patch author. The re-parse is a gate only - the structurally shared `next` document is returned, so untargeted elements keep their object identity.
+- Trade-off: one extra full-document parse per commit (26 elements today); negligible, and it buys a hard guarantee.
+- Evidence/test: `refuses to commit into a document that would not be valid afterwards`.
+- Related step/commit: Step 3.
+
+### 2026-08-26 - The engine reads no clock and no random source
+
+- Context: commands need an id and a timestamp, and history entries will too.
+- Decision: `createEditCommand` requires `id` and `createdAt` from the caller; nothing in `src/engine` calls `Date.now()` or `crypto.randomUUID()`.
+- Why: determinism. The AI scenario engine (Step 10) must produce identical output for identical input, and tests must be able to assert exact values.
+- Trade-off: the store layer (Step 6) has to own id and timestamp generation and inject it.
+- Evidence/test: every command test uses a fixed `cmd.N` id and a fixed ISO timestamp.
+- Related step/commit: Step 3.
+
+### 2026-08-26 - A patch that sets nothing is rejected
+
+- Context: the code surface and the canvas can both submit a "change" that changes nothing.
+- Decision: an empty patch fails with `empty-change`.
+- Why: it prevents no-op history entries and no-op revision bumps from accumulating and making the history panel useless.
+- Trade-off: callers must diff before submitting; the code surface already needs a diff to build the patch.
+- Evidence/test: `rejects a patch that sets nothing`.
+- Related step/commit: Step 3.

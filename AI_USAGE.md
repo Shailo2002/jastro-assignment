@@ -124,3 +124,29 @@ Copy after each substantial AI session:
 - Manual check: serialized the fixture and inspected it - 26 elements, ~20 KB of JSON, `revision`/`schemaVersion` present, stable dot-separated ids, no functions, DOM/React objects, `Set`, `Map`, class instances, or cycles. `src/model/serialization.test.ts` asserts the same programmatically by walking the document.
 - Remaining risk: the `heading`/`text`/`badge`/`button` base-text invariant means a patch that deletes `content.text` outright is rejected; Step 3's command layer should clear text to `""` instead. `zod` is not yet in the production bundle because no runtime code imports the model - that changes in Step 5.
 - Commit: pending user approval.
+
+### 2026-08-26 - Step 2 - Responsive resolver and isolation
+
+- Model/tool: Claude Code (Opus 5).
+- Bounded request: implement only Step 2 as pure engine functions - deterministic deep resolution of base plus the chosen viewport override, with tests proving a mobile-only change leaves desktop and tablet unchanged, including nested style fields. No UI or store code.
+- Files changed: `src/engine/responsive-resolver.ts`, `src/engine/responsive-resolver.test.ts`, `DECISION_LOG.md`, `AI_USAGE.md`. No dependency added.
+- Diff reviewed: yes.
+- Suggestion accepted: exporting `resolveAllViewports` alongside the per-viewport resolver, so isolation can be asserted in a single comparison instead of three separate calls - it made the regression table much harder to write incorrectly.
+- Suggestion corrected/rejected: the first shape considered was a generic recursive deep merge over `unknown`. Rejected: it would deep-merge `{value, unit}` dimensions (a meaningless half-and-half result) and would have needed either an `any`-shaped implementation or a re-parse of the merged output on every render. Replaced with shape-aware merge functions, which also let the merge rules be stated in one comment block.
+- Tests actually run: `pnpm test -- responsive` (37 tests passed), `pnpm test` (8 files, 135 tests passed), `pnpm typecheck` (pass), `pnpm lint` (pass), `pnpm build` (pass).
+- Manual check: read the table-driven cases and confirmed each asserts the two protected viewports in full - `toEqual(richBase())` and a `JSON.stringify` equality for the nested-spacing case - not only the field that changed. Purity is checked by resolving a deeply frozen element and a deeply frozen document; a mutation would throw under ES module strict mode.
+- Remaining risk: `mergeEditableProperties` must be extended by hand if a future property group gains a nested object; the compiler will not catch the omission. Noted in `DECISION_LOG.md`.
+- Commit: pending user approval.
+
+### 2026-08-26 - Step 3 - EditCommand validation and immutable apply
+
+- Model/tool: Claude Code (Opus 5).
+- Bounded request: implement only Step 3 - typed `EditCommand` plus runtime validation (known targets, editable-field allowlist, value validation, structural invariants, scope, `baseRevision`), and immutable apply. No history, stores, canvas, code UI, or AI engine.
+- Files changed: `src/engine/edit-command.ts`, `src/engine/apply-edit-command.ts`, their two test files, `src/model/ids.ts` (added `CommandId`), `CODE_WALKTHROUGH.md` (new), `PROJECT_SETUP.md`, `DECISION_LOG.md`, `AI_USAGE.md`. No dependency added.
+- Diff reviewed: yes.
+- Suggestion accepted: mapping Zod `unrecognized_keys` issues to a distinct `forbidden-field` error code instead of a generic validation failure, so the UI can tell a user "you cannot change `parentId`" rather than "invalid input".
+- Suggestion corrected/rejected: the first draft of `applyEditCommand` returned the re-parsed document from the post-apply verification. Corrected to return the structurally shared `next` document, because the re-parse rebuilds every object and would have destroyed the identity sharing that lets tests prove untargeted elements were not touched. Two test files also had to stop pretending invalid patches were typed patches - they now pass raw `unknown` values through a `withPatch` helper rather than casting.
+- Tests actually run: `pnpm test -- command` (2 files, 61 tests passed), `pnpm test` (10 files, 196 tests passed), `pnpm typecheck` (pass), `pnpm lint` (pass), `pnpm build` (pass).
+- Manual check: listed every exported function in `src/model` and `src/engine`. `applyEditCommand` is the only function that produces a new canonical document, and `createInitialTemplateDocument` the only one that produces a fresh one. There is no `setDocument`, no deep-mutation helper, and no exported writer that bypasses validation.
+- Remaining risk: `invalid-result` is currently only reachable when the document was already integrity-broken before the command, because no patch can delete a required field. It is retained as defence in depth for Step 7 structural operations (duplicate/delete/reorder), which can break integrity.
+- Commit: pending user approval.

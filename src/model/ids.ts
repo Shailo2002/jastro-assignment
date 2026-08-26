@@ -19,6 +19,7 @@ const MAX_ID_LENGTH = 120
 export type ElementId = string & { readonly __brand: 'ElementId' }
 export type DocumentId = string & { readonly __brand: 'DocumentId' }
 export type RevisionEntryId = string & { readonly __brand: 'RevisionEntryId' }
+export type CommandId = string & { readonly __brand: 'CommandId' }
 
 function matches(pattern: RegExp, value: string): boolean {
   return value.length > 0 && value.length <= MAX_ID_LENGTH && pattern.test(value)
@@ -33,6 +34,10 @@ export function isDocumentId(value: unknown): value is DocumentId {
 }
 
 export function isRevisionEntryId(value: unknown): value is RevisionEntryId {
+  return typeof value === 'string' && matches(SLUG_ID_PATTERN, value)
+}
+
+export function isCommandId(value: unknown): value is CommandId {
   return typeof value === 'string' && matches(SLUG_ID_PATTERN, value)
 }
 
@@ -60,6 +65,13 @@ export function revisionEntryId(value: string): RevisionEntryId {
   return value
 }
 
+export function commandId(value: string): CommandId {
+  if (!isCommandId(value)) {
+    throw new Error(`Invalid command id "${value}".`)
+  }
+  return value
+}
+
 export const elementIdSchema = z.custom<ElementId>(isElementId, {
   error:
     'Element ids must be dot-separated lowercase segments, for example "hero.cta.primary".',
@@ -73,3 +85,7 @@ export const revisionEntryIdSchema = z.custom<RevisionEntryId>(
   isRevisionEntryId,
   { error: 'Revision entry ids must be lowercase slugs.' },
 )
+
+export const commandIdSchema = z.custom<CommandId>(isCommandId, {
+  error: 'Command ids must be lowercase slugs.',
+})
