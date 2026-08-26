@@ -66,3 +66,50 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Why: Vite 7's default host resolves to `::1` only; probing confirmed `localhost` and `[::1]` return 200 while `127.0.0.1` does not connect.
 - Evidence/test: `pnpm test:e2e` passes after the change.
 - Related step/commit: Step 0.
+
+## Step 1 decisions
+
+### 2026-08-26 - `base` and viewport overrides share one schema
+
+- Context: `ARCHITECTURE.md` types a base as `EditableProperties` and an override as `DeepPartial<EditableProperties>`.
+- Options considered: a generated `DeepPartial<>` type plus a second schema; one schema in which every group and field is already optional (chosen).
+- Decision: `EditableProperties` is fully optional at every level, so it is its own deep-partial. `EditablePropertyPatch` is an alias, and `editablePropertyPatchSchema` is the same schema object.
+- Why: the resolver (Step 2), the code surface diff (Step 8), and AI patches (Step 10) all validate against one schema instead of two that could drift apart.
+- Trade-off: a base value can legitimately be absent, so the renderer must supply defaults rather than assume every field exists.
+- Evidence/test: `src/model/properties.test.ts`, `src/model/element.test.ts` ("viewport override slots").
+- Related step/commit: Step 1.
+
+### 2026-08-26 - Forbidden fields are rejected structurally, not by a denylist
+
+- Context: `id`, `parentId`, `childIds`, `revision`, `schemaVersion`, and `history` must never be writable through a property patch.
+- Decision: every object in the property schema is a `z.strictObject`, so any key outside the editable boundary fails validation as an unknown key. `FORBIDDEN_PROPERTY_KEYS` is exported as documentation and for the Step 3 command allowlist message.
+- Why: a denylist can be outgrown; a strict allowlist rejects fields nobody thought to forbid.
+- Trade-off: adding a new editable property requires a schema change, which is the intended friction.
+- Evidence/test: `src/model/properties.test.ts` rejects each forbidden key and unknown group keys; `src/model/element.test.ts` rejects a forbidden field nested inside a viewport override.
+- Related step/commit: Step 1.
+
+### 2026-08-26 - Constrained value types instead of arbitrary CSS strings
+
+- Context: the assignment allows structured editing but must stay safe and deterministic.
+- Decision: colors are hex, `transparent`, or `var(--token)`; links and image sources must be relative, an in-page anchor, or `https:`; dimensions are `'auto' | {value, unit}`; every numeric field is range-bounded.
+- Why: it blocks `javascript:` URLs and unrenderable values at the model boundary, and it gives the AI proposal engine a small, checkable value space.
+- Trade-off: less expressive than raw CSS; documented as the intentional safety-over-generality decision.
+- Evidence/test: `src/model/properties.test.ts` (colors, URLs, ranges, falsy-but-valid values).
+- Related step/commit: Step 1.
+
+### 2026-08-26 - Branded id types with predicate-based constructors
+
+- Context: `CLAUDE.md` asks for stable branded id types or clear aliases, and forbids unsafe casts.
+- Decision: `ElementId`/`DocumentId`/`RevisionEntryId` are branded string subtypes produced by type-predicate guards (`isElementId`) and throwing constructors (`elementId`). Zod uses `z.custom<ElementId>(isElementId)`, which infers the brand with no cast.
+- Trade-off: `Record<ElementId, T>` lookups need a branded key, so integrity checking builds a plain `Map<string, TemplateElement>` internally.
+- Evidence/test: `src/model/ids.test.ts`.
+- Related step/commit: Step 1.
+
+### 2026-08-26 - Text and image elements must carry base content
+
+- Context: structural invariants belong in the schema so an invalid edit is rejected rather than rendered.
+- Decision: `heading`, `text`, `badge`, and `button` require a `base.content.text` string; `image` requires `imageSrc` and `imageAlt`. Empty strings are allowed.
+- Why: guarantees the renderer and the accessibility story (`imageAlt` can never be dropped by an edit).
+- Trade-off: an edit that deletes the `content.text` key entirely will be rejected; clearing text to `""` is the supported path.
+- Evidence/test: `src/model/element.test.ts`.
+- Related step/commit: Step 1.

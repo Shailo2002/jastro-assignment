@@ -111,3 +111,16 @@ Copy after each substantial AI session:
 - Manual check: dev server serves the placeholder page on `http://localhost:5173` (HTTP 200); the e2e smoke spec asserts zero console/page errors on load; all pre-existing Markdown files are untouched.
 - Remaining risk: `noPropertyAccessFromIndexSignature` and `exactOptionalPropertyTypes` are strict enough to surface friction in later steps; that is intentional. Playwright browsers are installed locally only and would need `playwright install` in CI.
 - Commit: pending user approval.
+
+### 2026-08-26 - Step 1 - Canonical types, schemas, and initial template fixture
+
+- Model/tool: Claude Code (Opus 5).
+- Bounded request: implement only Step 1 - strict types and Zod schemas for the canonical document, elements, editable properties, viewport overrides, and history metadata, plus one original one-page template fixture and validation/serialization tests. No stores, commands, editing UI, or AI behavior.
+- Files changed: `src/model/{ids,viewport,properties,element,history,document,initial-template,index}.ts`, `src/model/{ids,properties,element,document,initial-template,serialization}.test.ts`, `public/template/hero-preview.svg`, `package.json` (added `zod`), `README.md`, `DECISION_LOG.md`, `AI_USAGE.md`.
+- Diff reviewed: yes, module by module before running the gate.
+- Dependency accepted and why: `zod@4.4.3` - the only new dependency. `CLAUDE.md` requires runtime validation of external/untrusted structured data, which persisted state and the code surface both are.
+- Suggestion corrected/rejected: two type-safety corrections were needed against the strict compiler. (1) `ElementOverrides` was hand-written as `Partial<Record<Viewport, EditablePropertyPatch>>`, which is incompatible with `exactOptionalPropertyTypes` and the schema's inferred `T | undefined` optional properties; it is now inferred from the schema so the type cannot drift from the validator. (2) The integrity checker indexed `Record<ElementId, TemplateElement>` with plain strings, which `noPropertyAccessFromIndexSignature`/`noImplicitAny` rejected; rather than cast, it now builds an internal `Map<string, TemplateElement>`. Two unsafe `as unknown as` casts written in the first draft of the fixture tests were also removed in favour of the real `elementId()` constructor.
+- Tests actually run: `pnpm test -- model` (6 files, 97 tests passed), `pnpm test` (7 files, 98 tests passed), `pnpm typecheck` (pass), `pnpm lint` (pass), `pnpm build` (pass).
+- Manual check: serialized the fixture and inspected it - 26 elements, ~20 KB of JSON, `revision`/`schemaVersion` present, stable dot-separated ids, no functions, DOM/React objects, `Set`, `Map`, class instances, or cycles. `src/model/serialization.test.ts` asserts the same programmatically by walking the document.
+- Remaining risk: the `heading`/`text`/`badge`/`button` base-text invariant means a patch that deletes `content.text` outright is rejected; Step 3's command layer should clear text to `""` instead. `zod` is not yet in the production bundle because no runtime code imports the model - that changes in Step 5.
+- Commit: pending user approval.

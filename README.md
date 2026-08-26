@@ -100,9 +100,10 @@ Full design: [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Template and visual source
 
-- Template: planned original one-page AI/marketing business template authored for this assignment. Update this statement if a licensed external template or asset is used.
+- Template: **"Aster Labs"**, an original one-page business template authored for this assignment. It is not derived from a third-party template, theme, or marketplace download. Source of truth: `src/model/initial-template.ts` (hero, features, call-to-action, and footer sections; 26 elements with stable ids such as `hero.heading`, `hero.cta.primary`, and `features.card.1`).
+- Template assets: one original SVG, `public/template/hero-preview.svg`, drawn for this repository. No external image, icon set, or font file is bundled.
 - Editor visual direction: inspired by [Vetra](https://vetra-app.vercel.app/) - dark neutral surfaces, blue accent, thin borders, rounded controls, restrained glow. The editor adapts the style and does not copy the site's content.
-- Any image, icon, font, or component-library source must be listed here before submission.
+- Any additional image, icon, font, or component-library source must be listed here before submission.
 
 ## Main dependencies
 

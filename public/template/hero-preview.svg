@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 420" width="880" height="420" role="img" aria-label="Abstract preview of one template rendered as desktop, tablet, and mobile frames">
+  <defs>
+    <linearGradient id="asterSurface" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#16181d" />
+      <stop offset="100%" stop-color="#0b0c10" />
+    </linearGradient>
+    <linearGradient id="asterAccent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5b8def" />
+      <stop offset="100%" stop-color="#8ab4ff" />
+    </linearGradient>
+  </defs>
+
+  <rect width="880" height="420" rx="12" fill="url(#asterSurface)" />
+
+  <!-- desktop frame -->
+  <rect x="40" y="48" width="460" height="324" rx="10" fill="#0f1013" stroke="#262626" />
+  <rect x="64" y="76" width="180" height="12" rx="6" fill="url(#asterAccent)" />
+  <rect x="64" y="102" width="330" height="10" rx="5" fill="#3f3f46" />
+  <rect x="64" y="122" width="286" height="10" rx="5" fill="#2c2c31" />
+  <rect x="64" y="160" width="124" height="34" rx="8" fill="url(#asterAccent)" />
+  <rect x="200" y="160" width="124" height="34" rx="8" fill="none" stroke="#3f3f46" />
+  <rect x="64" y="222" width="130" height="120" rx="8" fill="#16181d" stroke="#262626" />
+  <rect x="209" y="222" width="130" height="120" rx="8" fill="#16181d" stroke="#262626" />
+  <rect x="354" y="222" width="130" height="120" rx="8" fill="#16181d" stroke="#262626" />
+
+  <!-- tablet frame -->
+  <rect x="530" y="48" width="200" height="324" rx="10" fill="#0f1013" stroke="#262626" />
+  <rect x="552" y="76" width="120" height="12" rx="6" fill="url(#asterAccent)" />
+  <rect x="552" y="102" width="156" height="10" rx="5" fill="#3f3f46" />
+  <rect x="552" y="140" width="72" height="30" rx="8" fill="url(#asterAccent)" />
+  <rect x="552" y="196" width="74" height="70" rx="8" fill="#16181d" stroke="#262626" />
+  <rect x="636" y="196" width="74" height="70" rx="8" fill="#16181d" stroke="#262626" />
+  <rect x="552" y="280" width="74" height="62" rx="8" fill="#16181d" stroke="#262626" />
+
+  <!-- mobile frame -->
+  <rect x="760" y="48" width="80" height="324" rx="12" fill="#0f1013" stroke="#262626" />
+  <rect x="774" y="76" width="52" height="10" rx="5" fill="url(#asterAccent)" />
+  <rect x="774" y="98" width="40" height="8" rx="4" fill="#3f3f46" />
+  <rect x="774" y="126" width="52" height="26" rx="8" fill="url(#asterAccent)" />
+  <rect x="774" y="170" width="52" height="52" rx="8" fill="#16181d" stroke="#262626" />
+  <rect x="774" y="234" width="52" height="52" rx="8" fill="#16181d" stroke="#262626" />
+  <rect x="774" y="298" width="52" height="44" rx="8" fill="#16181d" stroke="#262626" />
+</svg>
