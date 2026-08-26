@@ -9,6 +9,19 @@ Run the relevant section after each implementation step. Run the full checklist 
 - Date: TODO
 - Tester: TODO
 
+## Template gallery
+
+- [ ] Default URL opens the template gallery, not directly into the editor.
+- [ ] Exactly one real template, Aster Labs, is shown; no fake inventory appears.
+- [ ] Card thumbnail is a real read-only render and its internal links cannot receive focus.
+- [ ] Search has a visible label and can find `marketing` or `responsive`.
+- [ ] A no-result search shows a clear empty state and Clear filters restores the card.
+- [ ] All templates and Marketing filters work and show honest counts.
+- [ ] Use template opens the editor by pointer and keyboard.
+- [ ] A restored saved project is labelled Continue editing.
+- [ ] Back to templates returns without resetting document state.
+- [ ] Gallery has no page-level horizontal scrolling at 1280, 768, or 375 px.
+
 ## Editor shell
 
 - [ ] Opens without console errors.
@@ -33,7 +46,13 @@ Run the relevant section after each implementation step. Run the full checklist 
 - [ ] Layers and canvas show the same selection.
 - [ ] Tab/arrow navigation reaches selectable elements/layers.
 - [ ] Enter/Space selection works.
-- [ ] Selection and keyboard focus look different.
+- [ ] Shift/Ctrl/Cmd + Enter adds and removes from the keyboard.
+- [ ] Escape clears the selection from either surface (documented escape shortcut).
+- [ ] Selection and keyboard focus look different (solid selection border vs dashed focus ring).
+- [ ] The toolbar reports the selected count and readable names as text.
+- [ ] The most recently added target is marked as the active/primary one.
+- [ ] Selecting never changes the revision number shown in the canvas status line.
+- [ ] Overlay boxes stay aligned with the template at every preview size and when Fit is off.
 
 ## Manual editing
 
@@ -122,4 +141,3 @@ Without using a pointer:
 - [ ] Production console has no actionable errors.
 - [ ] Core end-to-end smoke test passes against production.
 - [ ] README setup commands work in a clean checkout.
-

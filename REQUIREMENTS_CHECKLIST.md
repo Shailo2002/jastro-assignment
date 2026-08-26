@@ -21,11 +21,11 @@ This is the authoritative local checklist derived from the supplied six-page ass
 
 ## Required journey
 
-- [ ] Load the template immediately or through one low-friction “Use Template” action.
+- [ ] Load the template through the gallery's one low-friction “Use Template” action.
 - [ ] Switch among desktop (~1440), tablet (~768), and mobile (~375) previews.
-- [ ] Select one element by click.
-- [ ] Add/remove elements in a group using Shift/Ctrl/Cmd-click or drag marquee.
-- [ ] Selection is visible and keyboard-operable.
+- [x] Select one element by click.
+- [x] Add/remove elements in a group using Shift/Ctrl/Cmd-click (marquee drag not implemented; modified click and keyboard cover the requirement).
+- [x] Selection is visible and keyboard-operable.
 - [ ] Edit on canvas and see the canonical renderer update.
 - [ ] Make valid structured code edits and see the canvas update.
 - [ ] Enter invalid code, see a useful error, and preserve the last valid state.
@@ -99,4 +99,3 @@ This is the authoritative local checklist derived from the supplied six-page ass
 - Multiplayer collaboration.
 - Arbitrary JSX/HTML compilation.
 - Full freeform design-tool parity.
-

@@ -26,6 +26,41 @@
   color: var(--text-primary);
 }
 
+.shell__identity {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.shell__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--target-touch-min);
+  height: var(--target-touch-min);
+  padding: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.shell__back:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.shell__back svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .shell__controls {
   display: flex;
   flex-wrap: wrap;
@@ -149,6 +184,23 @@
   color: var(--text-muted);
 }
 
+/* Body layout -------------------------------------------------------------- */
+
+.shell__body {
+  display: grid;
+  /* The canvas track is min-width 0 so a 1440 px preview cannot push the
+     layers panel - or the page - into horizontal overflow. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+  min-width: 0;
+  min-height: 0;
+}
+
+@media (width <= 900px) {
+  .shell__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Canvas ------------------------------------------------------------------ */
 
 .shell__canvas {
@@ -161,10 +213,44 @@
   background: var(--surface-canvas);
 }
 
+.shell__canvas-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+}
+
 .shell__status {
   margin: 0;
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+/* Selection summary ------------------------------------------------------- */
+
+.selection-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+}
+
+.selection-summary__count {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.selection-summary__names {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview {
@@ -178,6 +264,7 @@
 }
 
 .preview__frame {
+  position: relative;
   transform-origin: top left;
   background: var(--surface-canvas);
   border: 1px solid var(--border-default);
@@ -188,6 +275,193 @@
 @media (prefers-reduced-motion: reduce) {
   .segmented__item,
   .toolbar-button {
+    transition: none;
+  }
+}
+
+/* Canvas selection overlay ------------------------------------------------- */
+
+/* Sits inside the scaled frame, so its coordinates share the frame transform.
+   The layer itself is inert; only the individual targets take pointer input. */
+.selection-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.selection-target {
+  position: absolute;
+  display: block;
+  padding: 0;
+  overflow: visible;
+  font: inherit;
+  color: transparent;
+  pointer-events: auto;
+  cursor: pointer;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--radius-control);
+}
+
+/* Hover hints at interactivity but is never the only indication: the label and
+   the selected border below carry the real state. */
+.selection-target:hover {
+  border-color: var(--border-strong);
+}
+
+/* Focus and selection must not look alike: focus is a dashed offset ring, a
+   selected target is a solid 2 px selection border with a name label. */
+.selection-target:focus-visible {
+  outline: 2px dashed var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.selection-target[data-selected='true'] {
+  background: var(--selection-fill);
+  border-color: var(--border-selection);
+}
+
+.selection-target[data-primary='true'] {
+  box-shadow: 0 0 0 1px var(--action-primary);
+}
+
+/* An unmeasured target still exists for keyboard and assistive technology; it
+   simply has no geometry to draw yet. */
+.selection-target[data-measured='false'] {
+  position: static;
+  display: block;
+  width: 100%;
+  height: 0;
+}
+
+.selection-target__label {
+  position: absolute;
+  top: -22px;
+  left: -2px;
+  display: none;
+  max-width: 220px;
+  padding: 2px var(--space-2);
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-on-accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--action-primary);
+  border-radius: var(--radius-pill);
+}
+
+.selection-target[data-selected='true'] .selection-target__label {
+  display: block;
+}
+
+/* Layers panel ------------------------------------------------------------ */
+
+.layers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  background: var(--surface-panel);
+  border-left: 1px solid var(--border-default);
+}
+
+@media (width <= 900px) {
+  .layers {
+    border-top: 1px solid var(--border-default);
+    border-left: 0;
+  }
+}
+
+.layers__heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.layers__tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layers__item {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding-block: var(--space-1);
+  padding-inline-end: var(--space-2);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: start;
+  cursor: pointer;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--radius-control);
+}
+
+.layers__item:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.layers__item:focus-visible {
+  outline: 2px dashed var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.layers__item[aria-selected='true'] {
+  color: var(--text-primary);
+  background: var(--selection-fill);
+  border-color: var(--border-selection);
+}
+
+/* The primary target is marked with text as well as weight, so multi-selection
+   is readable without relying on colour. */
+.layers__item[data-primary='true'] .layers__name::after {
+  content: ' \2022 active';
+  color: var(--text-muted);
+}
+
+.layers__type {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.layers__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layers__empty,
+.layers__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selection-target,
+  .layers__item {
     transition: none;
   }
 }

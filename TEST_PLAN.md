@@ -85,6 +85,16 @@ If the scaffold uses npm instead, keep the script names identical and substitute
 
 ## Required integration tests
 
+### Template gallery and entry flow
+
+- Default app route shows the real catalogued template, not the editor or fake inventory.
+- Search matches template metadata and offers a clear empty-state recovery.
+- Use template works with pointer and keyboard activation.
+- The selected template opens the existing editor without changing canonical revision/history.
+- Back to templates returns to the gallery without resetting persisted work.
+- Direct hash entry opens the editor on static hosting.
+- Unknown template and unmatched routes redirect to the gallery.
+
 ### Canvas-code consistency
 
 1. Render selected element from the canonical document.
@@ -121,7 +131,7 @@ If the scaffold uses npm instead, keep the script names identical and substitute
 
 One Playwright test should cover:
 
-1. Load template.
+1. Load the gallery and choose Aster Labs.
 2. Switch desktop/tablet/mobile.
 3. Select heading and CTA using keyboard/additive selection.
 4. Apply a mobile-only manual style edit.
@@ -157,4 +167,3 @@ AND listed manual check
 ```
 
 Record actual command results in `AI_USAGE.md` when AI produced or changed code.
-

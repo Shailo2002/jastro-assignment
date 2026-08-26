@@ -2,7 +2,7 @@
 
 A browser-based website-builder prototype that lets a non-technical owner safely edit one responsive template through canvas controls, validated structured code, and deterministic AI proposals. Changes are constrained by stable element selection and viewport scope, require explicit acceptance, and can be restored independently per element.
 
-> Status: documentation and architecture prepared; implementation evidence will be added step by step.
+> Status: implemented through Step 6A - canonical model, safety engines, persistence, responsive renderer, preview shell, and one-template gallery entry flow.
 
 ## Links
 
@@ -33,7 +33,7 @@ pnpm build
 
 ## Reviewer journey
 
-1. Load the included responsive template.
+1. Find Aster Labs in the template gallery and choose **Use template**.
 2. Switch desktop, tablet, and mobile preview sizes.
 3. Select one element, then add another with Shift/Ctrl/Cmd-click.
 4. Set All or a single viewport in Scope Lock.
@@ -103,21 +103,20 @@ Full design: [ARCHITECTURE.md](./ARCHITECTURE.md).
 - Template: **"Aster Labs"**, an original one-page business template authored for this assignment. It is not derived from a third-party template, theme, or marketplace download. Source of truth: `src/model/initial-template.ts` (hero, features, call-to-action, and footer sections; 26 elements with stable ids such as `hero.heading`, `hero.cta.primary`, and `features.card.1`).
 - Template assets: one original SVG, `public/template/hero-preview.svg`, drawn for this repository. No external image, icon set, or font file is bundled.
 - Editor visual direction: inspired by [Vetra](https://vetra-app.vercel.app/) - dark neutral surfaces, blue accent, thin borders, rounded controls, restrained glow. The editor adapts the style and does not copy the site's content.
+- Gallery layout direction: inspired by the supplied dark template-marketplace screenshot, reduced to one honest template card with no copied branding, pricing, authentication, or fake inventory.
 - Any additional image, icon, font, or component-library source must be listed here before submission.
 
 ## Main dependencies
 
-Planned, subject to actual installation and review:
+Currently installed and used:
 
-- React + TypeScript + Vite
-- Zustand + Immer for controlled state updates
-- Zod for runtime validation
-- Tailwind CSS and shadcn/ui/Radix primitives for UI
-- Monaco Editor for the structured JSON surface
-- dnd-kit for bounded reorder interaction
-- Vitest + React Testing Library + Playwright for tests
+- React + TypeScript + Vite for the client application and build.
+- React Router DOM in declarative `HashRouter` mode for gallery/editor navigation and static-host-safe direct links.
+- Zod for runtime model and command validation.
+- Vitest + React Testing Library for unit/component tests.
+- Playwright for real-browser flows and responsive checks.
 
-Remove anything not installed and explain every retained dependency before submission.
+The project deliberately uses a small purpose-built document store with React's `useSyncExternalStore`; Zustand and Immer were not installed because a generic state setter would make the guarded commit boundary easier to bypass. Tailwind, shadcn/ui, Monaco, and dnd-kit remain deferred until a later step proves each dependency is necessary.
 
 ## Requirement mapping
 
@@ -140,7 +139,7 @@ The editor visibly states the selected targets and edit scope before manual or A
 
 ## Known cuts
 
-No authentication, backend, database, real model integration, multiplayer collaboration, multiple working templates, arbitrary JSX compilation, or full freeform design-canvas parity.
+No authentication, backend, database, real model integration, multiplayer collaboration, multiple working templates, arbitrary JSX compilation, or full freeform design-canvas parity. The catalog is data-driven so another real template can be added later without redesigning the gallery.
 
 ## AI-assisted development
 
@@ -154,4 +153,3 @@ This project is implemented in bounded steps with AI suggestions reviewed throug
 - [MANUAL_QA.md](./MANUAL_QA.md) - hands-on verification
 - [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) - Vetra-inspired UI rules
 - [PRODUCT_NOTES.md](./PRODUCT_NOTES.md) - product rules and extra capability
-

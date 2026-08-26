@@ -35,7 +35,7 @@ The original discussion-derived plan remains available in [project_plan.md](./pr
 
 ```text
 typed model -> responsive resolver -> command validation -> history
--> renderer -> selection -> manual editing -> code editing
+-> renderer -> template gallery -> selection -> manual editing -> code editing
 -> deterministic AI proposal/review -> persistence -> polish -> submission
 ```
 
@@ -50,4 +50,3 @@ The durable source of truth must be typed JSON data with stable element IDs. Can
 - Record unexpected decisions and corrected AI suggestions.
 - Commit only when the step's exit gate passes.
 - Do not mark documentation checkboxes from intention; mark them only from observed evidence.
-

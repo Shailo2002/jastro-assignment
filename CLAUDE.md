@@ -20,6 +20,7 @@ Treat `project_plan.md` as background advice, not an authoritative specification
 - Do not implement future-step features “while you are here.”
 - Do not add authentication, backend APIs, a database, a real LLM, collaboration, or multiple templates.
 - Do not make the DOM the canonical state.
+- Keep template catalog/search/route state separate from the canonical editor document and history.
 - Do not dynamically compile arbitrary JSX/React code; the code surface edits validated structured JSON.
 - Do not allow canvas, code, AI, or restore to bypass the shared validation and commit pipeline.
 - Do not mutate current template state when an edit, code document, proposal, ID, field, scope, or revision is invalid.
@@ -66,4 +67,3 @@ inspect diff -> run focused tests -> run full tests -> manual check
 ```
 
 The user owns final approval. Do not automatically push, deploy, or create external resources unless explicitly asked.
-

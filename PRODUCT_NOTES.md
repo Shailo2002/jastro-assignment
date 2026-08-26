@@ -17,6 +17,10 @@ A safe completed edit means:
 
 ## Product definitions
 
+### Template selection
+
+The default entry is a focused catalog containing the one original Aster Labs template. Selecting it opens the existing persisted editor project. Catalog filters and routing are transient UI state; they do not modify the template document or create history.
+
 ### Element
 
 An element is a typed template node with a stable ID, type, parent/child relationship, base editable properties, optional viewport overrides, revision, and per-element history. It is not identified by CSS class, visible text, or DOM position.
@@ -82,7 +86,7 @@ Implementation evidence: TODO after Scope Lock step.
 
 ## Cuts and assumptions
 
-- One original responsive template rather than a gallery of multiple working templates.
+- One original responsive template in an extensible catalog rather than pretending multiple working templates exist.
 - No authentication, backend, database, or cloud sync.
 - No real LLM; the application demo is deterministic.
 - Structured JSON code editing rather than arbitrary JSX compilation.
@@ -95,4 +99,3 @@ Implementation evidence: TODO after Scope Lock step.
 1. Add drag-marquee selection with equivalent keyboard commands and collision/accessibility tests.
 2. Add a visual proposal diff overlay on the canvas while keeping pre-accept state isolated.
 3. Add import/export of versioned template JSON with migration and corruption recovery.
-

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 /** MANUAL_QA "Editor shell" is written for 1280 x 720. */
 test.use({ viewport: { width: 1280, height: 720 } })
 
-test('editor shell loads without console errors', async ({ page }) => {
+test('template gallery opens the selected template without console errors', async ({ page }) => {
   const consoleErrors: string[] = []
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text())
@@ -12,6 +12,9 @@ test('editor shell loads without console errors', async ({ page }) => {
 
   await page.goto('/')
 
+  await expect(page.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeVisible()
+  await page.getByRole('button', { name: /Use template|Continue editing/ }).click()
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
   await expect(
     page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' }),
   ).toBeVisible()
@@ -22,7 +25,7 @@ test('editor shell loads without console errors', async ({ page }) => {
 test('every preview size is inspectable without editor-shell horizontal overflow', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/#/editor/aster-labs')
 
   const frame = page.locator('.preview__frame')
   const hasPageOverflow = async (): Promise<boolean> =>
@@ -56,8 +59,22 @@ test('every preview size is inspectable without editor-shell horizontal overflow
 test('viewport controls are reachable and operable by keyboard', async ({ page }) => {
   await page.goto('/')
 
+  const search = page.getByRole('searchbox', { name: 'Search templates' })
+  await search.focus()
   await page.keyboard.press('Tab')
-  await expect(page.getByRole('button', { name: /Desktop/ })).toBeFocused()
+  await expect(page.getByRole('button', { name: /All templates/ })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: /Marketing/ })).toBeFocused()
+  await page.keyboard.press('Tab')
+
+  // The real template thumbnail contains links, but its inert preview must not
+  // interrupt the gallery's keyboard route to the one explicit card action.
+  const useTemplate = page.getByRole('button', { name: /Use template|Continue editing/ })
+  await expect(useTemplate).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeVisible()
+
+  await page.getByRole('button', { name: /Desktop/ }).focus()
   await page.keyboard.press('Tab')
   await page.keyboard.press('Enter')
 
@@ -66,4 +83,46 @@ test('viewport controls are reachable and operable by keyboard', async ({ page }
     'true',
   )
   await expect(page.locator('.preview__frame')).toHaveCSS('width', '768px')
+})
+
+test('canvas selection overlay lines up with the rendered element and agrees with layers', async ({
+  page,
+}) => {
+  await page.goto('/#/editor/aster-labs')
+
+  const rendered = page.locator('h2[data-element-id="hero.heading"]')
+  const overlayTarget = page.locator('.selection-target[data-target-id="hero.heading"]')
+
+  // jsdom cannot measure, so this is the only place the overlay geometry is
+  // actually verified: the hit target must sit on top of what it selects.
+  await expect.poll(async () => {
+    const renderedBox = await rendered.boundingBox()
+    const targetBox = await overlayTarget.boundingBox()
+    if (renderedBox === null || targetBox === null) return false
+    return (
+      Math.abs(renderedBox.x - targetBox.x) < 2 &&
+      Math.abs(renderedBox.y - targetBox.y) < 2 &&
+      Math.abs(renderedBox.width - targetBox.width) < 2 &&
+      Math.abs(renderedBox.height - targetBox.height) < 2
+    )
+  }).toBe(true)
+
+  await overlayTarget.click()
+  await expect(overlayTarget).toHaveAttribute('aria-selected', 'true')
+  await expect(
+    page.getByRole('tree', { name: 'Template layers' }).locator('[data-target-id="hero.heading"]'),
+  ).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('status')).toContainText('1 selected')
+
+  // Additive selection from the layers tree adds a second independent id.
+  await page
+    .getByRole('tree', { name: 'Template layers' })
+    .locator('[data-target-id="cta.button"]')
+    .click({ modifiers: ['Shift'] })
+  await expect(page.getByRole('status')).toContainText('2 selected')
+  await expect(overlayTarget).toHaveAttribute('aria-selected', 'true')
+
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1),
+  ).toBe(false)
 })

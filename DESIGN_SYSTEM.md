@@ -85,6 +85,18 @@ At narrower editor widths, panels should collapse into drawers instead of shrink
 
 Every interactive component must define default, hover, focus-visible, active, disabled, loading, and error behavior where the state is applicable.
 
+### Template gallery
+
+- The gallery must be the low-friction entry to the editor and must not introduce authentication or pricing.
+- The catalog must show only real templates; future inventory must not be represented by fake or disabled cards.
+- Each card must include a real preview, template name, category, concise description, attributes, availability, and an explicit Use template/Open action.
+- The preview must be read-only, removed from keyboard navigation, and hidden from assistive technology so its internal links do not compete with the card action.
+- Search must have a persistent visible label and an empty state with a clear recovery action.
+- Filter controls must use real buttons with `aria-pressed`; counts must match the actual catalog.
+- The card action must be reachable and operable by keyboard, with a visible focus indicator.
+- Returning from the editor must be predictable and must not erase persisted document state.
+- At narrow widths the sidebar must become a stacked header/filter region without page-level horizontal scrolling.
+
 ### Top toolbar
 
 - Anatomy: project name, viewport switcher, edit-scope switcher, preview/fit control, reset.
@@ -226,4 +238,3 @@ Avoid:
 - [ ] Invalid and stale states are understandable.
 - [ ] Reduced-motion behavior is verified.
 - [ ] No unintended page-level horizontal scrolling.
-

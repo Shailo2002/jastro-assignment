@@ -20,6 +20,20 @@ Restore action -------/                       v
 
 Canvas and code do not synchronize directly. They read the same state and submit the same command shape.
 
+## Template catalog and entry flow
+
+The default app view is a transient template catalog. Catalog metadata is app configuration, separate from the durable template document:
+
+```text
+TemplateCatalogItem
+  id + name + category + description + tags
+  createDocument() -> validated TemplateDocument
+```
+
+Selecting `Aster Labs` opens `#/editor/aster-labs`. React Router's declarative `HashRouter` owns matching, navigation, browser history, dynamic template IDs, and the unknown-route fallback. Hash routing is intentionally sufficient for the prototype and works on static hosting without server rewrites. Data-router loaders/actions are not needed because project data remains in the canonical document store. Gallery search, category, and route state never enter the canonical document or history.
+
+The card preview renders a fresh read-only desktop projection from the same normal React renderer. It is inert and hidden from assistive technology so internal template links cannot become gallery actions. The editor store remains the only owner of the current/persisted project.
+
 ## Canonical document
 
 The exact TypeScript may evolve, but the schema must preserve these concepts:
@@ -191,4 +205,3 @@ Avoid a single store action that can mutate arbitrary nested state.
 ## Main trade-off
 
 Structured JSON editing is less flexible than arbitrary JSX/HTML editing, but it makes runtime validation, deterministic responsive resolution, selection-scoped AI patches, and recoverable history feasible within the assignment. This is an intentional safety-over-generality decision.
-

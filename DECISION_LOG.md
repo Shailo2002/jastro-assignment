@@ -291,3 +291,25 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Trade-off: a structural bug shows as missing content rather than a loud failure; the integrity checker remains the loud path.
 - Evidence/test: `invalid structure guards` (dangling child, cycle, unknown root).
 - Related step/commit: Step 6.
+
+## Step 6A decisions
+
+### 2026-08-26 - One honest catalog entry instead of fake inventory
+
+- Context: the reference shows a large marketplace, but the assignment requires only one working template and time is better spent on editor safety.
+- Options considered: duplicate placeholder cards (rejected because they mislead the reviewer); skip the gallery (rejected because the user requested template selection); show one polished card in a data-driven catalog (chosen).
+- Decision: display only Aster Labs with accurate category/count metadata and an explicit note that more can be added later.
+- Why: it satisfies the entry journey without pretending unfinished templates exist.
+- Trade-off: the gallery is visually sparse compared with a commercial marketplace.
+- Evidence/test: `shows the one available original template`; browser screenshot/manual gallery check.
+- Related step/commit: Step 6A.
+
+### 2026-08-26 - Declarative React Router with static-host-safe hash URLs
+
+- Context: the app now has a gallery and editor view, while the assignment remains a small client-side prototype.
+- Options considered: custom regular-expression/hash listeners (worked but duplicated standard routing behavior and produced a scroll-position bug); `BrowserRouter` (requires deployment rewrites); declarative `HashRouter` (chosen).
+- Decision: use React Router DOM's `HashRouter`, `Routes`, `Route`, `Navigate`, `useNavigate`, and `useParams` for `#/templates` and `#/editor/:templateId`.
+- Why: route matching, browser history, unknown-template fallback, and future template IDs are conventional and easier for a reviewer to verify, while direct links still work on static hosting.
+- Trade-off: one runtime dependency and hash URLs that are less polished than clean pathnames. Data-router loaders/actions would be unnecessary complexity and are deliberately not used.
+- Evidence/test: App navigation and unknown-template redirect tests plus the direct-route Playwright smoke test.
+- Related step/commit: Step 6A.

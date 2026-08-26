@@ -391,6 +391,71 @@ Run the Editor shell and Preview sizes sections of `MANUAL_QA.md`.
 
 ---
 
+## Step 6A - Template gallery and editor entry flow
+
+### Goal
+
+Give the reviewer one low-friction page where they can find the available responsive template and open it in the existing editor. Keep the catalog data-driven so another template can be added later without redesigning the page.
+
+### Suggested bounded prompt
+
+```text
+Implement only Step 6A. Add an accessible, responsive template gallery inspired
+by the supplied dark marketplace reference, but use the existing design tokens
+and original Aster Labs template. Show one real read-only template thumbnail,
+search/category filtering, and a Use template action that opens the Step 6 editor.
+Use React Router's simple declarative HashRouter; do not add data-router APIs,
+authentication, pricing, or fake template cards.
+Add keyboard, filter, navigation, and browser smoke tests.
+```
+
+### Work
+
+- Add a typed app-level template catalog with metadata and a canonical-document factory.
+- Make the gallery the default entry page with declarative `HashRouter`, `Routes`, and a dynamic `/editor/:templateId` route.
+- Render a real, inert desktop projection of the template in the card thumbnail.
+- Add a visible search label, honest category counts, and a useful empty state.
+- Keep the one available template honest; do not display fake or disabled templates.
+- Show `Continue editing` instead of `Use template` when a saved project is restored.
+- Add a clear Back to templates action in the editor.
+- Keep gallery state transient; it must never enter the canonical document or history.
+
+### Automated verification
+
+- Gallery shows exactly the catalogued Aster Labs template.
+- Search can produce and clear an empty result.
+- Use template works with pointer and Enter.
+- Gallery-to-editor and editor-to-gallery navigation work.
+- Direct `#/editor/aster-labs` entry works in a real browser.
+- Unknown template IDs redirect safely to the gallery.
+- Gallery and all editor previews create no page-level horizontal overflow.
+
+```bash
+pnpm test -- gallery App
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm test:e2e
+pnpm build
+```
+
+### Manual verification
+
+Run the Template gallery section of `MANUAL_QA.md`, then repeat the Editor shell and Preview sizes checks after entering the editor.
+
+### Exit gate
+
+- The default route is a polished one-template gallery.
+- The template can be opened and the existing Step 6 editor behavior remains intact.
+- Search, filters, selection action, and back navigation are keyboard-operable.
+- No fake inventory, authentication, pricing, data-router complexity, or unrelated marketplace feature was introduced.
+
+### Suggested commit
+
+`feat: add accessible template gallery entry flow`
+
+---
+
 ## Step 7 - Stable-ID single and additive selection
 
 ### Goal

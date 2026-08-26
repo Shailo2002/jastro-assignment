@@ -1,4 +1,4 @@
-import { useRef, type JSX } from 'react'
+import { useRef, type JSX, type ReactNode, type RefObject } from 'react'
 
 import { TemplateRenderer } from '../renderer/TemplateRenderer'
 import type { TemplateDocument } from '../model/document'
@@ -14,11 +14,20 @@ import { fitScale, useElementSize } from './use-element-size'
  * preview inspectable without page-level horizontal scrolling. The wrapper is
  * sized to the scaled dimensions so the scaled frame does not leave a hole in
  * the layout.
+ *
+ * The frame renders no editor affordances of its own. A caller that needs one -
+ * the selection overlay - is handed the frame element and its current scale via
+ * `renderOverlay`, so measured chrome shares the frame's transform without the
+ * renderer learning anything about selection.
  */
 export function PreviewFrame(props: {
   document: TemplateDocument
   viewport: Viewport
   fit: boolean
+  renderOverlay?: (args: {
+    frameRef: RefObject<HTMLDivElement | null>
+    scale: number
+  }) => ReactNode
 }): JSX.Element {
   const { document, viewport, fit } = props
   const containerRef = useRef<HTMLDivElement>(null)
@@ -47,6 +56,7 @@ export function PreviewFrame(props: {
           data-scale={scale}
         >
           <TemplateRenderer document={document} viewport={viewport} />
+          {props.renderOverlay?.({ frameRef, scale })}
         </div>
       </div>
     </div>
