@@ -1,0 +1,193 @@
+/* Editor chrome. Every value here is a semantic token from tokens.css. */
+
+.shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--surface-shell);
+}
+
+.shell__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-panel);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.shell__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.shell__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+/* Segmented control ------------------------------------------------------- */
+
+.segmented {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.segmented__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 88px;
+  min-height: var(--target-touch-min);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  transition: background var(--duration-instant), color var(--duration-instant);
+}
+
+.segmented__item:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+/* Selected state is border + weight + text, never colour alone. */
+.segmented__item[aria-pressed='true'] {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border-color: var(--border-selection);
+}
+
+.segmented__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.segmented__item[aria-pressed='true'] .segmented__label::after {
+  content: ' \2713';
+}
+
+.segmented__meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Toolbar button ---------------------------------------------------------- */
+
+.toolbar-button {
+  min-height: var(--target-touch-min);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  transition: background var(--duration-instant), color var(--duration-instant);
+}
+
+.toolbar-button:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.toolbar-button[aria-pressed='true'] {
+  color: var(--text-primary);
+  border-color: var(--border-selection);
+}
+
+.toolbar-button[aria-pressed='true']::after {
+  content: ' \2713';
+}
+
+/* Scope indicator (disabled placeholder until scoped editing exists) ------- */
+
+.scope-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-control);
+}
+
+.scope-indicator__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.scope-indicator__value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.scope-indicator__hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Canvas ------------------------------------------------------------------ */
+
+.shell__canvas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  background: var(--surface-canvas);
+}
+
+.shell__status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.preview {
+  min-width: 0;
+  /* The frame is scaled to fit, so this only scrolls when Fit is off. */
+  overflow-x: auto;
+}
+
+.preview__scaler {
+  margin-inline: auto;
+}
+
+.preview__frame {
+  transform-origin: top left;
+  background: var(--surface-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .segmented__item,
+  .toolbar-button {
+    transition: none;
+  }
+}

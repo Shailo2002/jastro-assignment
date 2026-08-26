@@ -260,3 +260,34 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Trade-off: after a refresh the reviewer must reselect an element and reopen a panel.
 - Evidence/test: the stored envelope contains `storageVersion`, `documentSchemaVersion`, `savedAt`, and `document`, and nothing else (`writes a versioned envelope`).
 - Related step/commit: Step 5.
+
+## Step 6 decisions
+
+### 2026-08-26 - Scale the preview, do not fake the viewport
+
+- Context: a 1440 px desktop preview must be inspectable inside a ~1200 px editor without the shell scrolling sideways.
+- Options considered: render the template at the canvas's real width and pretend it is 1440 (rejected - the template's own layout would resolve at the wrong width, so the preview would be a lie); an iframe per viewport (heavier, and complicates selection in Step 7); lay out at the true virtual width and CSS-transform-scale to fit (chosen).
+- Decision: the frame is always `width: 1440 | 768 | 375` and is scaled by `min(1, availableWidth / virtualWidth)`. Fit can be turned off, in which case the canvas scrolls rather than the page.
+- Why: what the reviewer sees is genuinely the resolved layout at that width, just smaller.
+- Trade-off: a transform does not affect layout box size, so the wrapper is sized from a measured frame height. Where `ResizeObserver` is unavailable the scale falls back to 1 and the canvas scrolls.
+- Evidence/test: `e2e/smoke.spec.ts` asserts the frame's CSS width per viewport and that `documentElement.scrollWidth` never exceeds the window.
+- Related step/commit: Step 6.
+
+### 2026-08-26 - Heading level comes from structure, not from data
+
+- Context: the previewed template contains headings, and so does the editor shell.
+- Options considered: a `headingLevel` editable property (rejected - it invites an edit that breaks document outline, and it was not in the Step 1 schema); derive from structure (chosen).
+- Decision: the shell owns the page `h1`; a heading whose parent is a root section renders as `h2`, any deeper heading as `h3`.
+- Why: exactly one `h1`, no skipped levels, and no editable field that can produce an inaccessible outline.
+- Trade-off: a designer cannot choose a heading level; visual size is controlled by `typography.fontSize` instead, which is the safer split.
+- Evidence/test: `derives heading levels from structure so no level is skipped`.
+- Related step/commit: Step 6.
+
+### 2026-08-26 - Malformed structure degrades instead of throwing
+
+- Context: the renderer reads `childIds`, which a future structural edit could leave dangling or cyclic.
+- Decision: a missing child id is skipped, a child that appears in its own ancestry is not followed, and depth is capped at 24.
+- Why: the commit pipeline already prevents invalid documents from becoming current state, so this is defence in depth - but a renderer that throws would take the whole editor down and lose the user's ability to fix the problem.
+- Trade-off: a structural bug shows as missing content rather than a loud failure; the integrity checker remains the loud path.
+- Evidence/test: `invalid structure guards` (dangling child, cycle, unknown root).
+- Related step/commit: Step 6.

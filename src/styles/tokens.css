@@ -40,6 +40,10 @@
   --selection-fill: rgb(91 141 239 / 14%);
   --glow-accent: 0 0 48px rgb(59 130 246 / 18%);
 
+  /* Named shadow levels used by rendered template surfaces */
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 24%);
+  --shadow-glow: 0 0 48px rgb(59 130 246 / 18%);
+
   /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
