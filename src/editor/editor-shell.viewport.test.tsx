@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -41,6 +41,16 @@ function headingSize(container: HTMLElement): string | undefined {
   return node instanceof HTMLElement ? node.style.fontSize : undefined
 }
 
+/**
+ * Preview viewport and edit scope are two separate controls with deliberately
+ * similar labels, so every query here names the group it means.
+ */
+function viewportButton(name: RegExp): HTMLElement {
+  return within(screen.getByRole('group', { name: 'Preview viewport' })).getByRole('button', {
+    name,
+  })
+}
+
 describe('editor shell', () => {
   it('renders the template from canonical state', () => {
     render(<EditorShell store={store} />)
@@ -57,16 +67,26 @@ describe('editor shell', () => {
   it('starts on desktop and reports the current preview in text', () => {
     render(<EditorShell store={store} />)
 
-    expect(screen.getByRole('button', { name: /Desktop/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(viewportButton(/Desktop/)).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByText(/Previewing desktop at 1440px/)).toBeInTheDocument()
   })
 
   it('keeps the preview viewport separate from the edit scope', () => {
     render(<EditorShell store={store} />)
 
-    // Scope is visible but is not the viewport control, and is not yet active.
-    expect(screen.getByText('Edit scope')).toBeInTheDocument()
-    expect(screen.getByText('All views')).toBeInTheDocument()
+    const viewportGroup = screen.getByRole('group', { name: 'Preview viewport' })
+    const scopeGroup = screen.getByRole('group', { name: 'Edit scope' })
+
+    expect(viewportGroup).not.toBe(scopeGroup)
+    expect(within(scopeGroup).getByRole('button', { name: /All views/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    // Switching the preview must not move the edit scope.
+    expect(within(viewportGroup).getByRole('button', { name: /Desktop/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 
   it.each([
@@ -78,7 +98,7 @@ describe('editor shell', () => {
 
     expect(headingSize(container)).toBe('56px')
 
-    await user.click(screen.getByRole('button', { name: new RegExp(viewport, 'i') }))
+    await user.click(viewportButton(new RegExp(viewport, 'i')))
 
     expect(headingSize(container)).toBe(expectedSize)
     expect(container.querySelector('.preview__frame')).toHaveStyle({ width: expectedWidth })
@@ -95,9 +115,9 @@ describe('editor shell', () => {
     }
 
     expect(columns()).toBe('repeat(3, minmax(0, 1fr))')
-    await user.click(screen.getByRole('button', { name: /Tablet/ }))
+    await user.click(viewportButton(/Tablet/))
     expect(columns()).toBe('repeat(2, minmax(0, 1fr))')
-    await user.click(screen.getByRole('button', { name: /Mobile/ }))
+    await user.click(viewportButton(/Mobile/))
     expect(columns()).toBe('repeat(1, minmax(0, 1fr))')
   })
 
@@ -108,9 +128,9 @@ describe('editor shell', () => {
     const before = store.getState()
     const serialized = JSON.stringify(before.document)
 
-    await user.click(screen.getByRole('button', { name: /Mobile/ }))
-    await user.click(screen.getByRole('button', { name: /Tablet/ }))
-    await user.click(screen.getByRole('button', { name: /Desktop/ }))
+    await user.click(viewportButton(/Mobile/))
+    await user.click(viewportButton(/Tablet/))
+    await user.click(viewportButton(/Desktop/))
 
     expect(store.getState()).toBe(before)
     expect(JSON.stringify(store.getState().document)).toBe(serialized)
@@ -133,7 +153,7 @@ describe('editor shell', () => {
 
     expect(await screen.findByText(/revision 1/)).toBeInTheDocument()
     expect(headingSize(container)).toBe('44px')
-    await user.click(screen.getByRole('button', { name: /Mobile/ }))
+    await user.click(viewportButton(/Mobile/))
     // The mobile override still wins over the new base value.
     expect(headingSize(container)).toBe('32px')
   })

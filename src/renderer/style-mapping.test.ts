@@ -86,6 +86,11 @@ describe('property to style mapping', () => {
     })
   })
 
+  it('maps sibling order, including the falsy first position', () => {
+    expect(propertiesToStyle({ layout: { order: 0 } })).toEqual({ order: 0 })
+    expect(propertiesToStyle({ layout: { order: 2 } })).toEqual({ order: 2 })
+  })
+
   it('keeps falsy but valid values instead of dropping them', () => {
     const style = propertiesToStyle({
       surface: { opacity: 0, borderWidth: 0 },

@@ -1,14 +1,20 @@
 import { useMemo, useState, type JSX, type RefObject } from 'react'
 
-import { resolveDocument } from '../engine/responsive-resolver'
+import { resolveDocument, resolveElementProperties } from '../engine/responsive-resolver'
 import type { DocumentStore } from '../store/document-store'
-import { VIEWPORT_WIDTHS, type Viewport } from '../model/viewport'
+import type { ElementId } from '../model/ids'
+import type { EditablePropertyPatch } from '../model/properties'
+import { VIEWPORT_WIDTHS, type EditScope, type Viewport } from '../model/viewport'
+import { InspectorPanel } from './InspectorPanel'
 import { LayersPanel } from './LayersPanel'
 import { PreviewFrame } from './PreviewFrame'
+import { ScopeLock } from './ScopeLock'
+import { ScopeSwitcher } from './ScopeSwitcher'
 import { SelectionOverlay } from './SelectionOverlay'
 import { SelectionSummary } from './SelectionSummary'
 import { ViewportSwitcher } from './ViewportSwitcher'
 import { collectElementIds, flattenResolvedDocument, type ElementTreeRow } from './element-tree'
+import type { EditTarget } from './inspector-model'
 import { useDocumentStore } from './use-document-store'
 import { useElementRects } from './use-element-rects'
 import type { SelectionApi } from './use-selection'
@@ -35,16 +41,15 @@ function CanvasSelectionLayer(props: {
 /**
  * The editor shell.
  *
- * Step 7 scope: a toolbar, a preview canvas with a selection overlay, and a
- * layers tree.
+ * Step 8 scope: toolbar, canvas with selection overlay, layers tree, Scope Lock
+ * indicator, and the inspector.
  *
- * Preview viewport and selection both live in local UI state and are
- * intentionally NOT part of the canonical document: switching viewport
- * re-resolves a projection, and selecting stores stable IDs. Neither can
- * produce a document revision or a history entry.
- *
- * The edit-scope control is still present but disabled, so a reviewer can see
- * that preview and scope are two different things before scoped editing exists.
+ * Three pieces of state live here and are deliberately NOT part of the
+ * canonical document: the preview viewport (what is on screen), the selection
+ * (which stable IDs an edit targets), and the edit scope (whether a commit
+ * writes the shared base or one viewport's override). Only the inspector's
+ * commits reach the document, and they do so through the store's single
+ * validated command pipeline.
  */
 export function EditorShell(props: {
   store: DocumentStore
@@ -53,6 +58,7 @@ export function EditorShell(props: {
   const { store } = props
   const state = useDocumentStore(store)
   const [viewport, setViewport] = useState<Viewport>('desktop')
+  const [editScope, setEditScope] = useState<EditScope>('all')
   const [fit, setFit] = useState(true)
 
   // Canvas and layers read one traversal of one projection, so the two surfaces
@@ -64,6 +70,41 @@ export function EditorShell(props: {
   const rows = useMemo(() => flattenResolvedDocument(resolved), [resolved])
   const knownIds = useMemo(() => collectElementIds(rows), [rows])
   const selection = useSelection(knownIds)
+
+  const selectedNames = selection.selectedIds.flatMap((id) => {
+    const row = rows.find((candidate) => candidate.id === id)
+    return row === undefined ? [] : [row.descriptor.accessibleName]
+  })
+
+  /**
+   * What the inspector shows: the shared base for scope `all`, otherwise the
+   * value that scope's viewport actually resolves to. The scope, not the
+   * preview, decides - so "edit mobile while looking at desktop" stays honest.
+   */
+  const targets: readonly EditTarget[] = selection.selectedIds.flatMap((id) => {
+    const element = state.document.elements[id]
+    if (element === undefined) return []
+    return [
+      {
+        element,
+        displayed:
+          editScope === 'all' ? element.base : resolveElementProperties(element, editScope),
+      },
+    ]
+  })
+
+  const commit = (input: {
+    targetIds: readonly ElementId[]
+    changes: Readonly<Record<ElementId, EditablePropertyPatch>>
+  }): readonly string[] => {
+    const result = store.commit({
+      source: 'canvas',
+      targetIds: input.targetIds,
+      scope: editScope,
+      changes: input.changes,
+    })
+    return result.ok ? [] : result.errors.map((error) => error.message)
+  }
 
   return (
     <div className="shell">
@@ -86,15 +127,7 @@ export function EditorShell(props: {
 
         <div className="shell__controls">
           <ViewportSwitcher value={viewport} onChange={setViewport} />
-
-          <p className="scope-indicator" data-disabled="true">
-            <span className="scope-indicator__label">Edit scope</span>
-            <span className="scope-indicator__value">All views</span>
-            <span className="scope-indicator__hint">
-              Scoped editing arrives with the inspector; preview size does not change what an
-              edit targets.
-            </span>
-          </p>
+          <ScopeSwitcher value={editScope} onChange={setEditScope} />
 
           <button
             type="button"
@@ -110,6 +143,8 @@ export function EditorShell(props: {
       </header>
 
       <div className="shell__body">
+        <LayersPanel rows={rows} selection={selection} />
+
         <main className="shell__canvas" aria-label="Template preview">
           <div className="shell__canvas-status">
             <p className="shell__status">
@@ -135,7 +170,16 @@ export function EditorShell(props: {
           />
         </main>
 
-        <LayersPanel rows={rows} selection={selection} />
+        <aside className="shell__sidebar" aria-label="Editing tools">
+          <ScopeLock scope={editScope} targetNames={selectedNames} />
+          <InspectorPanel
+            resolved={resolved}
+            targets={targets}
+            scope={editScope}
+            revision={state.document.revision}
+            onCommit={commit}
+          />
+        </aside>
       </div>
     </div>
   )

@@ -171,6 +171,15 @@ export const layoutPropertiesSchema = z.strictObject({
   alignItems: z.enum(ALIGNMENTS).optional(),
   justifyContent: z.enum(JUSTIFICATIONS).optional(),
   gridColumns: z.number().int().min(1).max(6).optional(),
+  /**
+   * Visual order among siblings, as CSS `order`.
+   *
+   * Reordering is expressed as a property rather than as a rewrite of the
+   * parent's `childIds`, so it travels through the ordinary edit pipeline: it
+   * is validated, versioned, restorable, and scopeable per viewport, and the
+   * document tree it describes stays structurally untouched.
+   */
+  order: z.number().int().min(-50).max(50).optional(),
   /** Bounded translation keeps "move" edits inside a safe range. */
   translateX: z.number().finite().min(-200).max(200).optional(),
   translateY: z.number().finite().min(-200).max(200).optional(),

@@ -1,4 +1,16 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
+
+/**
+ * Preview viewport and edit scope are separate controls with deliberately
+ * similar labels ("Tablet" vs "Tablet only"), so a query must name its group.
+ */
+function viewportButton(page: Page, name: RegExp) {
+  return page.getByRole('group', { name: 'Preview viewport' }).getByRole('button', { name })
+}
+
+function scopeButton(page: Page, name: RegExp) {
+  return page.getByRole('group', { name: 'Edit scope' }).getByRole('button', { name })
+}
 
 /** MANUAL_QA "Editor shell" is written for 1280 x 720. */
 test.use({ viewport: { width: 1280, height: 720 } })
@@ -36,12 +48,9 @@ test('every preview size is inspectable without editor-shell horizontal overflow
     ['Tablet', 768],
     ['Mobile', 375],
   ] as const) {
-    await page.getByRole('button', { name: new RegExp(name) }).click()
+    await viewportButton(page, new RegExp(name)).click()
 
-    await expect(page.getByRole('button', { name: new RegExp(name) })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    await expect(viewportButton(page, new RegExp(name))).toHaveAttribute('aria-pressed', 'true')
     // The template lays out at its true virtual width...
     await expect(frame).toHaveCSS('width', `${width}px`)
     // ...is scaled to fit, and never forces the shell to scroll sideways.
@@ -50,7 +59,7 @@ test('every preview size is inspectable without editor-shell horizontal overflow
   }
 
   // Mobile preview shows the single-column grid, not a clipped desktop layout.
-  await expect(page.locator('[data-element-id="features.grid"]')).toHaveCSS(
+  await expect(page.locator('div[data-element-id="features.grid"]')).toHaveCSS(
     'grid-template-columns',
     /^[0-9.]+px$/,
   )
@@ -74,14 +83,11 @@ test('viewport controls are reachable and operable by keyboard', async ({ page }
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeVisible()
 
-  await page.getByRole('button', { name: /Desktop/ }).focus()
+  await viewportButton(page, /Desktop/).focus()
   await page.keyboard.press('Tab')
   await page.keyboard.press('Enter')
 
-  await expect(page.getByRole('button', { name: /Tablet/ })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  )
+  await expect(viewportButton(page, /Tablet/)).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('.preview__frame')).toHaveCSS('width', '768px')
 })
 
@@ -121,6 +127,44 @@ test('canvas selection overlay lines up with the rendered element and agrees wit
     .click({ modifiers: ['Shift'] })
   await expect(page.getByRole('status')).toContainText('2 selected')
   await expect(overlayTarget).toHaveAttribute('aria-selected', 'true')
+
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1),
+  ).toBe(false)
+})
+
+
+test('a scoped inspector edit changes one viewport and protects the others', async ({ page }) => {
+  await page.goto('/#/editor/aster-labs')
+
+  const headingSize = async (): Promise<string> => {
+    const value = await page
+      .locator('h2[data-element-id="hero.heading"]')
+      .evaluate((node) => window.getComputedStyle(node).fontSize)
+    return value
+  }
+
+  await page.getByRole('tree', { name: 'Template layers' }).locator('[data-target-id="hero.heading"]').click()
+  await scopeButton(page, /Desktop only/).click()
+
+  await expect(page.getByRole('region', { name: 'Scope Lock' })).toContainText('1 selected')
+  await expect(page.getByRole('region', { name: 'Scope Lock' })).toContainText(
+    'Tablet and Mobile keep their current values.',
+  )
+
+  expect(await headingSize()).toBe('56px')
+
+  const fontSize = page.getByLabel(/Font size/)
+  await fontSize.fill('40')
+  await fontSize.press('Enter')
+
+  await expect.poll(headingSize).toBe('40px')
+
+  // The protected views still resolve to their own values.
+  await viewportButton(page, /Tablet/).click()
+  await expect.poll(headingSize).toBe('42px')
+  await viewportButton(page, /Mobile/).click()
+  await expect.poll(headingSize).toBe('32px')
 
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1),

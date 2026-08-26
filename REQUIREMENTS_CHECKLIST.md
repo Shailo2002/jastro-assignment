@@ -8,10 +8,10 @@ This is the authoritative local checklist derived from the supplied six-page ass
 - [ ] The README identifies whether the template is original or appropriately licensed and provides its source.
 - [ ] The durable source of truth is typed, JSON-serializable, and uses stable element IDs.
 - [ ] Canvas, code editing, accepted AI proposals, and restore update the same canonical state.
-- [ ] Editable elements support substantial content, style, position, size, order, or structure changes.
+- [x] Editable elements support substantial content, style, position, size, order, or structure changes.
 - [ ] Desktop, tablet, and mobile previews resolve the same document.
-- [ ] An edit can target All, Desktop, Tablet, or Mobile.
-- [ ] A single-viewport edit leaves other viewports unchanged.
+- [x] An edit can target All, Desktop, Tablet, or Mobile.
+- [x] A single-viewport edit leaves other viewports unchanged.
 - [ ] AI targets are limited to selected stable IDs, allowed fields, and selected viewport scope.
 - [ ] AI output is a proposal and changes nothing before acceptance.
 - [ ] Multi-element proposals can be accepted or rejected independently per element.
@@ -26,10 +26,10 @@ This is the authoritative local checklist derived from the supplied six-page ass
 - [x] Select one element by click.
 - [x] Add/remove elements in a group using Shift/Ctrl/Cmd-click (marquee drag not implemented; modified click and keyboard cover the requirement).
 - [x] Selection is visible and keyboard-operable.
-- [ ] Edit on canvas and see the canonical renderer update.
+- [x] Edit on canvas and see the canonical renderer update.
 - [ ] Make valid structured code edits and see the canvas update.
 - [ ] Enter invalid code, see a useful error, and preserve the last valid state.
-- [ ] Choose responsive scope visibly before editing.
+- [x] Choose responsive scope visibly before editing.
 - [ ] Run deterministic text-to-edit examples using current selections and values.
 - [ ] Review useful before/after output per returned element.
 - [ ] Accept/reject each returned element independently.

@@ -1,14 +1,16 @@
 import type { ResolvedDocument } from '../engine/responsive-resolver'
 import type { ElementId } from '../model/ids'
 import { describeElement, type ElementDescriptor } from './element-names'
+import { orderedChildIds } from './reorder'
 
 /**
  * Flattened element tree.
  *
  * Canvas overlay and layers tree must offer the same targets in the same order,
- * so both read this one traversal of the resolved document. Order is depth
- * first in `childIds` order, which is also the visual order of the rendered
- * template, so keyboard focus order follows what a reviewer sees.
+ * so both read this one traversal of the resolved document. Traversal is depth
+ * first in visual order - `childIds` resorted by resolved `layout.order` inside
+ * a flex or grid parent, exactly as the browser lays it out - so keyboard focus
+ * order keeps following what a reviewer actually sees after a reorder.
  *
  * Dangling ids and reference cycles are skipped exactly as the renderer skips
  * them, so a layer can never exist for something the canvas does not draw.
@@ -46,7 +48,7 @@ export function flattenResolvedDocument(
     })
 
     const nested = new Set([...ancestors, id])
-    for (const childId of element.childIds) {
+    for (const childId of orderedChildIds(document, id)) {
       visit(childId, level + 1, nested)
     }
   }

@@ -119,6 +119,7 @@ export function propertiesToStyle(properties: EditableProperties): CSSProperties
     if (layout.justifyContent !== undefined) {
       style['justifyContent'] = justificationToCss(layout.justifyContent)
     }
+    if (layout.order !== undefined) style['order'] = layout.order
     if (layout.gridColumns !== undefined) {
       style['gridTemplateColumns'] = `repeat(${layout.gridColumns}, minmax(0, 1fr))`
     }

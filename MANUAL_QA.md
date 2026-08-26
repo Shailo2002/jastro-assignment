@@ -59,9 +59,23 @@ Run the relevant section after each implementation step. Run the full checklist 
 - [ ] Text edit updates preview after a valid commit.
 - [ ] Style, spacing, and size edits use the visible scope.
 - [ ] One order/structure action works with pointer and keyboard alternative.
+- [ ] Move up/Move down are ordinary buttons, so Tab plus Enter or Space is the keyboard alternative.
+- [ ] A disabled Move up/Move down explains its prerequisite in text.
 - [ ] Invalid value shows a nearby message.
 - [ ] Invalid value does not alter document or history.
 - [ ] Mixed multi-selection values are labeled Mixed.
+- [ ] Every field has a persistent visible label and its unit.
+- [ ] Clearing a numeric field commits nothing rather than deleting the property.
+- [ ] Fields are only offered when every selected element supports them.
+- [ ] The inspector shows the value of the edit scope, not of the preview viewport.
+
+## Scope Lock
+
+- [ ] Target count and scope are both readable as text.
+- [ ] The protected views are named for a viewport-scoped edit.
+- [ ] Affected element names can be revealed.
+- [ ] It updates immediately when the selection or the scope changes.
+- [ ] Preview viewport and edit scope are visibly different controls.
 
 ## Viewport isolation
 

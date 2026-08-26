@@ -78,6 +78,8 @@ Use a constrained property schema instead of arbitrary CSS. A practical first bo
 - position/layout: alignment, flex direction, translation within safe limits;
 - structure: child order, duplicate, delete, move up/down.
 
+Child order is represented as the `layout.order` property (CSS `order`) rather than as a rewrite of the parent's `childIds`. A move up/down therefore travels through the ordinary edit command: it is validated, versioned, restorable, and scopeable per viewport, and the document tree it describes is never restructured. Canvas overlay and layers tree both traverse children in resolved order inside a flex or grid parent, so list order keeps matching visual order.
+
 Identity, parent linkage, schema version, history, and revision fields are never user-editable property patches.
 
 ## Edit command and commit boundary

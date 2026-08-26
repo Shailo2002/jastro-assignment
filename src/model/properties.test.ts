@@ -52,6 +52,8 @@ describe('editable property boundary', () => {
     ['opacity', { surface: { opacity: 4 } }],
     ['gridColumns', { layout: { gridColumns: 12 } }],
     ['translateX', { layout: { translateX: 5000 } }],
+    ['order magnitude', { layout: { order: 500 } }],
+    ['fractional order', { layout: { order: 1.5 } }],
     ['textAlign', { typography: { textAlign: 'justify' } }],
     ['dimension unit', { size: { width: { value: 10, unit: 'vw' } } }],
     ['non-finite number', { typography: { fontSize: Number.NaN } }],

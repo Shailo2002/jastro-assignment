@@ -188,16 +188,41 @@
 
 .shell__body {
   display: grid;
-  /* The canvas track is min-width 0 so a 1440 px preview cannot push the
-     layers panel - or the page - into horizontal overflow. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+  /* The canvas track is min-width 0 so a 1440 px preview cannot push the side
+     panels - or the page - into horizontal overflow. */
+  grid-template-columns: minmax(0, 240px) minmax(0, 1fr) minmax(0, 340px);
   min-width: 0;
   min-height: 0;
+}
+
+@media (width <= 1200px) {
+  .shell__body {
+    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  }
 }
 
 @media (width <= 900px) {
   .shell__body {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.shell__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  background: var(--surface-panel);
+  border-left: 1px solid var(--border-default);
+}
+
+@media (width <= 1200px) {
+  .shell__sidebar {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--border-default);
+    border-left: 0;
   }
 }
 
@@ -365,13 +390,13 @@
   padding: var(--space-4);
   overflow: auto;
   background: var(--surface-panel);
-  border-left: 1px solid var(--border-default);
+  border-right: 1px solid var(--border-default);
 }
 
 @media (width <= 900px) {
   .layers {
-    border-top: 1px solid var(--border-default);
-    border-left: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-default);
   }
 }
 
@@ -464,4 +489,239 @@
   .layers__item {
     transition: none;
   }
+}
+
+/* Utility ----------------------------------------------------------------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Scope Lock -------------------------------------------------------------- */
+
+/* Icon, text, and border all carry the state; colour alone never does. */
+.scope-lock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+}
+
+.scope-lock[data-editable='true'] {
+  border-color: var(--border-selection);
+}
+
+.scope-lock__heading {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.scope-lock__summary {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.scope-lock__protection,
+.scope-lock__empty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.scope-lock__details {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.scope-lock__details summary {
+  min-height: 24px;
+  cursor: pointer;
+}
+
+.scope-lock__details summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.scope-lock__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--space-2) 0 0;
+  padding-inline-start: var(--space-4);
+  color: var(--text-muted);
+}
+
+/* Inspector --------------------------------------------------------------- */
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.inspector__heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.inspector__empty,
+.inspector__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.inspector__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.inspector__legend {
+  padding-inline: var(--space-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.inspector__order {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Fields ------------------------------------------------------------------ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* Labels are persistent and visible; a placeholder is never the label. */
+.field__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.field__unit-hint {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.field__control {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: var(--space-2);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--surface-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.field__control:hover {
+  border-color: var(--border-strong);
+}
+
+.field__control:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.field__control[data-mixed='true']::placeholder {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.field__control[aria-invalid='true'] {
+  border-color: var(--status-danger);
+}
+
+textarea.field__control {
+  resize: vertical;
+}
+
+.field__dimension {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.field__unit {
+  min-height: 36px;
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--surface-canvas);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+}
+
+.field__unit:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.field__note,
+.field__help {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.field__error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--status-danger);
+}
+
+.field__error::before {
+  content: '\26A0 ';
+}
+
+.toolbar-button:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border-style: dashed;
 }

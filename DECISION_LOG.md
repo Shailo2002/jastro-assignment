@@ -313,3 +313,23 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Trade-off: one runtime dependency and hash URLs that are less polished than clean pathnames. Data-router loaders/actions would be unnecessary complexity and are deliberately not used.
 - Evidence/test: App navigation and unknown-template redirect tests plus the direct-route Playwright smoke test.
 - Related step/commit: Step 6A.
+
+### 2026-08-26 - Reordering is a property edit, not a structural command
+
+- Context: Step 8 requires an order/structure operation, but the durable edit path carries property patches only, and history records `before`/`after` as property patches per element and scope.
+- Options considered: a second, structural command type that rewrites the parent's `childIds` (rejected - it needs its own validation, its own history representation, and a schema migration, and it adds a write path that can restructure the tree); express order as the `layout.order` property (chosen).
+- Decision: Move up/Move down emits one atomic multi-target `EditCommand` that renumbers `layout.order` across the affected siblings.
+- Why: it keeps every durable write inside the one validated pipeline, makes a reorder restorable and versioned like any other edit, and makes it scopeable - reordering on mobile only is now expressible. Tree integrity holds by construction because `childIds` is never named by the command.
+- Trade-off: order only takes effect inside a flex or grid parent, so the control is disabled with an explanation elsewhere; and the layers tree has to sort siblings by resolved order to keep matching what the canvas shows.
+- Evidence/test: `planReorder` and `orderedChildIds` unit tests; `reorders siblings without restructuring the tree`, `scopes a reorder to one viewport`, and `moves the element in the layers tree, which follows visual order`.
+- Related step/commit: Step 8.
+
+### 2026-08-26 - Inspector controls are uncontrolled and commit on blur or Enter
+
+- Context: a controlled input synchronised to canonical state needs an effect to reconcile the two, and committing per keystroke would add one history entry per character.
+- Options considered: controlled inputs with a sync effect (rejected - reconciliation bugs and per-keystroke commits); a draft buffer plus explicit Apply per field (rejected - heavy for single-value fields); uncontrolled inputs remounted by a key that includes the document revision (chosen).
+- Decision: each field row is uncontrolled, commits on blur or Enter, and is remounted when the revision, scope, or target list changes.
+- Why: one user edit becomes exactly one command and one history entry, the control cannot drift from canonical state, and a rejected commit leaves what the user typed in place next to its error message.
+- Trade-off: a field the user typed into but never blurred is discarded if the selection changes; no per-field Apply button is offered.
+- Evidence/test: `sends a canvas-source command through the shared pipeline and records history`, `rejects an out-of-range value through the schema and changes nothing`, `commits a field with Enter, without a pointer`.
+- Related step/commit: Step 8.
