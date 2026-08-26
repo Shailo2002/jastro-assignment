@@ -24,11 +24,29 @@ import { editScopeSchema, type EditScope } from '../model/viewport'
  * per accepted proposal (Step 11), not by partially applying one command.
  */
 
+/**
+ * How a patch combines with what is already stored for the target scope.
+ *
+ * - `merge`   - fields named by the patch win; unnamed fields keep their value.
+ * - `replace` - the scope's property set becomes exactly the patch.
+ *
+ * `replace` exists so restore can genuinely return an element/scope to an
+ * earlier state, including removing fields added since. It is restricted to
+ * `source: 'restore'`; canvas and AI edits must never silently clear a field
+ * they did not mention.
+ */
+export const EDIT_MODES = ['merge', 'replace'] as const
+export type EditMode = (typeof EDIT_MODES)[number]
+
+/** Sources permitted to use `replace`. */
+export const REPLACE_CAPABLE_SOURCES: readonly EditSource[] = ['restore']
+
 export interface EditCommand {
   readonly id: CommandId
   readonly source: EditSource
   readonly targetIds: readonly ElementId[]
   readonly scope: EditScope
+  readonly mode: EditMode
   readonly baseRevision: number
   readonly changes: Readonly<Record<ElementId, EditablePropertyPatch>>
   readonly createdAt: string
@@ -39,6 +57,7 @@ export const editCommandSchema = z.strictObject({
   source: editSourceSchema,
   targetIds: z.array(elementIdSchema).max(200),
   scope: editScopeSchema,
+  mode: z.enum(EDIT_MODES).default('merge'),
   baseRevision: z.number().int().min(0),
   changes: z.record(elementIdSchema, editablePropertyPatchSchema),
   createdAt: isoDateTimeSchema,
@@ -67,6 +86,7 @@ export const EDIT_COMMAND_ERROR_CODES = [
   'missing-change',
   'unexpected-change',
   'empty-change',
+  'mode-not-allowed',
   'forbidden-field',
   'invalid-value',
   'stale-revision',
@@ -216,7 +236,9 @@ export function validateEditCommand(
       )
       continue
     }
-    if (!hasAnyProperty(patch)) {
+    // An empty patch is meaningless when merging, but in replace mode it is a
+    // deliberate "clear this scope" instruction.
+    if (command.mode === 'merge' && !hasAnyProperty(patch)) {
       errors.push(
         error('empty-change', `The change for "${targetId}" does not set any property.`, {
           elementId: targetId,
@@ -235,6 +257,16 @@ export function validateEditCommand(
         ),
       )
     }
+  }
+
+  // 4b. Only restore may replace a whole scope.
+  if (command.mode === 'replace' && !REPLACE_CAPABLE_SOURCES.includes(command.source)) {
+    errors.push(
+      error(
+        'mode-not-allowed',
+        `A "${command.source}" edit may not replace a whole scope; only ${REPLACE_CAPABLE_SOURCES.join(', ')} may.`,
+      ),
+    )
   }
 
   // 5. Revision freshness. Checked last so the caller sees concrete problems
@@ -264,6 +296,7 @@ export function createEditCommand(input: {
   readonly source: EditSource
   readonly targetIds: readonly ElementId[]
   readonly scope: EditScope
+  readonly mode?: EditMode
   readonly baseRevision: number
   readonly changes: Readonly<Record<ElementId, EditablePropertyPatch>>
   readonly createdAt: string
@@ -273,6 +306,7 @@ export function createEditCommand(input: {
     source: input.source,
     targetIds: [...input.targetIds],
     scope: input.scope,
+    mode: input.mode ?? 'merge',
     baseRevision: input.baseRevision,
     changes: { ...input.changes },
     createdAt: input.createdAt,

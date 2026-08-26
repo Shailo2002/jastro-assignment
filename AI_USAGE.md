@@ -150,3 +150,16 @@ Copy after each substantial AI session:
 - Manual check: listed every exported function in `src/model` and `src/engine`. `applyEditCommand` is the only function that produces a new canonical document, and `createInitialTemplateDocument` the only one that produces a fresh one. There is no `setDocument`, no deep-mutation helper, and no exported writer that bypasses validation.
 - Remaining risk: `invalid-result` is currently only reachable when the document was already integrity-broken before the command, because no patch can delete a required field. It is retained as defence in depth for Step 7 structural operations (duplicate/delete/reorder), which can break integrity.
 - Commit: pending user approval.
+
+### 2026-08-26 - Step 4 - Per-element/scope history and restore
+
+- Model/tool: Claude Code (Opus 5).
+- Bounded request: implement only Step 4 - append independent history entries per target and scope on every valid commit, and implement restore as a new validated `EditCommand` for one element and one scope. No history UI. Prove a heading restore does not change the button or other viewports.
+- Files changed: `src/engine/history.ts` (new), `src/engine/restore.ts` (new), `src/engine/history.test.ts` and `src/engine/history-restore.test.ts` (new), `src/engine/apply-edit-command.ts`, `src/engine/edit-command.ts`, `src/model/history.ts`, plus fixture updates in `src/model/document.test.ts` and `src/engine/apply-edit-command.test.ts`. No dependency added.
+- Diff reviewed: yes.
+- Suggestion accepted: deriving the revision entry id from the command id rather than adding an injected id provider - it keeps the engine free of any clock or random source while making entries traceable back to their command.
+- Suggestion corrected/rejected: two corrections. (1) The first restore implementation reused `merge` mode, which cannot remove a field - restoring would silently leave behind anything added after the restored revision. `replace` mode was added and deliberately restricted to `source: 'restore'`. (2) `diffChangedPaths` initially reported a whole group (`typography`) when the group existed on only one side; corrected to descend into the present side so it reports `typography.fontSize`. Both were caught by tests written before the fix.
+- Tests actually run: `pnpm test -- history` (2 files, 37 tests passed), `pnpm test` (12 files, 233 tests passed), `pnpm typecheck` (pass), `pnpm lint` (pass), `pnpm build` (pass).
+- Manual check: serialized one history entry and read it. It carries `id`, `elementId`, `scope`, `source`, `documentRevision`, `before`, `after`, `changedPaths`, and `createdAt` - enough to explain the change and to restore exactly one element and one scope, with no reference to any other element.
+- Remaining risk: two existing test fixtures had to be updated because `changedPaths` is a required field and because apply now writes history; both were intentional behaviour changes for this step, not test weakening. Step 8 will likely need `code` added to `REPLACE_CAPABLE_SOURCES`.
+- Commit: pending user approval.

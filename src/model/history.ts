@@ -27,6 +27,8 @@ export interface ElementRevision {
   readonly documentRevision: number
   readonly before: EditablePropertyPatch
   readonly after: EditablePropertyPatch
+  /** Dotted property paths this commit changed, e.g. `typography.fontSize`. */
+  readonly changedPaths: readonly string[]
   readonly createdAt: string
 }
 
@@ -38,5 +40,6 @@ export const elementRevisionSchema = z.strictObject({
   documentRevision: z.number().int().min(0),
   before: editablePropertyPatchSchema,
   after: editablePropertyPatchSchema,
+  changedPaths: z.array(z.string().max(200)).max(200),
   createdAt: isoDateTimeSchema,
 })

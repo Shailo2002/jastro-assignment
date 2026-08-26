@@ -182,3 +182,42 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Trade-off: callers must diff before submitting; the code surface already needs a diff to build the patch.
 - Evidence/test: `rejects a patch that sets nothing`.
 - Related step/commit: Step 3.
+
+## Step 4 decisions
+
+### 2026-08-26 - History stores full scope snapshots, not just the patch
+
+- Context: an entry has to both explain a change and be sufficient to restore it.
+- Options considered: store only the fields the patch touched; store the full property set for that element/scope before and after (chosen).
+- Decision: `before`/`after` are the complete property set for that element and scope, plus a derived `changedPaths` list for display.
+- Why: a patch-only entry cannot answer "what did this element look like at that point", which is exactly what the history panel and restore need. Scope snapshots are small (one element, one viewport), so the cost is trivial.
+- Trade-off: slight duplication between consecutive entries.
+- Evidence/test: `src/engine/history.test.ts` (`records a schema-valid entry with everything needed to explain the change`), plus the manually inspected serialized entry.
+- Related step/commit: Step 4.
+
+### 2026-08-26 - Restore replaces the scope; only restore may do so
+
+- Context: merge semantics cannot remove a field, so a merge-only restore would leave behind anything added after the restored revision.
+- Decision: `EditCommand` gains `mode: 'merge' | 'replace'`, defaulting to `merge`. `replace` makes the target scope equal exactly the patch, and is permitted only when `source === 'restore'` (`mode-not-allowed` otherwise).
+- Why: restore must genuinely undo. At the same time, an AI or canvas edit that could silently clear unmentioned fields would be the most dangerous operation in the product, so the capability is restricted at the validation boundary rather than by convention.
+- Trade-off: Step 8's code surface will likely need `replace` too (deleting a field in the JSON editor should remove it). That is a deliberate one-line extension of `REPLACE_CAPABLE_SOURCES` when the step arrives, with its own tests.
+- Evidence/test: `src/engine/history-restore.test.ts` (`replace mode is restricted`, `removes a field that was added after the restored revision`).
+- Related step/commit: Step 4.
+
+### 2026-08-26 - Restoring revision R restores `R.before`
+
+- Context: "restore a prior revision" is ambiguous - it could mean the state before that commit or the state it produced.
+- Decision: restore returns the element/scope to `R.before`, i.e. "revert this change".
+- Why: it makes every past state reachable, including the original template (the oldest entry's `before`), which an `after`-based reading cannot do. It also matches how the entry is displayed: before -> after, restore the left side.
+- Trade-off: the label in the history UI must say "revert to the state before this change" rather than "restore this version"; recorded here for Step 12.
+- Evidence/test: `returns the element to its pre-edit values`, `removes the override entirely when restoring to "no override"`.
+- Related step/commit: Step 4.
+
+### 2026-08-26 - Revision entry ids are derived from the command id
+
+- Context: history entries need stable ids, and the engine must stay deterministic.
+- Decision: `id = ${command.id}.${elementId}`, e.g. `cmd.1.hero.heading`.
+- Why: no injected id provider, no random source, and an entry visibly names the command that produced it.
+- Trade-off: command ids must be unique, which the store layer (Step 6) owns.
+- Evidence/test: `derives a traceable entry id from the command`.
+- Related step/commit: Step 4.

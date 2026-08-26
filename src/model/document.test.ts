@@ -174,6 +174,7 @@ describe('template document schema', () => {
         documentRevision: 0,
         before: { typography: { fontSize: 16 } },
         after: { typography: { fontSize: 18 } },
+        changedPaths: ['typography.fontSize'],
         createdAt: '2026-08-26T10:00:00.000Z',
       },
     ]
@@ -193,6 +194,7 @@ describe('template document schema', () => {
         documentRevision: 1,
         before: { typography: { fontSize: 16 } },
         after: { typography: { fontSize: 18 } },
+        changedPaths: ['typography.fontSize'],
         createdAt: '2026-08-26T10:00:00.000Z',
       },
     ]
@@ -214,6 +216,7 @@ describe('template document schema', () => {
         documentRevision: 9,
         before: {},
         after: {},
+        changedPaths: [],
         createdAt: '2026-08-26T10:00:00.000Z',
       },
     ]

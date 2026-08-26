@@ -66,13 +66,14 @@ describe('successful commit', () => {
     expect(result.document.elements[HEADING]).not.toBe(document.elements[HEADING])
   })
 
-  it('does not touch history in this step', () => {
+  it('appends history only for the targeted element', () => {
     const document = createInitialTemplateDocument()
     const result = applyEditCommand(document, command())
 
     expect(result.ok).toBe(true)
     if (!result.ok) return
-    expect(result.document.history).toEqual({})
+    expect(Object.keys(result.document.history)).toEqual([HEADING])
+    expect(document.history).toEqual({})
   })
 
   it('gives each target only its own patch', () => {
