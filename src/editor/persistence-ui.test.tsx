@@ -59,11 +59,18 @@ function newSession(): DocumentStore {
   })
 }
 
-function layer(id: string): HTMLElement {
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
@@ -71,7 +78,7 @@ async function editHeadingSize(
   user: ReturnType<typeof userEvent.setup>,
   value: string,
 ): Promise<void> {
-  await user.click(layer('hero.heading'))
+  await user.click(canvasTarget('hero.heading'))
   const input = screen.getByLabelText(/Font size/)
   await user.clear(input)
   await user.type(input, `${value}{Enter}`)
@@ -99,12 +106,11 @@ describe('reopening the editor', () => {
 
     expect(screen.getByText('Saved locally')).toBeInTheDocument()
     expect(reloaded.getState().document.elements[HEADING]?.base.typography?.fontSize).toBe(40)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     expect(screen.getByLabelText(/Font size/)).toHaveValue(40)
 
     // History survives the reload with it, so recovery is still possible.
     expect(listElementHistory(reloaded.getState().document, HEADING)).toHaveLength(1)
-    await user.click(screen.getByRole('tab', { name: 'History' }))
     expect(screen.getByRole('button', { name: /Restore/ })).toBeInTheDocument()
   })
 })
@@ -116,7 +122,7 @@ describe('untrusted stored data', () => {
 
     // The template is on screen...
     expect(screen.getByRole('main', { name: 'Template preview' })).toBeInTheDocument()
-    expect(layer('hero.heading')).toBeInTheDocument()
+    expect(canvasTarget('hero.heading')).toBeInTheDocument()
     // ...with a recoverable explanation and the one action that clears it.
     const notice = screen.getByRole('alert')
     expect(notice).toHaveTextContent('Attention')

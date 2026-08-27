@@ -325,7 +325,7 @@ export function HistoryPanel(props: {
         entries are kept and the restore is recorded as a new entry.
       </p>
 
-      <p className="history-panel__announcement" role="status">
+      <p className="history-panel__announcement" role="status" aria-label="Restore outcome">
         {outcome?.message ?? ''}
       </p>
 

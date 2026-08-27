@@ -65,10 +65,10 @@ This is the authoritative local checklist derived from the supplied six-page ass
 WCAG 2.2 AA contrast for every token pair the shell uses is asserted in `src/styles/tokens.test.ts`; 200% zoom keeps essential actions reachable without sideways scrolling (`e2e/accessibility.spec.ts`).
 
 - [x] React + TypeScript boundaries are clear for components, state, commands, validation, history, responsive resolution, and demo engine: `src/model` (typed schema and ids), `src/store` (state and persistence), `src/engine` (commands, validation, resolver, history/restore, proposal engine), `src/renderer` (projection), `src/editor` and `src/gallery` (components). No engine module imports React, and no component owns canonical state.
-- [x] Editor shell is usable at 1280 px wide; both side panels collapse and restore without losing state (`e2e/smoke.spec.ts`, `e2e/accessibility.spec.ts`, `src/editor/panel-collapse.test.tsx`).
+- [x] Editor shell is usable at 1280 px wide; the Design and Layers docks close and reopen without losing state, and switching the main surface keeps the code draft and the pending AI run (`e2e/smoke.spec.ts`, `e2e/accessibility.spec.ts`, `src/editor/panel-collapse.test.tsx`).
 - [x] Preview sizes near 1440, 768, and 375 have no accidental clipping or overflow (`e2e/smoke.spec.ts`).
 - [x] Selection, manual edit, viewport switch, proposal review, and restore work with keyboard only (`e2e/accessibility.spec.ts`, `src/editor/inspector-keyboard.test.tsx`).
-- [x] Controls have programmatic labels; axe reports no serious or critical findings on the gallery, all four panels, or the reset dialog (`e2e/accessibility.spec.ts`).
+- [x] Controls have programmatic labels; axe reports no serious or critical findings on the gallery, on either main surface with both docks and the rail on screen, or on the reset dialog (`e2e/accessibility.spec.ts`).
 - [x] Focus is visible, is not clipped by the toolbar, and returns from every dialog and popover to the control that opened it (`e2e/accessibility.spec.ts`).
 - [x] Status and error information is not conveyed by color alone (text plus icon or check mark on every state; `src/styles/tokens.test.ts` also bans emoji icons and raw colour in components).
 - [x] Touch targets are at least 44 x 44 px for every toolbar control (`e2e/accessibility.spec.ts`).

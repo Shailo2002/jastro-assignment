@@ -51,11 +51,18 @@ beforeEach(() => {
 
 type User = ReturnType<typeof userEvent.setup>
 
-function layer(id: string): HTMLElement {
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
@@ -63,10 +70,6 @@ async function openScope(user: User, name: RegExp): Promise<void> {
   await user.click(
     within(screen.getByRole('group', { name: 'Edit scope' })).getByRole('button', { name }),
   )
-}
-
-async function openPanel(user: User, name: string): Promise<void> {
-  await user.click(screen.getByRole('tab', { name }))
 }
 
 async function editFontSize(user: User, value: string): Promise<void> {
@@ -111,12 +114,12 @@ describe('restoring one element and one scope', () => {
   async function editBoth(user: User): Promise<void> {
     render(<EditorShell store={store} />)
 
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     await openScope(user, /Mobile only/)
     await editFontSize(user, '44')
 
     await openScope(user, /All views/)
-    await user.click(layer('hero.cta.primary'))
+    await user.click(canvasTarget('hero.cta.primary'))
     await editFontSize(user, '20')
   }
 
@@ -132,8 +135,7 @@ describe('restoring one element and one scope', () => {
     const desktopBefore = fontSize('desktop')
     const tabletBefore = fontSize('tablet')
 
-    await user.click(layer('hero.heading'))
-    await openPanel(user, 'History')
+    await user.click(canvasTarget('hero.heading'))
     const card = newestCard(HEADING)
     await user.click(within(card).getByRole('button', { name: /^Restore/ }))
     await user.click(
@@ -162,8 +164,7 @@ describe('restoring one element and one scope', () => {
     expect(historyLength(HEADING)).toBe(1)
     expect(historyLength(BUTTON)).toBe(1)
 
-    await user.click(layer('hero.heading'))
-    await openPanel(user, 'History')
+    await user.click(canvasTarget('hero.heading'))
     const card = newestCard(HEADING)
     await user.click(within(card).getByRole('button', { name: /^Restore/ }))
     await user.click(
@@ -183,7 +184,6 @@ describe('restoring one element and one scope', () => {
   it('offers the other element its own independent history', async () => {
     const user = userEvent.setup()
     await editBoth(user)
-    await openPanel(user, 'History')
 
     // The button is still the selection, so only its revisions are listed.
     const cards = window.document.querySelectorAll('.revision-card')

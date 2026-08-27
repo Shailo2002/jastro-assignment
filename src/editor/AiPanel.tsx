@@ -151,69 +151,6 @@ export function AiPanel(props: {
         AI edits
       </h2>
 
-      <p className="inspector__hint" id={hintId}>
-        A deterministic demo engine, not a model: it reads your instruction, the selected
-        elements, their current values, and scope <strong>{EDIT_SCOPE_LABELS[scope]}</strong>,
-        and returns proposals. Nothing changes until you accept a specific card.
-        {canRun
-          ? ''
-          : ' Select at least one element on the canvas or in Layers to run an instruction.'}
-      </p>
-
-      <label className="field__label" htmlFor={fieldId}>
-        Instruction
-      </label>
-      <input
-        className="field__control"
-        id={fieldId}
-        type="text"
-        autoComplete="off"
-        value={state.instruction}
-        aria-describedby={hintId}
-        onChange={(event) => {
-          props.onStateChange({ ...state, instruction: event.target.value })
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== 'Enter') return
-          event.preventDefault()
-          run(state.instruction)
-        }}
-      />
-
-      <div className="ai-panel__actions">
-        <button
-          type="button"
-          className="toolbar-button"
-          disabled={!canRun}
-          aria-describedby={hintId}
-          onClick={() => {
-            run(state.instruction)
-          }}
-        >
-          Run instruction
-        </button>
-      </div>
-
-      <details className="ai-panel__examples" open>
-        <summary>Example instructions</summary>
-        <ul className="ai-panel__example-list">
-          {scenarioExamples().map((example) => (
-            <li key={example}>
-              <button
-                type="button"
-                className="ai-panel__example"
-                disabled={!canRun}
-                onClick={() => {
-                  run(example)
-                }}
-              >
-                {example}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </details>
-
       {state.failure !== undefined && (
         <div role="alert" className="ai-panel__failure">
           <p className="field__error">{state.failure.message}</p>
@@ -332,6 +269,74 @@ export function AiPanel(props: {
           </ul>
         </div>
       )}
+
+      {/* The composer is last in the DOM because it is last on screen: the rail
+          scrolls the run above it and keeps the instruction box docked. */}
+      <div className="ai-panel__composer">
+        {/* Short by design: the composer sits at the foot of the rail, and a
+            long explanation here would push the input off screen. */}
+        <p className="inspector__hint" id={hintId}>
+          A deterministic demo engine, not a model. Proposals only, for scope{' '}
+          <strong>{EDIT_SCOPE_LABELS[scope]}</strong>: nothing changes until you accept a card.
+          {canRun
+            ? ''
+            : ' Select at least one element on the canvas or in Layers to run an instruction.'}
+        </p>
+
+        <details className="ai-panel__examples">
+          <summary>Example instructions</summary>
+          <ul className="ai-panel__example-list">
+            {scenarioExamples().map((example) => (
+              <li key={example}>
+                <button
+                  type="button"
+                  className="ai-panel__example"
+                  disabled={!canRun}
+                  onClick={() => {
+                    run(example)
+                  }}
+                >
+                  {example}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+
+        <label className="field__label" htmlFor={fieldId}>
+          Instruction
+        </label>
+        <div className="ai-panel__input-row">
+          <input
+            className="field__control ai-panel__input"
+            id={fieldId}
+            type="text"
+            autoComplete="off"
+            placeholder="Describe the change…"
+            value={state.instruction}
+            aria-describedby={hintId}
+            onChange={(event) => {
+              props.onStateChange({ ...state, instruction: event.target.value })
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return
+              event.preventDefault()
+              run(state.instruction)
+            }}
+          />
+          <button
+            type="button"
+            className="toolbar-button ai-panel__run"
+            disabled={!canRun}
+            aria-describedby={hintId}
+            onClick={() => {
+              run(state.instruction)
+            }}
+          >
+            Run instruction
+          </button>
+        </div>
+      </div>
     </section>
   )
 }

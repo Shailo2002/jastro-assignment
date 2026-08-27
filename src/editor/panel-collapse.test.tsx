@@ -8,12 +8,14 @@ import type { StorageLike } from '../store/persistence'
 import { EditorShell } from './EditorShell'
 
 /**
- * Collapsible panels, and the icon controls that own them.
+ * The right-hand docks, and the toolbar controls that own them.
  *
- * A collapse must be free: DESIGN_SYSTEM requires both side panels to collapse,
- * and MANUAL_QA requires them to come back with selection and draft state
- * intact. That is why the panels are hidden rather than unmounted, and it is
- * exactly what these tests hold in place.
+ * Design and Layers are opened on demand rather than holding a permanent
+ * column, so closing one must be free: DESIGN_SYSTEM requires both panels to
+ * collapse, and MANUAL_QA requires them to come back with selection and draft
+ * state intact. That is why a dock is hidden rather than unmounted, and it is
+ * exactly what these tests hold in place - along with the keyboard contract a
+ * disclosure owes: Escape closes, and focus lands back on the toggle.
  */
 
 class MemoryStorage implements StorageLike {
@@ -45,31 +47,32 @@ beforeEach(() => {
 
 type User = ReturnType<typeof userEvent.setup>
 
+function designToggle(): HTMLElement {
+  return screen.getByRole('button', { name: 'Design' })
+}
+
 function layersToggle(): HTMLElement {
-  return screen.getByRole('button', { name: 'Layers panel' })
+  return screen.getByRole('button', { name: 'Layers' })
 }
 
-function sidebarToggle(): HTMLElement {
-  return screen.getByRole('button', { name: 'Editing tools panel' })
-}
-
-function layer(id: string): HTMLElement {
+/** A selection target on the canvas overlay, found by stable id. */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
 async function selectHeading(user: User): Promise<void> {
-  await user.click(layer('hero.heading'))
+  await user.click(canvasTarget('hero.heading'))
 }
 
-describe('panel toggles', () => {
-  it('names both icon-only controls and gives each a tooltip', () => {
+describe('dock toggles', () => {
+  it('names both controls and gives each a tooltip', () => {
     render(<EditorShell store={store} />)
 
-    for (const toggle of [layersToggle(), sidebarToggle()]) {
+    for (const toggle of [designToggle(), layersToggle()]) {
       expect(toggle).toHaveAccessibleName()
       expect(toggle).toHaveAttribute('title')
       // The glyph itself must never be announced.
@@ -81,45 +84,63 @@ describe('panel toggles', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
 
-    expect(layersToggle()).toHaveAttribute('aria-expanded', 'true')
-    expect(layersToggle()).toHaveAttribute('aria-controls', 'layers-panel')
-    expect(document.getElementById('layers-panel')).not.toHaveAttribute('hidden')
-
-    await user.click(layersToggle())
-
     expect(layersToggle()).toHaveAttribute('aria-expanded', 'false')
-    expect(layersToggle()).toHaveAttribute('aria-pressed', 'false')
+    expect(layersToggle()).toHaveAttribute('aria-controls', 'layers-panel')
     expect(document.getElementById('layers-panel')).toHaveAttribute('hidden')
     // Hidden means gone from the accessibility tree, not merely invisible.
     expect(screen.queryByRole('tree', { name: 'Template layers' })).not.toBeInTheDocument()
+
+    await user.click(layersToggle())
+
+    expect(layersToggle()).toHaveAttribute('aria-expanded', 'true')
+    expect(layersToggle()).toHaveAttribute('aria-pressed', 'true')
+    expect(document.getElementById('layers-panel')).not.toHaveAttribute('hidden')
+    expect(screen.getByRole('tree', { name: 'Template layers' })).toBeInTheDocument()
   })
 
-  it('keeps the canvas usable with both panels collapsed', async () => {
+  it('starts with a focused canvas and opens Design for a canvas selection', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
 
-    await user.click(layersToggle())
-    await user.click(sidebarToggle())
+    expect(designToggle()).toHaveAttribute('aria-expanded', 'false')
+    expect(designToggle()).toHaveAttribute('aria-controls', 'design-panel')
+
+    await selectHeading(user)
+
+    expect(designToggle()).toHaveAttribute('aria-expanded', 'true')
+
+    await user.click(designToggle())
+
+    expect(designToggle()).toHaveAttribute('aria-expanded', 'false')
+    expect(document.getElementById('design-panel')).toHaveAttribute('hidden')
+  })
+
+  it('keeps the canvas usable with both docks closed', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    await user.click(designToggle())
 
     expect(screen.getByRole('main', { name: 'Template preview' })).toBeInTheDocument()
     expect(
       screen.getByRole('listbox', { name: 'Selectable template elements' }),
     ).toBeInTheDocument()
-    // The toolbar keeps the two controls that state what an edit would do.
+    // The chrome keeps the two controls that state what an edit would do.
     expect(screen.getByRole('group', { name: 'Preview viewport' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Edit scope' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Scope Lock' })).toBeInTheDocument()
   })
 })
 
-describe('collapsing loses no state', () => {
+describe('closing a dock loses no state', () => {
   it('restores the selection and the inspector value', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await selectHeading(user)
     expect(screen.getByLabelText(/Font size/)).toHaveValue(56)
 
-    await user.click(sidebarToggle())
-    await user.click(sidebarToggle())
+    await user.click(designToggle())
+    await user.click(designToggle())
 
     expect(screen.getByRole('region', { name: 'Scope Lock' })).toHaveTextContent('1 selected')
     expect(screen.getByLabelText(/Font size/)).toHaveValue(56)
@@ -136,8 +157,8 @@ describe('collapsing loses no state', () => {
       target: { value: draft },
     })
 
-    await user.click(sidebarToggle())
-    await user.click(sidebarToggle())
+    await user.click(designToggle())
+    await user.click(designToggle())
 
     const editor = screen.getByLabelText('Element properties (JSON)')
     expect(editor).toHaveValue(draft)
@@ -145,36 +166,107 @@ describe('collapsing loses no state', () => {
     expect(store.getState().document.revision).toBe(0)
   })
 
-  it('restores a pending AI proposal instead of discarding it', async () => {
+  it('keeps a pending AI proposal, which lives in the rail either way', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await selectHeading(user)
-    await user.click(screen.getByRole('tab', { name: 'AI' }))
     await user.click(screen.getByRole('button', { name: 'Make the heading bolder' }))
     await user.click(screen.getByRole('button', { name: 'Run instruction' }))
     expect(document.querySelectorAll('.proposal-card')).toHaveLength(1)
 
-    await user.click(sidebarToggle())
-    await user.click(sidebarToggle())
+    await user.click(layersToggle())
+    await user.click(designToggle())
 
     expect(document.querySelectorAll('.proposal-card')).toHaveLength(1)
     expect(
-      within(screen.getByRole('tablist', { name: 'Editing panels' })).getByRole('tab', {
-        name: 'AI',
-      }),
-    ).toHaveAttribute('aria-selected', 'true')
+      within(screen.getByRole('complementary', { name: 'History and AI' })).getByLabelText(
+        'Instruction',
+      ),
+    ).toBeInTheDocument()
   })
 
-  it('is reachable and operable from the keyboard alone', async () => {
+  it('keeps the layers tree focus position across a close and reopen', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await user.click(layersToggle())
+
+    const tree = screen.getByRole('tree', { name: 'Template layers' })
+    const tabbable = (): string | null =>
+      within(tree)
+        .getAllByRole('treeitem')
+        .find((item) => item.getAttribute('tabindex') === '0')
+        ?.getAttribute('data-target-id') ?? null
+
+    const rows = within(tree).getAllByRole('treeitem')
+    rows[0]?.focus()
+    await user.keyboard('{ArrowDown}')
+    const moved = tabbable()
+
+    await user.click(layersToggle())
+    await user.click(layersToggle())
+
+    expect(tabbable()).toBe(moved)
+  })
+})
+
+describe('the keyboard contract of a dock', () => {
+  it('toggles from the keyboard and keeps focus on the toggle', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
 
     layersToggle().focus()
     await user.keyboard('{Enter}')
-    expect(layersToggle()).toHaveAttribute('aria-expanded', 'false')
+    expect(layersToggle()).toHaveAttribute('aria-expanded', 'true')
 
     await user.keyboard(' ')
-    expect(layersToggle()).toHaveAttribute('aria-expanded', 'true')
+    expect(layersToggle()).toHaveAttribute('aria-expanded', 'false')
     expect(layersToggle()).toHaveFocus()
+  })
+
+  it('closes on Escape and returns focus to the toggle', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await selectHeading(user)
+
+    screen.getByLabelText(/Font size/).focus()
+    await user.keyboard('{Escape}')
+
+    expect(designToggle()).toHaveAttribute('aria-expanded', 'false')
+    expect(designToggle()).toHaveFocus()
+  })
+
+  it('closes from its own close button and returns focus to the toggle', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await selectHeading(user)
+
+    await user.click(screen.getByRole('button', { name: 'Close Design panel' }))
+
+    expect(designToggle()).toHaveAttribute('aria-expanded', 'false')
+    expect(designToggle()).toHaveFocus()
+  })
+
+  it('lets the layers tree answer Escape before the dock does', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await user.click(layersToggle())
+
+    const heading = screen
+      .getByRole('tree', { name: 'Template layers' })
+      .querySelector<HTMLElement>('[data-target-id="hero.heading"]')
+    if (heading === null) throw new Error('No layer for "hero.heading".')
+
+    await user.click(heading)
+    expect(screen.getByRole('region', { name: 'Scope Lock' })).toHaveTextContent('1 selected')
+
+    // Escape in the tree clears the selection; the dock stays open, because a
+    // clearing Escape has already been handled.
+    heading.focus()
+    await user.keyboard('{Escape}')
+
+    expect(screen.getByRole('region', { name: 'Scope Lock' })).toHaveTextContent(
+      /Nothing selected/i,
+    )
+    expect(layersToggle()).toHaveAttribute('aria-expanded', 'true')
   })
 })

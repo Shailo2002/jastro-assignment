@@ -26,6 +26,17 @@ function layer(page: Page, id: string): Locator {
   return page.getByRole('tree', { name: 'Template layers' }).locator(`[data-target-id="${id}"]`)
 }
 
+/** The Layers dock is opened from the toolbar; it starts closed. */
+async function openLayers(page: Page): Promise<void> {
+  const toggle = page.getByRole('button', { name: /^Layers/ })
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click()
+}
+
+async function showSurface(page: Page, name: 'Preview' | 'Code'): Promise<void> {
+  await page.getByRole('tab', { name }).click()
+  await expect(page.getByRole('tab', { name })).toHaveAttribute('aria-selected', 'true')
+}
+
 function headingSize(page: Page): Promise<string> {
   return page
     .locator('h2[data-element-id="hero.heading"]')
@@ -42,7 +53,7 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   /* 1. Load the gallery and choose the catalogued template. */
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeVisible()
-  await page.getByRole('button', { name: /Use template|Continue editing/ }).click()
+  await page.getByRole('button', { name: /Use template|Continue editing/ }).first().click()
   await expect(page.getByRole('main', { name: 'Template preview' })).toBeVisible()
 
   /* 2. Switch among the three previews. */
@@ -57,6 +68,7 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   }
 
   /* 3. Select the heading, then add the CTA to the selection, then narrow back. */
+  await openLayers(page)
   await layer(page, 'hero.heading').click()
   await expect(page.getByRole('region', { name: 'Scope Lock' })).toContainText('1 selected')
   await layer(page, 'hero.cta.primary').click({ modifiers: ['Shift'] })
@@ -78,7 +90,7 @@ test('the whole reviewer journey holds together', async ({ page }) => {
 
   /* 6a. A valid structured code edit, applied under the All views scope. */
   await scopeButton(page, /All views/).click()
-  await page.getByRole('tab', { name: 'Code' }).click()
+  await showSurface(page, 'Code')
   const editor = page.getByLabel('Element properties (JSON)')
   const draft = JSON.parse(await editor.inputValue()) as Record<
     string,
@@ -89,20 +101,28 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   heading.typography['fontSize'] = 50
   await editor.fill(JSON.stringify(draft))
   await page.getByRole('button', { name: 'Apply' }).click()
+  // The code surface replaces the preview in the centre, so the rendered result
+  // is read back on the preview surface.
+  await showSurface(page, 'Preview')
   await expect.poll(() => headingSize(page)).toBe('50px')
 
   /* 6b. An invalid one is refused, and the last valid state survives. */
+  await showSurface(page, 'Code')
   await editor.fill('{ "hero.heading": { "typography": { "fontSize": 12 "fontWeight": 700 } } }')
   await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled()
   await expect(page.getByText(/not valid JSON/)).toBeVisible()
+  await showSurface(page, 'Preview')
   expect(await headingSize(page)).toBe('50px')
+  await showSurface(page, 'Code')
   await page.getByRole('button', { name: 'Revert' }).click()
+  await showSurface(page, 'Preview')
 
   /* 7. A deterministic multi-element proposal over the current selection. */
   await layer(page, 'hero.heading').click()
   await layer(page, 'hero.subheading').click({ modifiers: ['Shift'] })
-  await page.getByRole('tab', { name: 'AI' }).click()
-  await page.getByRole('button', { name: 'Align the selected elements to center' }).click()
+  const instruction = page.getByLabel('Instruction')
+  await instruction.fill('Align the selected elements to center')
+  await page.getByRole('button', { name: 'Run instruction' }).click()
   const cards = page.locator('.proposal-card')
   await expect(cards).toHaveCount(2)
   // Generating is not a commit: the heading still reads its committed value.
@@ -114,8 +134,7 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   await cards.nth(1).getByRole('button', { name: /^Reject change for/ }).click()
   await expect(cards.nth(1)).toContainText(/Rejected/i)
 
-  /* 9. Restore one element in one scope. */
-  await page.getByRole('tab', { name: 'History' }).click()
+  /* 9. Restore one element in one scope, from the history in the rail. */
   const card = page.locator('.revision-card').first()
   await card.getByRole('button', { name: /^Restore/ }).click()
   await card.getByRole('button', { name: 'Restore', exact: true }).click()
@@ -128,8 +147,8 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   const revisionCount = await page.locator('.revision-card').count()
   await page.reload()
   await expect(page.getByRole('main', { name: 'Template preview' })).toBeVisible()
+  await openLayers(page)
   await layer(page, 'hero.heading').click()
-  await page.getByRole('tab', { name: 'History' }).click()
   expect(await headingSize(page)).toBe(beforeReload)
   await expect(page.locator('.revision-card')).toHaveCount(revisionCount)
 

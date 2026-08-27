@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
@@ -39,6 +39,17 @@ beforeEach(() => {
   })
 })
 
+/**
+ * Renders the shell with the Layers dock open.
+ *
+ * The dock starts closed - the canvas already offers the same targets - so
+ * every test here opens it first, the same way a reviewer would.
+ */
+function renderWithLayers(): void {
+  render(<EditorShell store={store} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Layers' }))
+}
+
 function layers(): HTMLElement {
   return screen.getByRole('tree', { name: 'Template layers' })
 }
@@ -61,7 +72,7 @@ function selectedIds(surface: HTMLElement): string[] {
 
 describe('layers tree semantics', () => {
   it('uses tree items with a depth level and a readable name', () => {
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     const items = within(layers()).getAllByRole('treeitem')
     expect(items.length).toBe(Object.keys(store.getState().document.elements).length)
@@ -72,12 +83,12 @@ describe('layers tree semantics', () => {
   })
 
   it('keeps the stable id available on every row', () => {
-    render(<EditorShell store={store} />)
+    renderWithLayers()
     expect(layer('features.grid')).toHaveAttribute('title', 'features.grid')
   })
 
   it('starts with nothing selected', () => {
-    render(<EditorShell store={store} />)
+    renderWithLayers()
     expect(selectedIds(layers())).toEqual([])
   })
 })
@@ -85,7 +96,7 @@ describe('layers tree semantics', () => {
 describe('layers selection', () => {
   it('selects one stable id on click and mirrors it on the canvas', async () => {
     const user = userEvent.setup()
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     await user.click(layer('features.heading'))
 
@@ -95,7 +106,7 @@ describe('layers selection', () => {
 
   it('adds and removes with a modified click', async () => {
     const user = userEvent.setup()
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     await user.click(layer('features.heading'))
     await user.keyboard('{Meta>}')
@@ -109,7 +120,7 @@ describe('layers selection', () => {
 
   it('selects with Enter and Space from the keyboard', async () => {
     const user = userEvent.setup()
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     act(() => {
       layer('hero.eyebrow').focus()
@@ -126,7 +137,7 @@ describe('layers selection', () => {
 
   it('adds to the selection with a modified keyboard activation', async () => {
     const user = userEvent.setup()
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     act(() => {
       layer('hero.eyebrow').focus()
@@ -141,7 +152,7 @@ describe('layers selection', () => {
 
   it('clears the selection with Escape', async () => {
     const user = userEvent.setup()
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     await user.click(layer('features.heading'))
     await user.keyboard('{Escape}')
@@ -154,7 +165,7 @@ describe('layers selection', () => {
 describe('layers keyboard navigation', () => {
   it('moves focus with the arrow keys without changing the selection', async () => {
     const user = userEvent.setup()
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     act(() => {
       layer('hero.section').focus()
@@ -170,7 +181,7 @@ describe('layers keyboard navigation', () => {
 
   it('jumps to the first and last row with Home and End', async () => {
     const user = userEvent.setup()
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     const items = within(layers()).getAllByRole('treeitem')
     act(() => {
@@ -185,7 +196,7 @@ describe('layers keyboard navigation', () => {
 
   it('exposes exactly one tabbable row so Tab can leave the tree', async () => {
     const user = userEvent.setup()
-    render(<EditorShell store={store} />)
+    renderWithLayers()
 
     const tabbable = (): HTMLElement[] =>
       within(layers())

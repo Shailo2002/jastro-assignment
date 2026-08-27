@@ -25,7 +25,7 @@ test('template gallery opens the selected template without console errors', asyn
   await page.goto('/')
 
   await expect(page.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeVisible()
-  await page.getByRole('button', { name: /Use template|Continue editing/ }).click()
+  await page.getByRole('button', { name: /Use template|Continue editing/ }).first().click()
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
   await expect(
     page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' }),
@@ -75,10 +75,14 @@ test('viewport controls are reachable and operable by keyboard', async ({ page }
   await page.keyboard.press('Tab')
   await expect(page.getByRole('button', { name: /Marketing/ })).toBeFocused()
   await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: /Portfolio/ })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: /SaaS/ })).toBeFocused()
+  await page.keyboard.press('Tab')
 
   // The real template thumbnail contains links, but its inert preview must not
   // interrupt the gallery's keyboard route to the one explicit card action.
-  const useTemplate = page.getByRole('button', { name: /Use template|Continue editing/ })
+  const useTemplate = page.getByRole('button', { name: /Use template|Continue editing/ }).first()
   await expect(useTemplate).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeVisible()
@@ -115,17 +119,18 @@ test('canvas selection overlay lines up with the rendered element and agrees wit
 
   await overlayTarget.click()
   await expect(overlayTarget).toHaveAttribute('aria-selected', 'true')
+  await page.getByRole('button', { name: /^Layers/ }).click()
   await expect(
     page.getByRole('tree', { name: 'Template layers' }).locator('[data-target-id="hero.heading"]'),
   ).toHaveAttribute('aria-selected', 'true')
-  await expect(page.getByRole('status')).toContainText('1 selected')
+  await expect(page.getByRole('status', { name: 'Selection' })).toContainText('1 selected')
 
   // Additive selection from the layers tree adds a second independent id.
   await page
     .getByRole('tree', { name: 'Template layers' })
     .locator('[data-target-id="cta.button"]')
     .click({ modifiers: ['Shift'] })
-  await expect(page.getByRole('status')).toContainText('2 selected')
+  await expect(page.getByRole('status', { name: 'Selection' })).toContainText('2 selected')
   await expect(overlayTarget).toHaveAttribute('aria-selected', 'true')
 
   expect(
@@ -144,6 +149,7 @@ test('a scoped inspector edit changes one viewport and protects the others', asy
     return value
   }
 
+  await page.getByRole('button', { name: /^Layers/ }).click()
   await page.getByRole('tree', { name: 'Template layers' }).locator('[data-target-id="hero.heading"]').click()
   await scopeButton(page, /Desktop only/).click()
 

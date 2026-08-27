@@ -50,11 +50,18 @@ beforeEach(() => {
 
 type User = ReturnType<typeof userEvent.setup>
 
-function layer(id: string): HTMLElement {
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
@@ -62,10 +69,6 @@ async function openScope(user: User, name: RegExp): Promise<void> {
   await user.click(
     within(screen.getByRole('group', { name: 'Edit scope' })).getByRole('button', { name }),
   )
-}
-
-async function openPanel(user: User, name: string): Promise<void> {
-  await user.click(screen.getByRole('tab', { name }))
 }
 
 /** Commits one font-size change from the inspector at the current scope. */
@@ -108,9 +111,8 @@ describe('history panel', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
 
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     await editFontSize(user, '44')
-    await openPanel(user, 'History')
 
     const card = newestCard(HEADING)
     expect(card.dataset['source']).toBe('canvas')
@@ -121,10 +123,8 @@ describe('history panel', () => {
     expect(card).toHaveTextContent('Changed typography.fontSize.')
   })
 
-  it('asks for the element to be selected before offering any history', async () => {
-    const user = userEvent.setup()
+  it('asks for the element to be selected before offering any history', () => {
     render(<EditorShell store={store} />)
-    await openPanel(user, 'History')
 
     expect(
       within(panel()).getByText(/Select an element on the canvas or in Layers/),
@@ -136,11 +136,10 @@ describe('history panel', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
 
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     await editFontSize(user, '44')
-    await user.click(layer('hero.subheading'))
+    await user.click(canvasTarget('hero.subheading'))
     await editFontSize(user, '19')
-    await openPanel(user, 'History')
 
     expect(cards(SUBHEADING)).toHaveLength(1)
     expect(cards(HEADING)).toHaveLength(0)
@@ -151,10 +150,9 @@ describe('restore', () => {
   /** Selects the heading, makes a mobile-only edit, and opens History. */
   async function mobileEdit(user: User): Promise<void> {
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     await openScope(user, /Mobile/)
     await editFontSize(user, '44')
-    await openPanel(user, 'History')
   }
 
   it('confirms with the exact target, the scope, and a current-versus-revision preview', async () => {
@@ -263,10 +261,9 @@ describe('restore', () => {
   it('offers no restore for a revision whose values already match current state', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     await editFontSize(user, '44')
     await editFontSize(user, '56')
-    await openPanel(user, 'History')
 
     const oldest = cards(HEADING).at(-1)
     if (oldest === undefined) throw new Error('expected two revision cards')

@@ -23,7 +23,9 @@ export function SelectionSummary(props: {
   })
 
   return (
-    <p className="selection-summary" role="status" aria-live="polite">
+    // Named, because the rail's history panel owns a live region too and the
+    // two must be distinguishable to anyone listing them.
+    <p className="selection-summary" role="status" aria-live="polite" aria-label="Selection">
       <span className="selection-summary__count">
         {selectedIds.length === 0 ? 'Nothing selected' : `${selectedIds.length} selected`}
       </span>

@@ -54,17 +54,24 @@ beforeEach(() => {
 
 type User = ReturnType<typeof userEvent.setup>
 
-function layer(id: string): HTMLElement {
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
 async function selectHeading(user: User): Promise<void> {
   render(<EditorShell store={store} />)
-  await user.click(layer('hero.heading'))
+  await user.click(canvasTarget('hero.heading'))
 }
 
 describe('moving through fields', () => {
@@ -131,7 +138,7 @@ describe('committing from the keyboard', () => {
 
     // A commit from another surface rebuilds the same rows; focus must stay
     // where the user put it rather than jumping to the last edited field.
-    const layers = layer('hero.subheading')
+    const layers = canvasTarget('hero.subheading')
     layers.focus()
     act(() => {
       store.commit({

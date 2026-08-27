@@ -108,22 +108,22 @@ export function InspectorPanel(props: {
 
   if (targets.length === 0) {
     return (
-      <section className="inspector" aria-labelledby="inspector-heading">
+      <div className="inspector">
         <h2 className="inspector__heading" id="inspector-heading">
-          Inspector
+          Design
         </h2>
         <p className="inspector__empty">
           Nothing is selected, so there is nothing to edit. Choose an element on the canvas
           or in Layers.
         </p>
-      </section>
+      </div>
     )
   }
 
   return (
-    <section className="inspector" aria-labelledby="inspector-heading">
+    <div className="inspector">
       <h2 className="inspector__heading" id="inspector-heading">
-        Inspector
+        Design
       </h2>
 
       {sections.map((section) => (
@@ -195,6 +195,6 @@ export function InspectorPanel(props: {
           </p>
         )}
       </fieldset>
-    </section>
+    </div>
   )
 }

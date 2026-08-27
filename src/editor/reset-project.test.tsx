@@ -51,11 +51,18 @@ beforeEach(() => {
 
 type User = ReturnType<typeof userEvent.setup>
 
-function layer(id: string): HTMLElement {
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
@@ -82,7 +89,7 @@ async function confirmReset(user: User): Promise<void> {
 }
 
 async function editHeadingSize(user: User, value: string): Promise<void> {
-  await user.click(layer('hero.heading'))
+  await user.click(canvasTarget('hero.heading'))
   const input = screen.getByLabelText(/Font size/)
   await user.clear(input)
   await user.type(input, `${value}{Enter}`)
@@ -214,7 +221,7 @@ describe('confirming', () => {
   it('discards an unapplied code draft', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     await user.click(screen.getByRole('tab', { name: 'Code' }))
 
     fireEvent.change(codeEditor(), {
@@ -225,10 +232,10 @@ describe('confirming', () => {
     await openReset(user)
     await confirmReset(user)
 
-    // The sidebar returns to Design, and reopening Code shows the fixture again
-    // rather than a draft written against the discarded document.
-    expect(screen.getByRole('tab', { name: 'Design' })).toHaveAttribute('aria-selected', 'true')
-    await user.click(layer('hero.heading'))
+    // The centre returns to the preview, and reopening Code shows the fixture
+    // again rather than a draft written against the discarded document.
+    expect(screen.getByRole('tab', { name: 'Preview' })).toHaveAttribute('aria-selected', 'true')
+    await user.click(canvasTarget('hero.heading'))
     await user.click(screen.getByRole('tab', { name: 'Code' }))
     expect(codeEditor().value).toContain('56')
     expect(codeEditor().value).not.toContain('44')
@@ -237,8 +244,7 @@ describe('confirming', () => {
   it('discards a pending AI proposal', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
-    await user.click(screen.getByRole('tab', { name: 'AI' }))
+    await user.click(canvasTarget('hero.heading'))
     await user.click(screen.getByRole('button', { name: 'Make the heading bolder' }))
     await user.click(screen.getByRole('button', { name: 'Run instruction' }))
     expect(document.querySelectorAll('.proposal-card')).toHaveLength(1)
@@ -246,7 +252,6 @@ describe('confirming', () => {
     await openReset(user)
     await confirmReset(user)
 
-    await user.click(screen.getByRole('tab', { name: 'AI' }))
     expect(document.querySelectorAll('.proposal-card')).toHaveLength(0)
     expect(store.getState().document.revision).toBe(0)
   })

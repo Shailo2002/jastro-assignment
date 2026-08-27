@@ -12,11 +12,12 @@ import { useRovingFocus } from './use-roving-focus'
  * The same flattened element list the canvas overlay uses, presented as a tree
  * of real buttons. Both surfaces call the identical selection action, so canvas
  * and layers can never drift into two different notions of what is selected.
+ *
+ * Visibility belongs to the dock that holds this panel, not to the panel: the
+ * dock is what the toolbar toggle points at, and hiding it there keeps this
+ * component's markup free of any notion of being collapsed.
  */
 export function LayersPanel(props: {
-  /** Collapsed by the shell. Hidden rather than unmounted, so the roving
-      focus position and the tree's scroll offset survive a collapse. */
-  hidden?: boolean
   rows: readonly ElementTreeRow[]
   selection: SelectionApi
 }): JSX.Element {
@@ -39,7 +40,7 @@ export function LayersPanel(props: {
   }
 
   return (
-    <section className="layers" id="layers-panel" aria-labelledby="layers-heading" hidden={props.hidden ?? false}>
+    <div className="layers">
       <h2 className="layers__heading" id="layers-heading">
         Layers
       </h2>
@@ -91,6 +92,6 @@ export function LayersPanel(props: {
       <p className="layers__hint">
         Arrow keys move, Enter or Space selects, Shift or Ctrl adds and removes, Escape clears.
       </p>
-    </section>
+    </div>
   )
 }

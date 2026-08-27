@@ -12,19 +12,20 @@ Use semantic variables in components. Raw values belong only in the token defini
 
 ```css
 :root {
-  --surface-canvas: #050506;
-  --surface-shell: #09090b;
-  --surface-panel: #0f1013;
-  --surface-elevated: #16181d;
-  --surface-hover: #1d2027;
+  /* Surfaces: a true-black base with warm neutral greys above it. */
+  --surface-canvas: #000000;
+  --surface-shell: #080807;
+  --surface-panel: #101010;
+  --surface-elevated: #1a1a19;
+  --surface-hover: #242423;
 
-  --text-primary: #fafafa;
-  --text-secondary: #a3a3a3;
-  --text-muted: #737373;
-  --text-on-accent: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #a8a7a2;
+  --text-muted: #8e8d89;
+  --text-on-accent: #050506;
 
-  --border-default: #262626;
-  --border-strong: #3f3f46;
+  --border-default: #2b2b29;
+  --border-strong: #41413d;
   --border-selection: #6b9cff;
 
   --action-primary: #5b8def;
@@ -34,9 +35,23 @@ Use semantic variables in components. Raw values belong only in the token defini
   --status-warning: #fbbf24;
   --status-danger: #f87171;
 
+  /* Identity only - never the sole signal for an interactive state. */
+  --accent-brand: #6b4de0;
+  --accent-brand-soft: rgb(107 77 224 / 18%);
+  --accent-warm: #ff7a4d;
+
   --focus-ring: #8ab4ff;
   --selection-fill: rgb(91 141 239 / 14%);
   --glow-accent: 0 0 48px rgb(59 130 246 / 18%);
+
+  --shadow-hairline:
+    inset 0 0.5px 0 0 rgb(255 255 255 / 14%),
+    inset 0 0 0 0.5px rgb(255 255 255 / 6%);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 24%);
+  --shadow-raised:
+    0 1.5px 0 0 rgb(0 0 0 / 8%),
+    0 3.5px 3px -1.5px rgb(0 0 0 / 16%),
+    0 12.5px 12px -6px rgb(0 0 0 / 24%);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -46,7 +61,10 @@ Use semantic variables in components. Raw values belong only in the token defini
   --space-6: 24px;
   --space-8: 32px;
 
+  --radius-xs: 4px;
+  --radius-sm: 6px;
   --radius-control: 8px;
+  --radius-input: 10px;
   --radius-card: 12px;
   --radius-panel: 16px;
   --radius-pill: 9999px;
@@ -54,14 +72,29 @@ Use semantic variables in components. Raw values belong only in the token defini
   --duration-instant: 150ms;
   --duration-fast: 200ms;
   --duration-normal: 300ms;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 24px;
+  --text-xl: 30px;
 }
 ```
 
-The shell must meet WCAG 2.2 AA contrast. Body text should use 16 px where space permits; dense metadata may use 14 px but must retain adequate contrast and line height.
+Two brief values are deliberately adjusted so the palette can meet the AA
+requirement stated below, and both adjustments are recorded beside the token in
+`tokens.css`: `surface.muted` (#272726) is darkened two steps, because
+`--action-primary` as text measures 4.45:1 on it, and `text.on-accent` stays
+near-black rather than white on the action and danger fills. `tokens.test.ts`
+asserts every text/surface pair the shell actually uses.
+
+The shell must meet WCAG 2.2 AA contrast. The gallery reads at a 16 px body; the editor is a dense work surface and reads at 14 px. Metadata may use 12 px but must retain adequate contrast and line height.
 
 Recommended typography:
 
-- UI and body: Inter or Geist Sans with a system sans fallback.
+- UI and body: the brand face (`Camera Plain Variable`) with a `ui-sans-serif`/
+  `system-ui` fallback stack. No webfont is fetched at runtime, so the app looks
+  the same offline and in review.
 - Structured code: JetBrains Mono or the system monospace stack.
 - Editor title: 16-18 px / 600.
 - Panel section title: 12-14 px / 600 with clear casing, not faint all-caps text.
@@ -72,14 +105,18 @@ Recommended typography:
 At 1280 px, the editor must remain usable:
 
 ```text
-top toolbar: 56px
-left panel: 240px collapsible
-canvas: minmax(0, 1fr)
-right panel: 320px collapsible
-status/scope information: visible in toolbar or right panel header
+top toolbar: 54px - project | Preview/Code + viewport + page | docks + reset
+scope bar:   compact Scope Lock statement | edit scope
+left rail:   320px - AI task flow first, compact element history below
+main:        minmax(0, 1fr) - preview canvas or structured-code workspace
+right docks: 320px each, revealed contextually (Design) or on demand (Layers)
 ```
 
-At narrower editor widths, panels should collapse into drawers instead of shrinking the canvas to unusable dimensions. The preview itself must be zoomable/fit-to-canvas so a 1440 px virtual viewport can be inspected within the workspace.
+Scope Lock is chrome, not panel furniture: it sits above every surface, because the same statement governs an inspector edit, a code apply, an accepted proposal, and a restore.
+
+A dock is a disclosure, not a modal. The canvas underneath stays selectable while one is open, focus is not stolen when it opens, and Escape or the close control returns focus to the toolbar toggle that owns it. Above 1100 px an open dock insets the main surface rather than covering it; below that it overlays, which is the only honest answer when there is no room for both. At narrower editor widths the rail stacks above the main surface instead of shrinking the canvas to unusable dimensions. The preview itself must be zoomable/fit-to-canvas so a 1440 px virtual viewport can be inspected within the workspace.
+
+The initial editor view must keep both right docks closed so the canvas is the visual focus. Selecting the first canvas or layer target must reveal Design without requiring a second discovery step. Layers remains independently available for keyboard navigation and additive selection. The Code surface should retain the same shell and AI context, and must present structured properties as an editor workspace rather than pretending to be an unrestricted source-code IDE.
 
 ## Component rules
 
@@ -96,6 +133,15 @@ Every interactive component must define default, hover, focus-visible, active, d
 - The card action must be reachable and operable by keyboard, with a visible focus indicator.
 - Returning from the editor must be predictable and must not erase persisted document state.
 - At narrow widths the sidebar must become a stacked header/filter region without page-level horizontal scrolling.
+
+### Gallery navigation rail
+
+- The rail is one column of 44 px rows: identity, search, filters, saved-work report, and a footer callout.
+- The active filter must be marked by fill, border, weight, and a text mark - never by colour alone - and must expose `aria-pressed="true"`.
+- A rail control that advertises a keyboard shortcut must implement it; the search badge names the platform key it actually binds.
+- Collapsing the rail must hide labels visually only. Every control keeps its accessible name, its tooltip, and its position in the tab order, and reaching the search field by keyboard while collapsed must reopen the rail.
+- The rail must not offer a second route into a project: saved work is reported there, and the card action opens it.
+- Nothing in the rail may imply an account, a workspace switcher, or a paid tier that this product does not have.
 
 ### Top toolbar
 
@@ -231,7 +277,7 @@ Avoid:
 
 - [ ] 1280 px editor shell is usable.
 - [ ] 1440/768/375 preview frames fit or zoom without clipping.
-- [ ] Left and right panels collapse without losing state.
+- [ ] The Design and Layers docks close and reopen without losing state.
 - [ ] Keyboard focus order follows visual order.
 - [ ] All control states are visible.
 - [ ] Scope Lock is readable before every edit.

@@ -9,27 +9,34 @@ Run the relevant section after each implementation step. Run the full checklist 
 - Date: 2026-08-27 (automated gate). Manual pass: to be dated by the tester.
 - Tester: the automated gate was run by Claude Code; every unticked box below is a human check and is deliberately left unticked - no box in this file is ticked on the strength of an automated test alone.
 
-Automated gate on this build: `pnpm lint` clean, `pnpm typecheck` clean, `pnpm test` 44 files / 631 tests passed, `pnpm test:e2e` 20 tests passed, `pnpm build` passed.
+Automated gate after the black-shell design pass: `npm run lint` clean, `npm run typecheck` clean, `npm test` 45 files / 643 tests passed, `npm run test:e2e` 20 tests passed, and `npm run build` produced 418.81 kB / 126.79 kB gzipped JavaScript with a 56.96 kB / 8.60 kB gzipped stylesheet.
 
 ## Template gallery
 
 - [ ] Default URL opens the template gallery, not directly into the editor.
-- [ ] Exactly one real template, Aster Labs, is shown; no fake inventory appears.
+- [ ] Exactly four real templates are shown: Aster Labs, Nova Portfolio, Orbit Metrics, and Luma Studio; no fake inventory appears.
 - [ ] Card thumbnail is a real read-only render and its internal links cannot receive focus.
-- [ ] Search has a visible label and can find `marketing` or `responsive`.
+- [ ] Search has a visible label and can find `marketing`, `portfolio`, `dashboard`, or `responsive`.
 - [ ] A no-result search shows a clear empty state and Clear filters restores the card.
-- [ ] All templates and Marketing filters work and show honest counts.
+- [ ] All templates, Marketing, Portfolio, and SaaS filters work and show honest counts.
 - [ ] Use template opens the editor by pointer and keyboard.
-- [ ] A restored saved project is labelled Continue editing.
+- [ ] Only a template with restored saved work is labelled Continue editing.
 - [ ] Back to templates returns without resetting document state.
 - [ ] Gallery has no page-level horizontal scrolling at 1280, 768, or 375 px.
+- [ ] Collapsing the rail leaves every control operable, named, and in the same tab order; expanding restores the labels.
+- [ ] Cmd/Ctrl+K focuses the search field and reopens a collapsed rail.
+- [ ] Recent work lists a template only after that template has saved work, and offers no second route into the editor.
+- [ ] The rail claims no account, workspace switcher, or paid tier.
 
 ## Editor shell
 
 - [ ] Opens without console errors.
 - [ ] Usable at 1280 x 720.
-- [ ] Left and right panels do not cover essential toolbar actions.
-- [ ] Panels collapse/restore without losing selection or draft state.
+- [ ] Initial editor view has a focused canvas with Design and Layers closed.
+- [ ] Selecting the first canvas or layer target reveals Design and keeps the selection visible.
+- [ ] The left rail and the right docks do not cover essential toolbar actions.
+- [ ] Design and Layers close/reopen without losing selection or draft state.
+- [ ] Switching Preview/Code keeps the selection, the code draft, and any pending proposal.
 - [ ] No unintended page-level horizontal scroll.
 
 ## Preview sizes

@@ -47,11 +47,20 @@ beforeEach(() => {
   })
 })
 
-function layer(id: string): HTMLElement {
+type User = ReturnType<typeof userEvent.setup>
+
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
@@ -85,13 +94,30 @@ async function openCode(
   user: ReturnType<typeof userEvent.setup>,
   ...ids: readonly string[]
 ): Promise<void> {
-  await user.click(layer(ids[0] ?? ''))
+  await user.click(canvasTarget(ids[0] ?? ''))
   for (const id of ids.slice(1)) {
     await user.keyboard('{Shift>}')
-    await user.click(layer(id))
+    await user.click(canvasTarget(id))
     await user.keyboard('{/Shift}')
   }
   await user.click(screen.getByRole('tab', { name: 'Code' }))
+}
+
+/**
+ * Selection from the Layers dock.
+ *
+ * The canvas overlay only exists on the preview surface, so this is how a
+ * selection changes while the code surface is showing - which is exactly what
+ * the Layers dock is for.
+ */
+async function selectFromLayers(user: User, id: string): Promise<void> {
+  const toggle = screen.getByRole('button', { name: 'Layers' })
+  if (toggle.getAttribute('aria-expanded') === 'false') await user.click(toggle)
+  const node = screen
+    .getByRole('tree', { name: 'Template layers' })
+    .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
+  if (node === null) throw new Error(`No layer for "${id}".`)
+  await user.click(node)
 }
 
 function scopeButton(name: RegExp): HTMLElement {
@@ -114,7 +140,7 @@ describe('canvas and code share canonical state', () => {
   it('reflects a canvas commit in the displayed code', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
 
     const input = screen.getByLabelText(/Font size/)
     await user.clear(input)
@@ -152,7 +178,6 @@ describe('canvas and code share canonical state', () => {
 
     // The canvas renderer and the inspector both read the new canonical value.
     expect(screen.getAllByText('Ship it calmly').length).toBeGreaterThan(0)
-    await user.click(screen.getByRole('tab', { name: 'Design' }))
     expect(screen.getByLabelText(/Font size/)).toHaveValue(40)
   })
 
@@ -180,7 +205,7 @@ describe('canvas and code share canonical state', () => {
   it('writes a scoped draft to one viewport override only', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     await user.click(scopeButton(/Mobile only/))
     await user.click(screen.getByRole('tab', { name: 'Code' }))
 
@@ -288,15 +313,14 @@ describe('a stale draft cannot overwrite a later edit', () => {
       }
     })
 
-    // Someone commits a manual edit while the draft is open.
-    await user.click(screen.getByRole('tab', { name: 'Design' }))
+    // Someone commits a manual edit from the Design dock while the draft is
+    // open. The dock is beside the code surface, not instead of it.
     const input = screen.getByLabelText(/Font size/)
     await user.clear(input)
     await user.type(input, '48')
     await user.tab()
     expect(store.getState().document.revision).toBe(1)
 
-    await user.click(screen.getByRole('tab', { name: 'Code' }))
     expect(screen.getByText(/moved to revision 1/)).toBeInTheDocument()
 
     await user.click(applyButton())
@@ -312,20 +336,18 @@ describe('a stale draft cannot overwrite a later edit', () => {
     render(<EditorShell store={store} />)
     await openCode(user, 'hero.heading')
 
-    await user.click(screen.getByRole('tab', { name: 'Design' }))
     const input = screen.getByLabelText(/Font size/)
     await user.clear(input)
     await user.type(input, '48')
     await user.tab()
 
-    await user.click(screen.getByRole('tab', { name: 'Code' }))
     expect(draft()[HEADING]?.typography?.fontSize).toBe(48)
     expect(screen.queryByText(/moved to revision/)).not.toBeInTheDocument()
   })
 })
 
 describe('draft lifetime', () => {
-  it('keeps an unapplied draft across a panel switch', async () => {
+  it('keeps an unapplied draft across a surface switch', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await openCode(user, 'hero.heading')
@@ -337,7 +359,7 @@ describe('draft lifetime', () => {
       }
     })
 
-    await user.click(screen.getByRole('tab', { name: 'Design' }))
+    await user.click(screen.getByRole('tab', { name: 'Preview' }))
     await user.click(screen.getByRole('tab', { name: 'Code' }))
 
     expect(draft()[HEADING]?.content?.text).toBe('Still being written')
@@ -356,10 +378,10 @@ describe('draft lifetime', () => {
       }
     })
 
-    await user.click(layer('hero.cta.primary'))
+    await selectFromLayers(user, 'hero.cta.primary')
     expect(Object.keys(draft())).toEqual([PRIMARY])
 
-    await user.click(layer('hero.heading'))
+    await selectFromLayers(user, 'hero.heading')
     expect(draft()[HEADING]?.content?.text).not.toBe('Not for this element')
   })
 
@@ -420,13 +442,12 @@ describe('keyboard behaviour', () => {
     expect(editor()).not.toHaveFocus()
   })
 
-  it('switches panels from the keyboard', async () => {
+  it('switches surfaces from the keyboard', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
 
-    const design = screen.getByRole('tab', { name: 'Design' })
-    design.focus()
+    screen.getByRole('tab', { name: 'Preview' }).focus()
     await user.keyboard('{ArrowRight}')
     expect(screen.getByRole('tab', { name: 'Code' })).toHaveFocus()
 

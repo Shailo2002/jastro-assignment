@@ -46,11 +46,18 @@ beforeEach(() => {
   })
 })
 
-function layer(id: string): HTMLElement {
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
@@ -76,16 +83,12 @@ async function select(
   user: ReturnType<typeof userEvent.setup>,
   ...ids: readonly string[]
 ): Promise<void> {
-  await user.click(layer(ids[0] ?? ''))
+  await user.click(canvasTarget(ids[0] ?? ''))
   for (const id of ids.slice(1)) {
     await user.keyboard('{Shift>}')
-    await user.click(layer(id))
+    await user.click(canvasTarget(id))
     await user.keyboard('{/Shift}')
   }
-}
-
-async function openAi(user: ReturnType<typeof userEvent.setup>): Promise<void> {
-  await user.click(screen.getByRole('tab', { name: 'AI' }))
 }
 
 async function runInstruction(
@@ -100,10 +103,8 @@ async function runInstruction(
 const CENTER = 'Align the selected elements to center'
 
 describe('running an instruction', () => {
-  it('explains the block and disables Run with nothing selected', async () => {
-    const user = userEvent.setup()
+  it('explains the block and disables Run with nothing selected', () => {
     render(<EditorShell store={store} />)
-    await openAi(user)
 
     expect(screen.getByRole('button', { name: 'Run instruction' })).toBeDisabled()
     expect(
@@ -115,7 +116,6 @@ describe('running an instruction', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading')
-    await openAi(user)
 
     expect(screen.getByRole('button', { name: 'Make the heading bolder' })).toBeEnabled()
     expect(screen.getByRole('button', { name: CENTER })).toBeInTheDocument()
@@ -125,7 +125,6 @@ describe('running an instruction', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
     await runInstruction(user, CENTER)
 
     expect(cards()).toHaveLength(2)
@@ -139,7 +138,6 @@ describe('running an instruction', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading')
-    await openAi(user)
     await runInstruction(user, 'Make the heading bolder')
 
     const only = card(HEADING)
@@ -156,7 +154,6 @@ describe('running an instruction', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading')
-    await openAi(user)
     await runInstruction(user, 'Add a pricing table with three plans')
 
     expect(screen.getByRole('alert')).toHaveTextContent(/only implements a fixed set/)
@@ -168,7 +165,6 @@ describe('running an instruction', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'hero.section')
-    await openAi(user)
     await runInstruction(user, 'Make the heading bolder')
 
     expect(cards()).toHaveLength(1)
@@ -181,7 +177,6 @@ describe('independent outcomes', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
     await runInstruction(user, CENTER)
 
     await user.click(within(card(HEADING)).getByRole('button', { name: /^Accept/ }))
@@ -206,7 +201,6 @@ describe('independent outcomes', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
     await runInstruction(user, CENTER)
 
     await user.click(within(card(FEATURES_HEADING)).getByRole('button', { name: /^Reject/ }))
@@ -222,7 +216,6 @@ describe('independent outcomes', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
     await runInstruction(user, CENTER)
 
     await user.click(within(card(HEADING)).getByRole('button', { name: /^Accept/ }))
@@ -239,7 +232,6 @@ describe('independent outcomes', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
     await runInstruction(user, CENTER)
 
     await user.click(within(card(HEADING)).getByRole('button', { name: /^Accept/ }))
@@ -259,14 +251,11 @@ describe('proposals that have been overtaken', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading')
-    await openAi(user)
     await runInstruction(user, 'Make the heading bolder')
 
     // A manual edit to the very field the proposal is about.
-    await user.click(screen.getByRole('tab', { name: 'Design' }))
     const weight = screen.getByLabelText(/Font weight/)
     await user.selectOptions(weight, '600')
-    await openAi(user)
 
     expect(status(HEADING)).toHaveTextContent(/^Stale/)
     expect(within(card(HEADING)).getByRole('button', { name: /^Accept/ })).toBeDisabled()
@@ -280,11 +269,10 @@ describe('proposals that have been overtaken', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
     await runInstruction(user, CENTER)
 
     // Narrow the selection to one element; the other proposal loses authority.
-    await user.click(layer('features.heading'))
+    await user.click(canvasTarget('features.heading'))
 
     expect(status(HEADING)).toHaveTextContent(/^Not applicable/)
     expect(within(card(HEADING)).getByRole('button', { name: /^Accept/ })).toBeDisabled()
@@ -295,20 +283,17 @@ describe('proposals that have been overtaken', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
     await runInstruction(user, CENTER)
 
     // Editing another element moves the document revision but says nothing
     // about these fields, so both cards stay decidable.
     await select(user, 'cta.heading')
-    await user.click(screen.getByRole('tab', { name: 'Design' }))
     const size = screen.getByLabelText(/Font size/)
     await user.clear(size)
     await user.type(size, '30')
     await user.tab()
 
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
 
     expect(store.getState().document.revision).toBe(1)
     for (const node of cards()) {
@@ -322,7 +307,6 @@ describe('keyboard and announcements', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
 
     const instruction = screen.getByLabelText('Instruction')
     instruction.focus()
@@ -358,7 +342,6 @@ describe('keyboard and announcements', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading', 'features.heading')
-    await openAi(user)
     await runInstruction(user, CENTER)
 
     const status = screen.getByText(/2 proposals/)
@@ -366,17 +349,16 @@ describe('keyboard and announcements', () => {
     expect(status).toHaveTextContent('2 proposals: 2 awaiting review.')
   })
 
-  it('keeps a run when the sidebar tab changes', async () => {
+  it('keeps a run when the main surface changes', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading')
-    await openAi(user)
     await runInstruction(user, 'Make the heading bolder')
 
+    // The composer lives in the rail, so the run is not even off screen while
+    // the centre switches to the code surface - and it is still decidable.
     await user.click(screen.getByRole('tab', { name: 'Code' }))
-    expect(cards()).toHaveLength(0)
 
-    await openAi(user)
     expect(cards()).toHaveLength(1)
     expect(within(card(HEADING)).getByRole('button', { name: /^Accept/ })).toBeEnabled()
   })

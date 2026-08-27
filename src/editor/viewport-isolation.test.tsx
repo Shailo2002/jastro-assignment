@@ -51,11 +51,18 @@ beforeEach(() => {
 
 type User = ReturnType<typeof userEvent.setup>
 
-function layer(id: string): HTMLElement {
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
@@ -128,7 +135,7 @@ describe('a single-viewport edit', () => {
   it('leaves the other two projections byte-for-byte identical', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
 
     const desktopBefore = projectedState('desktop')
     const tabletBefore = projectedState('tablet')
@@ -145,7 +152,7 @@ describe('a single-viewport edit', () => {
   it('leaves the other two previews rendering identical markup', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
 
     const desktopBefore = projectedMarkup()
     await previewViewport(user, /^Tablet/i)
@@ -167,7 +174,7 @@ describe('a single-viewport edit', () => {
   it('writes the override to one viewport slot and to no other', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
-    await user.click(layer('hero.heading'))
+    await user.click(canvasTarget('hero.heading'))
     await editScope(user, /Tablet only/)
     await editFontSize(user, '38')
 

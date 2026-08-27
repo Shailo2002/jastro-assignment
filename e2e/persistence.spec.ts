@@ -17,6 +17,12 @@ function layer(page: Page, id: string) {
   return page.getByRole('tree', { name: 'Template layers' }).locator(`[data-target-id="${id}"]`)
 }
 
+/** The Layers dock is opened from the toolbar; it starts closed. */
+async function openLayers(page: Page): Promise<void> {
+  const toggle = page.getByRole('button', { name: /^Layers/ })
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click()
+}
+
 function resetButton(page: Page) {
   return page.getByRole('banner').getByRole('button', { name: /Reset project/ })
 }
@@ -27,12 +33,14 @@ function dialog(page: Page) {
 
 function headingSize(page: Page): Promise<string> {
   return page
+    .getByRole('main', { name: 'Template preview' })
     .locator('h2[data-element-id="hero.heading"]')
     .evaluate((node) => window.getComputedStyle(node).fontSize)
 }
 
 /** One committed desktop-base edit: the work every test below expects to keep. */
 async function editHeading(page: Page, value: string): Promise<void> {
+  await openLayers(page)
   await layer(page, 'hero.heading').click()
   const fontSize = page.getByLabel(/Font size/)
   await fontSize.fill(value)
@@ -50,11 +58,12 @@ test('a committed edit and its history survive a real reload', async ({ page }) 
   await expect.poll(() => headingSize(page)).toBe('40px')
 
   // The inspector agrees with the canvas...
+  await openLayers(page)
   await layer(page, 'hero.heading').click()
   await expect(page.getByLabel(/Font size/)).toHaveValue('40')
 
-  // ...and the revision is still recoverable after the reload.
-  await page.getByRole('tab', { name: 'History' }).click()
+  // ...and the revision is still recoverable after the reload, from the
+  // history that sits in the rail.
   await expect(page.getByRole('button', { name: /Restore/ }).first()).toBeVisible()
 })
 
@@ -66,6 +75,7 @@ test('the gallery offers to continue the saved project after a reload', async ({
   await page.reload()
 
   await page.getByRole('button', { name: /Continue editing/ }).click()
+  await expect(page.getByRole('main', { name: 'Template preview' })).toBeVisible()
   await expect.poll(() => headingSize(page)).toBe('40px')
 })
 
@@ -104,8 +114,8 @@ test('confirming reset restores the fixture and clears stored history', async ({
   await expect(page.getByText('Original template')).toBeVisible()
 
   // Nothing is left to restore, and nothing is left to rehydrate.
+  await openLayers(page)
   await layer(page, 'hero.heading').click()
-  await page.getByRole('tab', { name: 'History' }).click()
   await expect(page.getByRole('button', { name: /Restore/ })).toHaveCount(0)
 
   await page.reload()

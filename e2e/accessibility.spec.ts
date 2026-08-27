@@ -21,7 +21,7 @@ async function isFocused(target: Locator): Promise<boolean> {
   return target.evaluate((node) => node === document.activeElement)
 }
 
-async function tabTo(page: Page, target: Locator, limit = 80): Promise<void> {
+async function tabTo(page: Page, target: Locator, limit = 200): Promise<void> {
   for (let step = 0; step < limit; step += 1) {
     if (await isFocused(target)) return
     await page.keyboard.press('Tab')
@@ -30,11 +30,11 @@ async function tabTo(page: Page, target: Locator, limit = 80): Promise<void> {
 }
 
 /**
- * Moves between sidebar panels the way a keyboard user must: the tablist uses a
+ * Moves between main surfaces the way a keyboard user must: the tablist uses a
  * roving tabindex, so only the ACTIVE tab is a tab stop; the others are reached
  * with the arrow keys and activated with Enter.
  */
-async function activatePanel(page: Page, from: string, to: string, steps: number): Promise<void> {
+async function activateSurface(page: Page, from: string, to: string, steps: number): Promise<void> {
   await tabTo(page, page.getByRole('tab', { name: from }))
   // Arrow movement clamps rather than wrapping, so backwards moves go left.
   const key = steps < 0 ? 'ArrowLeft' : 'ArrowRight'
@@ -64,6 +64,17 @@ function layer(page: Page, id: string): Locator {
   return page.getByRole('tree', { name: 'Template layers' }).locator(`[data-target-id="${id}"]`)
 }
 
+/** The Layers dock is opened from the toolbar; it starts closed. */
+async function openLayers(page: Page): Promise<void> {
+  const toggle = page.getByRole('button', { name: /^Layers/ })
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click()
+}
+
+/** The selection summary, which is one of two named live regions on the page. */
+function selectionStatus(page: Page): Locator {
+  return page.getByRole('status', { name: 'Selection' })
+}
+
 async function analyze(page: Page) {
   return new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
 }
@@ -77,17 +88,20 @@ test('the gallery has no serious or critical axe findings', async ({ page }) => 
   ).toEqual([])
 })
 
-test('every editor panel has no serious or critical axe findings', async ({ page }) => {
+test('every editor surface and dock has no serious or critical axe findings', async ({ page }) => {
   await page.goto('/#/editor/aster-labs')
+  await openLayers(page)
   await layer(page, 'hero.heading').click()
 
-  for (const panel of ['Design', 'Code', 'AI', 'History']) {
-    await page.getByRole('tab', { name: panel }).click()
+  // Both docks are open, and the rail's history and AI panels are always on
+  // screen, so each pass covers everything except the surface being switched.
+  for (const surface of ['Preview', 'Code']) {
+    await page.getByRole('tab', { name: surface }).click()
     const results = await analyze(page)
     const serious = results.violations.filter(
       (violation) => violation.impact === 'serious' || violation.impact === 'critical',
     )
-    expect(serious, `${panel} panel: ${serious.map((v) => v.id).join(', ')}`).toEqual([])
+    expect(serious, `${surface} surface: ${serious.map((v) => v.id).join(', ')}`).toEqual([])
   }
 })
 
@@ -105,7 +119,7 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await page.goto('/#/templates')
 
   // 1. Open the template from the gallery.
-  await tabTo(page, page.getByRole('button', { name: /Use template|Continue editing/ }))
+  await tabTo(page, page.getByRole('button', { name: /Use template|Continue editing/ }).first())
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeVisible()
 
@@ -121,18 +135,26 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await page.keyboard.press('Enter')
   await expect(scopeButton(page, /Desktop only/)).toHaveAttribute('aria-pressed', 'true')
 
-  // 4. Select one element, then add a second, from the layers tree.
+  // 4. Open the Layers dock from the toolbar, then select one element and add
+  //    a second from the tree.
+  await tabTo(page, page.getByRole('button', { name: /^Layers/ }))
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('button', { name: /^Layers/ })).toHaveAttribute(
+    'aria-expanded',
+    'true',
+  )
+
   await tabTo(page, page.getByRole('tree', { name: 'Template layers' }).locator('[tabindex="0"]'))
   await arrowTo(page, layer(page, 'hero.heading'))
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('status')).toContainText('1 selected')
+  await expect(selectionStatus(page)).toContainText('1 selected')
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Shift+Enter')
-  await expect(page.getByRole('status')).toContainText('2 selected')
+  await expect(selectionStatus(page)).toContainText('2 selected')
 
   // Back to a single target for the property edit.
   await page.keyboard.press('Shift+Enter')
-  await expect(page.getByRole('status')).toContainText('1 selected')
+  await expect(selectionStatus(page)).toContainText('1 selected')
 
   // 5. Change one property from the inspector.
   const fontSize = page.getByLabel(/Font size/)
@@ -150,7 +172,7 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await expect(page.getByLabel(/Font size/)).not.toBeFocused()
 
   // 6. Apply a valid structured code edit.
-  await activatePanel(page, 'Design', 'Code', 1)
+  await activateSurface(page, 'Preview', 'Code', 1)
   const editor = page.getByLabel('Element properties (JSON)')
   await expect(editor).toBeVisible()
   await tabTo(page, editor)
@@ -168,22 +190,25 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await page.keyboard.press('Escape')
   await tabTo(page, page.getByRole('button', { name: 'Apply' }))
   await page.keyboard.press('Enter')
-  await activatePanel(page, 'Code', 'Design', -1)
+  // The Design dock sits beside the code surface rather than instead of it, so
+  // the committed value is readable without switching back.
   await expect(page.getByLabel(/Font size/)).toHaveValue('48')
 
-  // 7. Run an instruction and accept its proposal.
-  await activatePanel(page, 'Design', 'AI', 2)
-  await tabTo(page, page.getByRole('button', { name: 'Make the heading bolder' }))
-  await page.keyboard.press('Enter')
-  await tabTo(page, page.getByRole('button', { name: 'Run instruction' }))
+  // 7. Run an instruction and accept its proposal, from the rail's composer.
+  //    Enter in the instruction field runs it, so the composer needs no reach
+  //    for the mouse and no second tab stop.
+  const instruction = page.getByLabel('Instruction')
+  await tabTo(page, instruction)
+  await instruction.press('ControlOrMeta+a')
+  await page.keyboard.type('Make the heading bolder')
   await page.keyboard.press('Enter')
   const acceptButton = page.locator('.proposal-card').first().getByRole('button', { name: 'Accept' })
   await tabTo(page, acceptButton)
   await page.keyboard.press('Enter')
   await expect(page.locator('.proposal-card').first()).toContainText(/Accepted/i)
 
-  // 8. Restore one revision for one element and scope, and return focus.
-  await activatePanel(page, 'AI', 'History', 1)
+  // 8. Restore one revision for one element and scope, and return focus. The
+  //    history is in the rail, above the composer, so nothing is switched.
   const restoreTrigger = page.getByRole('button', { name: /^Restore/ }).first()
   await tabTo(page, restoreTrigger)
   await page.keyboard.press('Enter')
@@ -202,6 +227,7 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await expect(page.locator('.revision-card').first()).toContainText('Restore')
 
   // 9. Back to the desktop preview, which is where every scoped edit landed.
+  await activateSurface(page, 'Code', 'Preview', -1)
   await tabTo(page, viewportButton(page, /Desktop/))
   await page.keyboard.press('Enter')
   await expect(viewportButton(page, /Desktop/)).toHaveAttribute('aria-pressed', 'true')

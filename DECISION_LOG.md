@@ -341,3 +341,25 @@ Capture at least one material AI correction for `AI_USAGE.md`.
 - Trade-off: a field the user typed into but never blurred is discarded if the selection changes; no per-field Apply button is offered.
 - Evidence/test: `sends a canvas-source command through the shared pipeline and records history`, `rejects an out-of-range value through the schema and changes nothing`, `commits a field with Enter, without a pointer`.
 - Related step/commit: Step 8.
+
+## Layout revision decisions
+
+### 2026-08-27 - Three regions: a history/AI rail, one switchable main surface, and two right-hand docks
+
+- Context: the shell had grown to a fixed 240 px layers column, a canvas, and a 340 px sidebar holding four tabbed panels (Design, Code, AI, History). Only one of the four was ever visible, so the two panels that are *reference* material - what has already happened to this element, and the instruction that would change it next - were hidden exactly when they were most useful, and the code surface was being read in a 340 px column.
+- Options considered: keep the four-tab sidebar and widen it (rejected - the code surface is still cramped and history is still hidden while editing); float every panel (rejected - nothing would have a stable home); a left rail for history + AI, a tablist that swaps the centre between preview and code, and Design/Layers as toolbar-opened docks (chosen).
+- Decision: history and the AI composer live permanently in a 380 px left rail; the centre is one surface at a time chosen by a real tablist; Design and Layers are disclosures opened from the toolbar, hidden rather than unmounted, and inset the main surface above 1100 px rather than covering it.
+- Why: the surfaces that are read continuously stay on screen, the code view gets a reading width, and the two panels that are consulted intermittently cost nothing when closed. Nothing about the commit boundary moved - every write still goes through the store's one validated pipeline, and the docks own no document state.
+- Trade-off: the preview is unmounted while the code surface is showing, so a rendered result has to be read back on the preview surface; with both docks open at 1280 px the canvas is narrow; and the AI run shares the rail's lower half with the composer, so a long run scrolls in a smaller box than a full-height panel gave it.
+- Evidence/test: `src/editor/panel-collapse.test.tsx` (dock disclosure semantics, Escape and focus return, state kept across a close), `src/editor/canvas-code.test.tsx` (draft survives a surface switch; the Design dock commits while the code surface is showing), `e2e/accessibility.spec.ts` (whole journey by keyboard, axe on both surfaces with both docks open, 200% zoom without sideways scrolling).
+- Related step/commit: UI revision after Step 12.
+
+### 2026-08-27 - Scope Lock is chrome, not panel furniture
+
+- Context: Scope Lock lived at the top of the sidebar, so it was only visible while a sidebar panel was open - yet it governs an inspector edit, a code apply, an accepted proposal, and a restore equally.
+- Options considered: repeat it in each panel (rejected - four copies of one statement drift); leave it in the Design dock (rejected - it would disappear whenever the dock is closed); give it its own bar under the toolbar, beside the edit-scope control (chosen).
+- Decision: a scope bar under the toolbar holds the Scope Lock statement, the persistence chip, and the edit-scope switcher.
+- Why: what an edit will touch is stated once, in one place, and cannot be closed away. Putting the scope *control* next to the scope *statement* also stops it from being confused with the preview viewport, which stays in the toolbar.
+- Trade-off: the bar costs a row of vertical space, and at narrow widths the protection sentence is clipped with an ellipsis - the full text stays in the DOM for assistive technology, and both the AI panel and the restore confirmation repeat it at the moment of committing.
+- Evidence/test: `screen.getByRole('region', { name: 'Scope Lock' })` assertions across `panel-collapse.test.tsx`, `manual-edit.test.tsx`, `reset-project.test.tsx`, `e2e/smoke.spec.ts`, and `e2e/reviewer-journey.spec.ts`.
+- Related step/commit: UI revision after Step 12.

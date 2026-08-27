@@ -11,8 +11,53 @@ import {
 
 import { EditorShell } from './editor/EditorShell'
 import { TemplateGallery } from './gallery/TemplateGallery'
-import { getTemplate } from './gallery/template-catalog'
+import { getTemplate, TEMPLATE_CATALOG } from './gallery/template-catalog'
 import { createDocumentStore, type DocumentStore } from './store/document-store'
+import { getBrowserStorage, type StorageLike } from './store/persistence'
+
+type StoreGetter = (templateId: string) => DocumentStore
+
+function getTemplateStorage(templateId: string): StorageLike | null {
+  const browserStorage = getBrowserStorage()
+  if (browserStorage === undefined) return null
+
+  // Keep the original key unchanged so existing Aster projects still restore.
+  if (templateId === 'aster-labs') return browserStorage
+
+  const namespace = `scoped-ai-template-editor.${templateId}.`
+  return {
+    getItem: (key) => browserStorage.getItem(`${namespace}${key}`),
+    setItem: (key, value) => {
+      browserStorage.setItem(`${namespace}${key}`, value)
+    },
+    removeItem: (key) => {
+      browserStorage.removeItem(`${namespace}${key}`)
+    },
+  }
+}
+
+function createStoreGetter(injectedStore: DocumentStore | undefined): StoreGetter {
+  const stores = new Map<string, DocumentStore>()
+
+  return (templateId) => {
+    if (injectedStore !== undefined) return injectedStore
+
+    const template = getTemplate(templateId)
+    if (template === undefined) {
+      throw new Error(`Unknown template: ${templateId}`)
+    }
+
+    const existingStore = stores.get(templateId)
+    if (existingStore !== undefined) return existingStore
+
+    const store = createDocumentStore({
+      createDocument: template.createDocument,
+      storage: getTemplateStorage(templateId),
+    })
+    stores.set(templateId, store)
+    return store
+  }
+}
 
 function ScrollToTop(): null {
   const location = useLocation()
@@ -37,13 +82,18 @@ function ScrollToTop(): null {
   return null
 }
 
-function GalleryRoute(props: { store: DocumentStore }): JSX.Element {
+function GalleryRoute(props: { getStore: StoreGetter }): JSX.Element {
   const navigate = useNavigate()
-  const storeState = props.store.getState()
+  const savedTemplateIds = new Set(
+    TEMPLATE_CATALOG.filter((template) => {
+      const state = props.getStore(template.id).getState()
+      return state.hydration === 'restored' || state.document.revision > 0
+    }).map((template) => template.id),
+  )
 
   return (
     <TemplateGallery
-      hasSavedProject={storeState.hydration === 'restored' || storeState.document.revision > 0}
+      savedTemplateIds={savedTemplateIds}
       onSelectTemplate={(templateId) => {
         void navigate(`/editor/${templateId}`)
       }}
@@ -51,17 +101,19 @@ function GalleryRoute(props: { store: DocumentStore }): JSX.Element {
   )
 }
 
-function EditorRoute(props: { store: DocumentStore }): JSX.Element {
+function EditorRoute(props: { getStore: StoreGetter }): JSX.Element {
   const navigate = useNavigate()
   const { templateId } = useParams<{ templateId: string }>()
+  const template = templateId === undefined ? undefined : getTemplate(templateId)
 
-  if (templateId === undefined || getTemplate(templateId) === undefined) {
+  if (templateId === undefined || template === undefined) {
     return <Navigate to="/templates" replace />
   }
 
   return (
     <EditorShell
-      store={props.store}
+      store={props.getStore(templateId)}
+      templateName={template.name}
       onBackToTemplates={() => {
         void navigate('/templates')
       }}
@@ -74,14 +126,14 @@ function EditorRoute(props: { store: DocumentStore }): JSX.Element {
  * the shell; tests inject their own store instead of touching real storage.
  */
 export function App(props: { store?: DocumentStore }): JSX.Element {
-  const [store] = useState<DocumentStore>(() => props.store ?? createDocumentStore())
+  const [getStore] = useState<StoreGetter>(() => createStoreGetter(props.store))
   return (
     <HashRouter>
       <ScrollToTop />
       <Routes>
         <Route index element={<Navigate to="/templates" replace />} />
-        <Route path="/templates" element={<GalleryRoute store={store} />} />
-        <Route path="/editor/:templateId" element={<EditorRoute store={store} />} />
+        <Route path="/templates" element={<GalleryRoute getStore={getStore} />} />
+        <Route path="/editor/:templateId" element={<EditorRoute getStore={getStore} />} />
         <Route path="*" element={<Navigate to="/templates" replace />} />
       </Routes>
     </HashRouter>

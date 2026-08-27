@@ -23,7 +23,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App store={createDocumentStore({ storage: null })} />)
 
-    await user.click(screen.getByRole('button', { name: 'Use template' }))
+    await user.click(screen.getAllByRole('button', { name: 'Use template' })[0]!)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeInTheDocument()
     expect(screen.getByRole('main', { name: 'Template preview' })).toBeInTheDocument()
@@ -31,6 +31,21 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Back to templates' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeInTheDocument()
+  })
+
+  it('opens a newly selected template with its own content', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    const novaHeading = screen.getByRole('heading', { level: 2, name: 'Nova Portfolio' })
+    const novaCard = novaHeading.closest('article')
+    expect(novaCard).not.toBeNull()
+    await user.click((novaCard as HTMLElement).querySelector('button')!)
+
+    expect(window.location.hash).toBe('#/editor/nova-portfolio')
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Digital products with clarity and character.' }),
+    ).toBeInTheDocument()
   })
 
   it('redirects an unknown template route to the gallery', async () => {

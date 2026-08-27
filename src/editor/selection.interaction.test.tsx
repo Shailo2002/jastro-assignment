@@ -41,11 +41,16 @@ beforeEach(() => {
   })
 })
 
+type User = ReturnType<typeof userEvent.setup>
+
 function canvas(): HTMLElement {
   return screen.getByRole('listbox', { name: 'Selectable template elements' })
 }
 
-function layers(): HTMLElement {
+/** The layers tree, opening its dock first if it is still closed. */
+async function layers(user: User): Promise<HTMLElement> {
+  const toggle = screen.getByRole('button', { name: 'Layers' })
+  if (toggle.getAttribute('aria-expanded') === 'false') await user.click(toggle)
   return screen.getByRole('tree', { name: 'Template layers' })
 }
 
@@ -127,21 +132,22 @@ describe('canvas selection', () => {
     await user.click(target(canvas(), 'cta.button'))
     await user.keyboard('{/Shift}')
 
-    expect(selectedIds(layers())).toEqual(selectedIds(canvas()))
+    expect(selectedIds(await layers(user))).toEqual(selectedIds(canvas()))
   })
 
   it('reports the selected count and readable names as text', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
 
-    expect(screen.getByRole('status')).toHaveTextContent('Nothing selected')
+    const summary = (): HTMLElement => screen.getByRole('status', { name: 'Selection' })
+    expect(summary()).toHaveTextContent('Nothing selected')
 
     await user.click(target(canvas(), 'hero.heading'))
     await user.keyboard('{Shift>}')
     await user.click(target(canvas(), 'cta.button'))
     await user.keyboard('{/Shift}')
 
-    const status = screen.getByRole('status')
+    const status = summary()
     expect(status).toHaveTextContent('2 selected')
     expect(status).toHaveTextContent(/Heading: /)
     expect(status).toHaveTextContent(/Button: /)
@@ -224,7 +230,7 @@ describe('selection is not a document change', () => {
     await user.keyboard('{Shift>}')
     await user.click(target(canvas(), 'cta.button'))
     await user.keyboard('{/Shift}')
-    await user.click(target(layers(), 'features.grid'))
+    await user.click(target(await layers(user), 'features.grid'))
 
     const after = store.getState().document
     expect(after).toBe(before)

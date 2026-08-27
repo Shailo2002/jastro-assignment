@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Luma Studio campaign preview</title>
+  <desc id="desc">A colorful creative campaign board with posters and geometric shapes.</desc>
+  <defs>
+    <linearGradient id="hot" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb7185"/>
+      <stop offset=".5" stop-color="#d946ef"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#f472b6"/>
+      <stop offset="1" stop-color="#fde68a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="620" fill="#120911"/>
+  <rect x="48" y="42" width="1104" height="536" rx="30" fill="#1a0e18" stroke="#4a2842" stroke-width="2"/>
+  <text x="86" y="92" fill="#f9a8d4" font-family="Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="3">LUMA / CREATIVE STUDIO</text>
+  <rect x="86" y="128" width="458" height="400" rx="22" fill="url(#hot)"/>
+  <circle cx="315" cy="314" r="126" fill="#120911" opacity=".9"/>
+  <circle cx="315" cy="314" r="76" fill="none" stroke="#fef3c7" stroke-width="18"/>
+  <path d="M248 314h134M315 247v134" stroke="#fef3c7" stroke-width="18" stroke-linecap="round"/>
+  <text x="120" y="484" fill="#fff" font-family="Arial, sans-serif" font-size="28" font-weight="800">MAKE THE FIRST</text>
+  <text x="120" y="515" fill="#fff" font-family="Arial, sans-serif" font-size="28" font-weight="800">IMPRESSION COUNT.</text>
+  <rect x="574" y="128" width="242" height="240" rx="22" fill="#fef3c7"/>
+  <rect x="622" y="176" width="146" height="146" rx="73" fill="url(#sun)"/>
+  <path d="M622 249h146M695 176v146" stroke="#120911" stroke-width="9" opacity=".75"/>
+  <rect x="846" y="128" width="268" height="240" rx="22" fill="#262033"/>
+  <path d="M886 300l74-124 74 124z" fill="none" stroke="#c4b5fd" stroke-width="12" stroke-linejoin="round"/>
+  <circle cx="960" cy="249" r="34" fill="#f472b6"/>
+  <rect x="574" y="398" width="540" height="130" rx="22" fill="url(#hot)"/>
+  <text x="610" y="449" fill="#fff" font-family="Arial, sans-serif" font-size="26" font-weight="800">STRATEGY × IDENTITY × DIGITAL</text>
+  <text x="610" y="490" fill="#ffe4f3" font-family="Arial, sans-serif" font-size="17">A small studio for ideas ready to get noticed.</text>
+</svg>

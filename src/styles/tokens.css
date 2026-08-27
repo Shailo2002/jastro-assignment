@@ -3,37 +3,45 @@
  *
  * Raw color, spacing, radius, and duration values belong ONLY in this file.
  * Components must reference the semantic custom properties, never the literals.
- * Values follow DESIGN_SYSTEM.md. Two of its draft values are deliberately
- * adjusted, because the same document requires WCAG 2.2 AA and those two pairs
- * do not reach it; each is marked below with its measured ratio. The contrast
- * of every text/surface pair used by the shell is asserted in `tokens.test.ts`,
- * so a future palette change cannot quietly reintroduce the failure.
+ *
+ * The palette follows the product design brief: a true-black base, warm neutral
+ * greys (hue ~107 at very low chroma), hairline borders, and a restrained
+ * accent. Where the brief's draft value cannot reach WCAG 2.2 AA - which the
+ * same brief requires - the value is adjusted by the smallest amount that
+ * clears the threshold, and the measured ratio is recorded beside it. Every
+ * text/surface pair the shell actually uses is asserted in `tokens.test.ts`, so
+ * a future palette change fails the suite rather than the audit.
+ *
+ * oklch values from the brief are expressed as their sRGB hex equivalents so
+ * the contrast assertions can read them.
  */
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --surface-canvas: #050506;
-  --surface-shell: #09090b;
-  --surface-panel: #0f1013;
-  --surface-elevated: #16181d;
-  --surface-hover: #1d2027;
+  /* Surfaces. base -> muted, deepest first. */
+  --surface-canvas: #000000;
+  --surface-shell: #080807;
+  --surface-panel: #101010;
+  --surface-elevated: #1a1a19;
+  /* Brief's surface.muted is #272726; that lifts the surface far enough that
+     --action-primary as text measures 4.45:1 on it. Two steps darker keeps the
+     same read and reaches 4.80:1. */
+  --surface-hover: #242423;
 
   /* Text */
-  --text-primary: #fafafa;
-  --text-secondary: #a3a3a3;
-  /* DESIGN_SYSTEM draft #737373 measures 4.01:1 on --surface-panel and 3.44:1
-     on --surface-hover; lightened to clear 4.5:1 on every surface it is used
-     on (5.88:1 / 5.04:1). */
-  --text-muted: #8f8f8f;
+  --text-primary: #ffffff;
+  /* Brief's text.tertiary, oklch(0.7234 0.002 107). */
+  --text-secondary: #a8a7a2;
+  --text-muted: #8e8d89;
   /* Ink for text sitting ON an accent or status fill. White measures 3.23:1 on
      --action-primary and 2.77:1 on --status-danger; near-black reaches 6.31:1
-     and 7.37:1 while keeping the bright blue action colour intact. */
+     and 7.37:1 while keeping the bright action colour intact. */
   --text-on-accent: #050506;
 
-  /* Borders */
-  --border-default: #262626;
-  --border-strong: #3f3f46;
+  /* Borders. Hairlines carry the layout; --border-default is the brief's
+     border.muted, --border-strong its border.default. */
+  --border-default: #2b2b29;
+  --border-strong: #41413d;
   --border-selection: #6b9cff;
 
   /* Actions and status */
@@ -44,6 +52,13 @@
   --status-warning: #fbbf24;
   --status-danger: #f87171;
 
+  /* Brand identity. Deliberately NOT an action colour: it marks the product
+     (logomark, workspace chip, callout badge) and is never the only signal for
+     an interactive state. White on --accent-brand measures 5.58:1. */
+  --accent-brand: #6b4de0;
+  --accent-brand-soft: rgb(107 77 224 / 18%);
+  --accent-warm: #ff7a4d;
+
   /* Focus and emphasis */
   --focus-ring: #8ab4ff;
   /* Modal scrim; the only full-page overlay, kept out of component files. */
@@ -51,8 +66,16 @@
   --selection-fill: rgb(91 141 239 / 14%);
   --glow-accent: 0 0 48px rgb(59 130 246 / 18%);
 
-  /* Named shadow levels used by rendered template surfaces */
+  /* Named shadow levels. --shadow-hairline is the brief's inset rim light that
+     separates a raised control from a black surface without adding a border. */
+  --shadow-hairline:
+    inset 0 0.5px 0 0 rgb(255 255 255 / 14%),
+    inset 0 0 0 0.5px rgb(255 255 255 / 6%);
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 24%);
+  --shadow-raised:
+    0 1.5px 0 0 rgb(0 0 0 / 8%),
+    0 3.5px 3px -1.5px rgb(0 0 0 / 16%),
+    0 12.5px 12px -6px rgb(0 0 0 / 24%);
   --shadow-glow: 0 0 48px rgb(59 130 246 / 18%);
 
   /* Spacing */
@@ -65,7 +88,10 @@
   --space-8: 32px;
 
   /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
   --radius-control: 8px;
+  --radius-input: 10px;
   --radius-card: 12px;
   --radius-panel: 16px;
   --radius-pill: 9999px;
@@ -75,9 +101,21 @@
   --duration-fast: 200ms;
   --duration-normal: 300ms;
 
-  /* Typography */
-  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Typography. "Camera Plain Variable" is the brief's brand face; it is not
+     redistributable, so the stack resolves to the platform UI face, which is
+     what the brief's own fallback chain asks for. No webfont is fetched at
+     runtime: the app must render identically offline. */
+  --font-ui:
+    'Camera Plain Variable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Type scale */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 24px;
+  --text-xl: 30px;
 
   /* Minimum touch target, per DESIGN_SYSTEM.md */
   --target-touch-min: 44px;

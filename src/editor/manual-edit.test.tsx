@@ -49,11 +49,18 @@ beforeEach(() => {
   })
 })
 
-function layer(id: string): HTMLElement {
+/**
+ * A selection target on the canvas overlay, found by stable id.
+ *
+ * The canvas is the surface that is always on screen, so it is what these
+ * tests select through. The Layers tree offers the identical targets from the
+ * Layers dock; `layers-panel.test.tsx` holds that equivalence in place.
+ */
+function canvasTarget(id: string): HTMLElement {
   const node = screen
-    .getByRole('tree', { name: 'Template layers' })
+    .getByRole('listbox', { name: 'Selectable template elements' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
-  if (node === null) throw new Error(`No layer for "${id}".`)
+  if (node === null) throw new Error(`No canvas target for "${id}".`)
   return node
 }
 
@@ -86,7 +93,7 @@ function describedText(control: HTMLElement): string {
 }
 
 async function selectLayer(user: ReturnType<typeof userEvent.setup>, id: string): Promise<void> {
-  await user.click(layer(id))
+  await user.click(canvasTarget(id))
 }
 
 describe('inspector commits', () => {
@@ -135,7 +142,7 @@ describe('inspector commits', () => {
 
     await selectLayer(user, 'hero.cta.primary')
     await user.keyboard('{Shift>}')
-    await user.click(layer('hero.cta.secondary'))
+    await user.click(canvasTarget('hero.cta.secondary'))
     await user.keyboard('{/Shift}')
 
     const input = screen.getByLabelText(/Font size/)
@@ -156,7 +163,7 @@ describe('inspector commits', () => {
 
     await selectLayer(user, 'hero.cta.primary')
     await user.keyboard('{Shift>}')
-    await user.click(layer('hero.cta.secondary'))
+    await user.click(canvasTarget('hero.cta.secondary'))
     await user.keyboard('{/Shift}')
 
     // The two buttons have weight 600 and 500.
@@ -176,7 +183,7 @@ describe('inspector commits', () => {
     expect(screen.getByLabelText(/^Text$/)).toBeInTheDocument()
 
     await user.keyboard('{Shift>}')
-    await user.click(layer('hero.image'))
+    await user.click(canvasTarget('hero.image'))
     await user.keyboard('{/Shift}')
 
     expect(screen.queryByLabelText(/^Text$/)).not.toBeInTheDocument()
@@ -314,7 +321,7 @@ describe('scope lock', () => {
     expect(within(scopeLock()).getByText('1 selected')).toBeInTheDocument()
 
     await user.keyboard('{Shift>}')
-    await user.click(layer('hero.cta.primary'))
+    await user.click(canvasTarget('hero.cta.primary'))
     await user.keyboard('{/Shift}')
     expect(within(scopeLock()).getByText('2 selected')).toBeInTheDocument()
 
@@ -360,6 +367,7 @@ describe('order operation', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await selectLayer(user, 'hero.cta.secondary')
+    await user.click(screen.getByRole('button', { name: 'Layers' }))
 
     const ids = (): (string | null)[] =>
       within(screen.getByRole('tree', { name: 'Template layers' }))
@@ -404,7 +412,7 @@ describe('keyboard operability', () => {
     render(<EditorShell store={store} />)
 
     act(() => {
-      layer('hero.heading').focus()
+      canvasTarget('hero.heading').focus()
     })
     await user.keyboard('{Enter}')
 

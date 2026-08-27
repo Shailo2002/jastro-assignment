@@ -197,7 +197,7 @@ Use a versioned local-storage adapter. Validate stored data before hydration. If
 ## State boundaries
 
 - Document store: canonical document and commit action.
-- UI store: selection, preview viewport, edit scope, panels, transient drafts.
+- UI store: selection, preview viewport, edit scope, main surface, open docks, transient drafts.
 - Proposal state: generated proposals and independent statuses.
 - Persistence adapter: serialization, schema version, hydration, reset.
 - Engine modules: pure validation, apply, resolve, history, scenario matching.
