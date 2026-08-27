@@ -8,6 +8,7 @@ import {
   type RestorePreviewRow,
   type RevisionEntryView,
 } from './element-history'
+import { PanelHeading, PanelHint, ToolbarButton } from './controls'
 
 /**
  * The history panel.
@@ -50,8 +51,8 @@ function PreviewTable(props: {
   nextHeader: string
 }): JSX.Element {
   return (
-    <table className="revision-card__changes">
-      <caption className="visually-hidden">{props.caption}</caption>
+    <table className="w-full border-collapse text-left text-xs [&_th]:border-b [&_th]:border-default [&_th]:px-2 [&_th]:py-1 [&_th]:align-top [&_td]:border-b [&_td]:border-default [&_td]:px-2 [&_td]:py-1 [&_td]:align-top [&_thead_th]:text-[11px] [&_thead_th]:font-semibold [&_thead_th]:text-muted [&_tbody_th]:font-medium [&_tbody_th]:text-secondary [&_tbody_td]:text-primary [&_tbody_td]:[overflow-wrap:anywhere]">
+      <caption className="sr-only">{props.caption}</caption>
       <thead>
         <tr>
           <th scope="col">Field</th>
@@ -79,6 +80,13 @@ export function HistoryPanel(props: {
   selectedIds: readonly ElementId[]
   /** Restores one element/scope; returns pipeline errors, empty when applied. */
   onRestore: (request: RestoreRequest) => readonly string[]
+  /**
+   * Docked in the rail the panel drops its explanatory paragraph: the rail is
+   * short, and a scrollable region whose only content is prose is a keyboard
+   * trap by axe's reading. The rule it explains is still stated in Scope Lock,
+   * above every surface.
+   */
+  showGuidance?: boolean
 }): JSX.Element {
   const views = describeSelectedHistory({
     document: props.document,
@@ -149,31 +157,43 @@ export function HistoryPanel(props: {
 
     return (
       <li key={entry.id}>
+        {/* `revision-card` is a query hook for the tests. The source is stated
+            in the card's own title; the coloured edge is a second cue. */}
         <article
-          className="revision-card"
+          className="revision-card flex flex-col gap-2 rounded-card border border-default
+            border-l-[3px] bg-surface-panel p-3 shadow-hairline
+            data-[source=canvas]:border-l-action-primary
+            data-[source=code]:border-l-strong
+            data-[source=ai]:border-l-status-warning
+            data-[source=restore]:border-l-status-success"
           aria-labelledby={`${cardId}-title`}
           data-revision-id={entry.id}
           data-target-id={entry.elementId}
           data-scope={entry.scope}
           data-source={entry.source}
         >
-          <h5 className="revision-card__title" id={`${cardId}-title`}>
+          <h5 className="m-0 text-[13px] font-semibold text-primary" id={`${cardId}-title`}>
             {view.sourceLabel}
           </h5>
 
-          <p className="revision-card__meta">
-            <span className="revision-card__scope">{view.scopeText}</span>
+          <p className="m-0 text-[11px] text-muted">
+            <span className="font-semibold text-secondary">{view.scopeText}</span>
             <span aria-hidden="true"> &middot; </span>
             <span>{view.timeText}</span>
             <span aria-hidden="true"> &middot; </span>
             <span>Document revision {entry.documentRevision}</span>
           </p>
 
-          <p className="revision-card__fields">{view.changedFieldsText}</p>
+          <p className="m-0 text-xs leading-normal text-secondary [overflow-wrap:anywhere]">
+            {view.changedFieldsText}
+          </p>
 
           {view.changes.length > 0 && (
-            <details className="revision-card__details">
-              <summary>What this change did</summary>
+            <details>
+              <summary className="cursor-pointer text-xs text-secondary focus-visible:outline-2
+                focus-visible:outline-offset-2 focus-visible:outline-focus-ring">
+                What this change did
+              </summary>
               <PreviewTable
                 rows={view.changes}
                 caption={`Fields this ${view.sourceLabel.toLowerCase()} changed`}
@@ -185,7 +205,8 @@ export function HistoryPanel(props: {
 
           {confirming && (
             <div
-              className="revision-card__confirm"
+              className="flex flex-col gap-2 rounded-control border border-strong
+                bg-surface-elevated p-3"
               role="group"
               aria-labelledby={`${cardId}-confirm-title`}
               onKeyDown={(event) => {
@@ -195,7 +216,8 @@ export function HistoryPanel(props: {
               }}
             >
               <p
-                className="revision-card__confirm-title"
+                className="m-0 text-xs font-semibold text-primary focus-visible:outline-2
+                  focus-visible:outline-offset-4 focus-visible:outline-focus-ring"
                 id={`${cardId}-confirm-title`}
                 tabIndex={-1}
                 ref={(node) => {
@@ -205,7 +227,7 @@ export function HistoryPanel(props: {
                 Restore this revision?
               </p>
 
-              <p className="revision-card__confirm-target">
+              <p className="m-0 text-xs leading-normal text-secondary">
                 <strong>{view.restoreText}</strong> {view.protectionText}
               </p>
 
@@ -216,31 +238,31 @@ export function HistoryPanel(props: {
                 nextHeader="After restore"
               />
 
-              <div className="revision-card__actions">
-                <button
+              <div className="flex flex-wrap gap-2">
+                <ToolbarButton
                   type="button"
-                  className="toolbar-button"
                   onClick={() => {
                     confirmRestore(view)
                   }}
                 >
                   Restore
-                </button>
-                <button
+                </ToolbarButton>
+                <ToolbarButton
                   type="button"
-                  className="toolbar-button"
                   onClick={() => {
                     cancelConfirm(entry.id)
                   }}
                 >
                   Cancel
-                </button>
+                </ToolbarButton>
               </div>
             </div>
           )}
 
           <p
-            className="revision-card__status"
+            className="revision-card__status m-0 text-xs leading-[1.45] text-secondary
+              focus-visible:outline-2 focus-visible:outline-offset-4
+              focus-visible:outline-focus-ring"
             tabIndex={-1}
             ref={(node) => {
               statusRefs.current.set(entry.id, node)
@@ -251,15 +273,16 @@ export function HistoryPanel(props: {
 
           {cardOutcome !== undefined && cardOutcome.errors.length > 0 && (
             <div role="alert">
-              <p className="field__error">{cardOutcome.errors.join(' ')}</p>
+              <p className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']">
+                {cardOutcome.errors.join(' ')}
+              </p>
             </div>
           )}
 
           {!confirming && (
-            <div className="revision-card__actions">
-              <button
+            <div className="flex flex-wrap gap-2">
+              <ToolbarButton
                 type="button"
-                className="toolbar-button"
                 disabled={!view.canRestore}
                 aria-label={`Restore ${view.scopeText} for this element to the state before this ${view.sourceLabel.toLowerCase()}`}
                 ref={(node) => {
@@ -270,7 +293,7 @@ export function HistoryPanel(props: {
                 }}
               >
                 Restore&hellip;
-              </button>
+              </ToolbarButton>
             </div>
           )}
         </article>
@@ -281,19 +304,20 @@ export function HistoryPanel(props: {
   const renderElement = (view: ElementHistoryView): JSX.Element => (
     <section
       key={view.elementId}
-      className="history-panel__element"
+      className="flex flex-col gap-2 rounded-card border border-default bg-surface-panel
+        p-3 shadow-hairline"
       aria-label={`History for ${view.elementName}`}
       data-target-id={view.elementId}
     >
-      <h3 className="history-panel__element-title">{view.elementName}</h3>
-      <p className="history-panel__element-meta">
-        <code className="history-panel__id">{view.elementId}</code>
+      <h3 className="m-0 text-[13px] font-semibold text-primary">{view.elementName}</h3>
+      <p className="m-0 text-[11px] text-muted">
+        <code className="font-mono">{view.elementId}</code>
         <span aria-hidden="true"> &middot; </span>
         <span>{view.summary}</span>
       </p>
 
       {view.totalEntries === 0 ? (
-        <p className="history-panel__empty">
+        <p className="m-0 text-xs leading-normal text-secondary">
           No changes recorded for this element yet. Edits from the inspector, the code panel,
           an accepted AI proposal, and a restore all appear here.
         </p>
@@ -301,12 +325,14 @@ export function HistoryPanel(props: {
         view.groups.map((group) => (
           <section
             key={group.scope}
-            className="history-panel__group"
+            className="flex flex-col gap-2"
             aria-label={`${group.scopeText} revisions for ${view.elementName}`}
             data-scope={group.scope}
           >
-            <h4 className="history-panel__group-title">{group.scopeText}</h4>
-            <ul className="history-panel__entries">{group.entries.map(renderEntry)}</ul>
+            <h4 className="m-0 text-xs font-semibold text-secondary">{group.scopeText}</h4>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {group.entries.map(renderEntry)}
+            </ul>
           </section>
         ))
       )}
@@ -314,23 +340,27 @@ export function HistoryPanel(props: {
   )
 
   return (
-    <section className="history-panel" aria-labelledby="history-heading">
-      <h2 className="inspector__heading" id="history-heading">
-        History
-      </h2>
+    <section className="flex flex-col gap-3" aria-labelledby="history-heading">
+      <PanelHeading id="history-heading">History</PanelHeading>
 
-      <p className="inspector__hint">
-        Every commit is recorded against one element and one scope. Restoring an entry returns
-        that element, in that scope only, to the values it held before that change; later
-        entries are kept and the restore is recorded as a new entry.
-      </p>
+      {props.showGuidance === false ? null : (
+        <PanelHint>
+          Every commit is recorded against one element and one scope. Restoring an entry
+          returns that element, in that scope only, to the values it held before that change;
+          later entries are kept and the restore is recorded as a new entry.
+        </PanelHint>
+      )}
 
-      <p className="history-panel__announcement" role="status" aria-label="Restore outcome">
+      <p
+        className="m-0 text-xs leading-[1.45] text-secondary empty:hidden"
+        role="status"
+        aria-label="Restore outcome"
+      >
         {outcome?.message ?? ''}
       </p>
 
       {views.length === 0 ? (
-        <p className="history-panel__empty">
+        <p className="m-0 text-xs leading-normal text-secondary">
           Select an element on the canvas or in Layers to see its history.
         </p>
       ) : (

@@ -9,7 +9,7 @@ Run the relevant section after each implementation step. Run the full checklist 
 - Date: 2026-08-27 (automated gate). Manual pass: to be dated by the tester.
 - Tester: the automated gate was run by Claude Code; every unticked box below is a human check and is deliberately left unticked - no box in this file is ticked on the strength of an automated test alone.
 
-Automated gate after the black-shell design pass: `npm run lint` clean, `npm run typecheck` clean, `npm test` 45 files / 643 tests passed, `npm run test:e2e` 20 tests passed, and `npm run build` produced 418.81 kB / 126.79 kB gzipped JavaScript with a 56.96 kB / 8.60 kB gzipped stylesheet.
+Automated gate after moving component styling into `className` (Tailwind utilities over the same tokens; `template-gallery.css` and `editor-shell.css` deleted): `pnpm lint` clean, `pnpm typecheck` clean, `pnpm test` 46 files / 673 tests passed, `pnpm test:e2e` 21 tests passed, and `pnpm build` produced 573.19 kB / 175.77 kB gzipped JavaScript (Motion for React included) with a 46.90 kB / 9.30 kB gzipped stylesheet and the 44 kB `grainient-bg.webp` field.
 
 ## Template gallery
 
@@ -25,8 +25,12 @@ Automated gate after the black-shell design pass: `npm run lint` clean, `npm run
 - [ ] Gallery has no page-level horizontal scrolling at 1280, 768, or 375 px.
 - [ ] Collapsing the rail leaves every control operable, named, and in the same tab order; expanding restores the labels.
 - [ ] Cmd/Ctrl+K focuses the search field and reopens a collapsed rail.
-- [ ] Recent work lists a template only after that template has saved work, and offers no second route into the editor.
-- [ ] The rail claims no account, workspace switcher, or paid tier.
+- [ ] Collapsing the rail animates its width, keeps the identity mark in place, and moves the collapse toggle to the row under it; expanding reverses it.
+- [ ] With reduced motion on, collapsing still works and arrives immediately.
+- [ ] The ambient background image is visible behind the catalog and the editor workspace, stays fixed while the page scrolls, and never sits behind the rail or a panel.
+- [ ] Recent work lists a template only after that template has saved work, and each entry opens that template's editor by pointer and keyboard.
+- [ ] The rail names the local user with an avatar, name, and address, and claims no workspace switcher, account menu, or paid tier.
+- [ ] The product mark renders in the rail, in the editor toolbar, and as the browser tab icon, and stays sharp when the rail collapses.
 
 ## Editor shell
 

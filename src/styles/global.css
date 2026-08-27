@@ -12,9 +12,12 @@ body,
 
 body {
   margin: 0;
-  background: var(--surface-shell);
+  /* The ambient field is the product's ground everywhere; surfaces that need an
+     opaque plane (rail, panels, docks) paint over it. */
+  background: var(--ambient-page);
+  background-attachment: fixed;
   color: var(--text-primary);
-  font-family: var(--font-ui);
+  font-family: var(--face-ui);
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;

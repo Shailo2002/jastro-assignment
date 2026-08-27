@@ -88,7 +88,40 @@ describe('template gallery', () => {
     const recents = screen.getByText('Recent work').parentElement
     expect(recents).not.toBeNull()
     expect(within(recents as HTMLElement).getByText('Luma Studio')).toBeInTheDocument()
-    expect(screen.getByText('Saved locally')).toBeInTheDocument()
+
+    // The card names the same state in the words of its one action, so the
+    // saved state is never carried by the pill's fill alone.
+    const card = screen.getByRole('heading', { level: 2, name: 'Luma Studio' }).closest('article')
+    expect(card).not.toBeNull()
+    expect(
+      within(card as HTMLElement).getByRole('button', { name: /Continue editing/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('opens the editor from a recent work entry', async () => {
+    const user = userEvent.setup()
+    const onSelectTemplate = vi.fn()
+    render(
+      <TemplateGallery
+        savedTemplateIds={new Set(['luma-studio'])}
+        onSelectTemplate={onSelectTemplate}
+      />,
+    )
+
+    const recents = screen.getByText('Recent work').parentElement
+    await user.click(within(recents as HTMLElement).getByRole('button', { name: 'Luma Studio' }))
+
+    expect(onSelectTemplate).toHaveBeenCalledWith('luma-studio')
+  })
+
+  it('names the local user in the rail without claiming an account service', () => {
+    render(<TemplateGallery savedTemplateIds={new Set()} onSelectTemplate={vi.fn()} />)
+
+    const rail = screen.getByRole('complementary', { name: 'Template library' })
+    expect(within(rail).getByText('shailesh')).toBeInTheDocument()
+    expect(within(rail).getByText('onlymovies3635@gmail.com')).toBeInTheDocument()
+    // The identity is a statement, so it adds no control to the tab order.
+    expect(within(rail).queryByRole('button', { name: /shailesh/i })).toBeNull()
   })
 
   it('labels only the persisted template as a continuing project', () => {

@@ -48,13 +48,22 @@
   --action-primary: #5b8def;
   --action-primary-hover: #74a2ff;
   --action-primary-active: #4775cc;
+  /* The quiet primary: a white pill on black, for an action that OPENS work
+     rather than changing it, so the blue action colour keeps meaning "this
+     commits an edit". Near-black ink measures 19.1:1 on the fill. */
+  --action-neutral: #ffffff;
+  --action-neutral-hover: #e6e6e3;
+  --text-on-neutral: #0a0a0b;
   --status-success: #34d399;
   --status-warning: #fbbf24;
   --status-danger: #f87171;
 
   /* Brand identity. Deliberately NOT an action colour: it marks the product
      (logomark, workspace chip, callout badge) and is never the only signal for
-     an interactive state. White on --accent-brand measures 5.58:1. */
+     an interactive state. White on --accent-brand measures 5.58:1.
+     --brand-mark is the fill of the product mark itself; it is never used as a
+     surface or as text, so it carries no contrast obligation of its own. */
+  --brand-mark: #db2777;
   --accent-brand: #6b4de0;
   --accent-brand-soft: rgb(107 77 224 / 18%);
   --accent-warm: #ff7a4d;
@@ -66,17 +75,36 @@
   --selection-fill: rgb(91 141 239 / 14%);
   --glow-accent: 0 0 48px rgb(59 130 246 / 18%);
 
-  /* Named shadow levels. --shadow-hairline is the brief's inset rim light that
+  /* Ambient page field.
+     Every main surface - the gallery catalog and the editor workspace - sits on
+     one photographic field: a dark grainient shipped with the app (never
+     fetched from a CDN, so the product renders identically offline) under a
+     black scrim.
+
+     The scrim is not decoration. The image's brightest pixel is rgb(55 64 79),
+     where --text-muted - the faintest text the product uses - measures only
+     3.15:1. At 42% the same pixel reaches 4.65:1, so the field can never cost
+     the contrast the token layer promises. `e2e/accessibility.spec.ts` decodes
+     the real asset in a browser and re-measures it, so swapping the image
+     without re-checking the scrim fails the suite rather than the audit. */
+  --ambient-scrim: rgb(0 0 0 / 42%);
+  --ambient-image: url("/grainient-bg.webp");
+  --ambient-page:
+    linear-gradient(var(--ambient-scrim), var(--ambient-scrim)),
+    var(--ambient-image) center / cover no-repeat,
+    var(--surface-canvas);
+
+  /* Named shadow levels. --elevation-hairline is the brief's inset rim light that
      separates a raised control from a black surface without adding a border. */
-  --shadow-hairline:
+  --elevation-hairline:
     inset 0 0.5px 0 0 rgb(255 255 255 / 14%),
     inset 0 0 0 0.5px rgb(255 255 255 / 6%);
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 24%);
-  --shadow-raised:
+  --elevation-soft: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 24%);
+  --elevation-raised:
     0 1.5px 0 0 rgb(0 0 0 / 8%),
     0 3.5px 3px -1.5px rgb(0 0 0 / 16%),
     0 12.5px 12px -6px rgb(0 0 0 / 24%);
-  --shadow-glow: 0 0 48px rgb(59 130 246 / 18%);
+  --elevation-glow: 0 0 48px rgb(59 130 246 / 18%);
 
   /* Spacing */
   --space-1: 4px;
@@ -88,34 +116,42 @@
   --space-8: 32px;
 
   /* Radii */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-control: 8px;
-  --radius-input: 10px;
-  --radius-card: 12px;
-  --radius-panel: 16px;
-  --radius-pill: 9999px;
+  --corner-xs: 4px;
+  --corner-sm: 6px;
+  --corner-control: 8px;
+  --corner-input: 10px;
+  --corner-card: 12px;
+  --corner-panel: 16px;
+  --corner-pill: 9999px;
 
   /* Motion */
   --duration-instant: 150ms;
   --duration-fast: 200ms;
   --duration-normal: 300ms;
 
-  /* Typography. "Camera Plain Variable" is the brief's brand face; it is not
+  /* Typography. The four groups below - faces, type scale, corners, elevation -
+     are named `--face-*`, `--type-*`, `--corner-*`, and `--elevation-*` rather
+     than `--font-*`, `--text-*`, `--radius-*`, and `--shadow-*`, because those
+     four names are also Tailwind's own theme namespaces: a token of the same
+     name would resolve to itself once `theme.css` aliased it, and the value
+     would be lost. The utilities components use keep the familiar reading -
+     `font-ui`, `text-sm`, `rounded-card`, `shadow-soft`.
+
+     "Camera Plain Variable" is the brief's brand face; it is not
      redistributable, so the stack resolves to the platform UI face, which is
      what the brief's own fallback chain asks for. No webfont is fetched at
      runtime: the app must render identically offline. */
-  --font-ui:
+  --face-ui:
     'Camera Plain Variable', ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --face-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* Type scale */
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-md: 16px;
-  --text-lg: 24px;
-  --text-xl: 30px;
+  --type-xs: 12px;
+  --type-sm: 14px;
+  --type-md: 16px;
+  --type-lg: 24px;
+  --type-xl: 30px;
 
   /* Minimum touch target, per DESIGN_SYSTEM.md */
   --target-touch-min: 44px;

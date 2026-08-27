@@ -6,9 +6,40 @@ The UI should borrow Vetra's confident dark surfaces, bright blue action color, 
 
 The editor shell must prioritize scope awareness and editing safety over decorative effects.
 
+## Where styling lives
+
+Components carry their own styling in `className`. There is no per-component
+stylesheet: `src/styles/` holds `tokens.css` (the only file allowed to contain a
+raw value), `theme.css` (which maps those tokens onto utility names), and
+`global.css` (document-level rules). A component's appearance is readable, and
+editable, in the component itself.
+
+The utilities are named after the tokens, so the vocabulary below is what the
+markup says: `bg-surface-panel`, `text-secondary`, `border-default`,
+`rounded-card`, `shadow-hairline`, `min-h-touch`, `duration-instant`,
+`bg-ambient`. Tailwind's spacing step is 4px, which is exactly `--space-1`, so
+`p-1 p-2 p-3 p-4 p-5 p-6 p-8` are the product's spacing scale.
+
+An arbitrary value (`text-[13px]`, `w-[min(320px,100%)]`) is allowed for a
+one-off geometry, and may reference a token with `var(--…)`. It must never
+inline a literal colour: `tokens.test.ts` scans every component for that, the
+same way it scans the stylesheets.
+
+Four repeated controls - `ToolbarButton`, `IconButton`, `DockToggle`, and
+`SegmentedGroup`/`SegmentedItem` in `src/editor/controls.tsx` - own their base
+utilities, because a toolbar where one button is a pixel taller than its
+neighbour reads as a bug. A caller passes content, state, and variant, never a
+competing background or border.
+
+A handful of class names survive with no styling attached - `preview__frame`,
+`selection-target`, `proposal-card`, `revision-card`, `dialog-backdrop` and
+their `__status` parts. They are query hooks the browser tests measure and
+assert against; each is commented as such where it is written.
+
 ## Foundations and semantic tokens
 
-Use semantic variables in components. Raw values belong only in the token definition layer.
+Use semantic tokens in components. Raw values belong only in the token
+definition layer.
 
 ```css
 :root {
@@ -31,6 +62,10 @@ Use semantic variables in components. Raw values belong only in the token defini
   --action-primary: #5b8def;
   --action-primary-hover: #74a2ff;
   --action-primary-active: #4775cc;
+  /* A white pill for an action that opens work rather than changing it. */
+  --action-neutral: #ffffff;
+  --action-neutral-hover: #e6e6e3;
+  --text-on-neutral: #0a0a0b;
   --status-success: #34d399;
   --status-warning: #fbbf24;
   --status-danger: #f87171;
@@ -44,11 +79,17 @@ Use semantic variables in components. Raw values belong only in the token defini
   --selection-fill: rgb(91 141 239 / 14%);
   --glow-accent: 0 0 48px rgb(59 130 246 / 18%);
 
-  --shadow-hairline:
+  /* Ambient field: the shipped grainient image under a contrast scrim.
+     Composed here so components only ever ask for the field. */
+  --ambient-scrim: rgb(0 0 0 / 42%);
+  --ambient-image: url("/grainient-bg.webp");
+  --ambient-page: /* scrim over --ambient-image over --surface-canvas */;
+
+  --elevation-hairline:
     inset 0 0.5px 0 0 rgb(255 255 255 / 14%),
     inset 0 0 0 0.5px rgb(255 255 255 / 6%);
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 24%);
-  --shadow-raised:
+  --elevation-soft: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 24%);
+  --elevation-raised:
     0 1.5px 0 0 rgb(0 0 0 / 8%),
     0 3.5px 3px -1.5px rgb(0 0 0 / 16%),
     0 12.5px 12px -6px rgb(0 0 0 / 24%);
@@ -61,25 +102,40 @@ Use semantic variables in components. Raw values belong only in the token defini
   --space-6: 24px;
   --space-8: 32px;
 
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-control: 8px;
-  --radius-input: 10px;
-  --radius-card: 12px;
-  --radius-panel: 16px;
-  --radius-pill: 9999px;
+  --corner-xs: 4px;
+  --corner-sm: 6px;
+  --corner-control: 8px;
+  --corner-input: 10px;
+  --corner-card: 12px;
+  --corner-panel: 16px;
+  --corner-pill: 9999px;
 
   --duration-instant: 150ms;
   --duration-fast: 200ms;
   --duration-normal: 300ms;
 
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-md: 16px;
-  --text-lg: 24px;
-  --text-xl: 30px;
+  --type-xs: 12px;
+  --type-sm: 14px;
+  --type-md: 16px;
+  --type-lg: 24px;
+  --type-xl: 30px;
 }
 ```
+
+The ambient field is the one decorative layer in the system, and it is bounded
+by the same contrast promise as everything else. It is a single image shipped
+with the app - never a CDN fetch, so the product renders identically offline -
+and it is never painted without its scrim: the image's brightest pixel is
+rgb(55 64 79), where `--text-muted` measures 3.15:1, and the 42% scrim lifts the
+same pixel to 4.65:1. `tokens.test.ts` asserts the scrim can never be removed or
+weakened past 40%; `e2e/accessibility.spec.ts` decodes the real asset in a
+browser and re-measures it. A replacement image that cannot pass that
+measurement must be darkened or scrimmed harder, not shipped.
+
+Every main surface uses the field: the gallery catalog, the editor workspace,
+and the document body under both. It is `background-attachment: fixed`, so
+content scrolls across a still field. Surfaces that need an opaque plane - the
+rail, panels, docks, the preview frame - paint over it.
 
 Two brief values are deliberately adjusted so the palette can meet the AA
 requirement stated below, and both adjustments are recorded beside the token in
@@ -127,6 +183,8 @@ Every interactive component must define default, hover, focus-visible, active, d
 - The gallery must be the low-friction entry to the editor and must not introduce authentication or pricing.
 - The catalog must show only real templates; future inventory must not be represented by fake or disabled cards.
 - Each card must include a real preview, template name, category, concise description, attributes, availability, and an explicit Use template/Open action.
+- The card is a framed preview with a caption under it, not a panel: no card border, no card fill, and no chip stack. Category and attributes read as one dot-separated line, and the preview is the only element that moves on hover.
+- Only one filled action may appear in the grid. Continuing saved work uses the white `--action-neutral` pill; starting from an untouched template uses the quiet bordered pill, so the filled control always means "work already exists here."
 - The preview must be read-only, removed from keyboard navigation, and hidden from assistive technology so its internal links do not compete with the card action.
 - Search must have a persistent visible label and an empty state with a clear recovery action.
 - Filter controls must use real buttons with `aria-pressed`; counts must match the actual catalog.
@@ -134,12 +192,21 @@ Every interactive component must define default, hover, focus-visible, active, d
 - Returning from the editor must be predictable and must not erase persisted document state.
 - At narrow widths the sidebar must become a stacked header/filter region without page-level horizontal scrolling.
 
+### Product mark
+
+- One component, `src/brand/BrandMark.tsx`, draws the mark everywhere it appears: the gallery rail, the editor toolbar, and `public/logo.svg` for the browser tab. Two drawings of one logo must not exist.
+- The mark is always decorative. The control or link around it carries the accessible name, and the SVG is `aria-hidden`.
+- Its ids are namespaced per instance, because a fixed id would be duplicated the moment two copies mount and the first one on the page would capture every reference.
+- Its fill is the `--brand-mark` token. The mark is never a surface and never text, so it carries no contrast obligation - but it must not be recoloured per placement.
+
 ### Gallery navigation rail
 
 - The rail is one column of 44 px rows: identity, search, filters, saved-work report, and a footer callout.
 - The active filter must be marked by fill, border, weight, and a text mark - never by colour alone - and must expose `aria-pressed="true"`.
 - A rail control that advertises a keyboard shortcut must implement it; the search badge names the platform key it actually binds.
 - Collapsing the rail must hide labels visually only. Every control keeps its accessible name, its tooltip, and its position in the tab order, and reaching the search field by keyboard while collapsed must reopen the rail.
+- Collapsing must read as one movement, not a swap: the rail width animates, the identity mark holds its place rather than being relocated or unmounted, and the collapse toggle travels from the end of the identity row to the row beneath the mark. The catalog beside it must follow the same animation instead of snapping to the new width.
+- The animation is Motion for React (`motion/react`), driven by state, and must honour `prefers-reduced-motion`: the collapsed state still arrives, it just arrives immediately.
 - The rail must not offer a second route into a project: saved work is reported there, and the card action opens it.
 - Nothing in the rail may imply an account, a workspace switcher, or a paid tier that this product does not have.
 
@@ -226,6 +293,10 @@ Every interactive component must define default, hover, focus-visible, active, d
 
 ## Interaction and motion
 
+- Component-level state changes use CSS transitions. Layout changes that must
+  stay continuous - the rail collapse and the controls that move with it - use
+  Motion for React, so the element's real geometry is animated rather than
+  approximated. Both must respect `prefers-reduced-motion`.
 - Hover/focus transitions should use 150-200 ms.
 - Panel changes may use 200-300 ms opacity/transform transitions.
 - Do not animate layout width/height on the editing canvas if it causes jank.

@@ -19,7 +19,6 @@ export type GalleryIconName =
   | 'chart'
   | 'arrow-right'
   | 'panel-left'
-  | 'bolt'
   | 'clock'
 
 const PATHS: Readonly<Record<GalleryIconName, JSX.Element>> = {
@@ -66,7 +65,6 @@ const PATHS: Readonly<Record<GalleryIconName, JSX.Element>> = {
       <path d="M9.5 4v16" />
     </>
   ),
-  bolt: <path d="M13.5 3 5.5 13.5H11L10.5 21l8-10.5H13L13.5 3Z" />,
   clock: (
     <>
       <circle cx="12" cy="12" r="8" />
@@ -75,13 +73,19 @@ const PATHS: Readonly<Record<GalleryIconName, JSX.Element>> = {
   ),
 }
 
+/** Base geometry every gallery icon shares; callers add size and colour. */
+const ICON_CLASS =
+  'size-5 shrink-0 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.6]'
+
 export function GalleryIcon(props: {
   name: GalleryIconName
   className?: string
 }): JSX.Element {
   return (
     <svg
-      className={props.className === undefined ? 'g-icon' : `g-icon ${props.className}`}
+      className={
+        props.className === undefined ? ICON_CLASS : `${ICON_CLASS} ${props.className}`
+      }
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"

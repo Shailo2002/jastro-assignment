@@ -25,11 +25,16 @@ export function SelectionSummary(props: {
   return (
     // Named, because the rail's history panel owns a live region too and the
     // two must be distinguishable to anyone listing them.
-    <p className="selection-summary" role="status" aria-live="polite" aria-label="Selection">
-      <span className="selection-summary__count">
+    <p
+      className="m-0 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px]"
+      role="status"
+      aria-live="polite"
+      aria-label="Selection"
+    >
+      <span className="font-semibold text-primary">
         {selectedIds.length === 0 ? 'Nothing selected' : `${selectedIds.length} selected`}
       </span>
-      <span className="selection-summary__names">
+      <span className="min-w-0 truncate text-muted">
         {names.length === 0 ? 'Choose an element on the canvas or in Layers.' : names.join(', ')}
       </span>
     </p>

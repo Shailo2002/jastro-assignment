@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 
+import { SegmentedGroup, SegmentedItem } from './controls'
 import { EDIT_SCOPES, type EditScope } from '../model/viewport'
 import { EDIT_SCOPE_LABELS } from './edit-scope'
 
@@ -24,24 +25,20 @@ export function ScopeSwitcher(props: {
   const { value, onChange } = props
 
   return (
-    <div className="segmented" role="group" aria-label="Edit scope">
-      {EDIT_SCOPES.map((scope) => {
-        const selected = scope === value
-        return (
-          <button
-            key={scope}
-            type="button"
-            className="segmented__item"
-            aria-pressed={selected}
-            onClick={() => {
-              onChange(scope)
-            }}
-          >
-            <span className="segmented__label">{EDIT_SCOPE_LABELS[scope]}</span>
-            <span className="segmented__meta">{SCOPE_META[scope]}</span>
-          </button>
-        )
-      })}
-    </div>
+    <SegmentedGroup label="Edit scope" tone="scope">
+      {EDIT_SCOPES.map((scope) => (
+        <SegmentedItem
+          key={scope}
+          type="button"
+          className="min-h-9"
+          aria-pressed={scope === value}
+          label={EDIT_SCOPE_LABELS[scope]}
+          meta={SCOPE_META[scope]}
+          onClick={() => {
+            onChange(scope)
+          }}
+        />
+      ))}
+    </SegmentedGroup>
   )
 }

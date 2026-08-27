@@ -6,6 +6,7 @@ import type { Proposal } from '../engine/proposal'
 import { scenarioExamples } from '../engine/scenario-catalog'
 import type { ElementId } from '../model/ids'
 import type { EditScope } from '../model/viewport'
+import { PanelHeading, PanelHint, ToolbarButton } from './controls'
 import { EDIT_SCOPE_LABELS } from './edit-scope'
 import {
   describeProposalReview,
@@ -37,8 +38,8 @@ import {
 
 function ChangeTable(props: { card: ProposalCardView }): JSX.Element {
   return (
-    <table className="proposal-card__changes">
-      <caption className="visually-hidden">
+    <table className="w-full border-collapse text-left text-xs [&_th]:border-b [&_th]:border-default [&_th]:px-2 [&_th]:py-1 [&_th]:align-top [&_td]:border-b [&_td]:border-default [&_td]:px-2 [&_td]:py-1 [&_td]:align-top [&_thead_th]:text-[11px] [&_thead_th]:font-semibold [&_thead_th]:text-muted [&_tbody_th]:font-medium [&_tbody_th]:text-secondary [&_tbody_td]:text-primary [&_tbody_td]:[overflow-wrap:anywhere]">
+      <caption className="sr-only">
         Proposed changes for {props.card.targetName}
       </caption>
       <thead>
@@ -146,16 +147,19 @@ export function AiPanel(props: {
       : describeProposalReview({ document, state: state.review, selectedIds })
 
   return (
-    <section className="ai-panel" aria-labelledby="ai-heading">
-      <h2 className="inspector__heading" id="ai-heading">
+    <section
+      className="flex min-h-0 min-w-0 flex-1 flex-col gap-3"
+      aria-labelledby="ai-heading"
+    >
+      <PanelHeading id="ai-heading" className="text-primary">
         AI edits
-      </h2>
+      </PanelHeading>
 
       {state.failure !== undefined && (
-        <div role="alert" className="ai-panel__failure">
-          <p className="field__error">{state.failure.message}</p>
+        <div role="alert">
+          <p className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']">{state.failure.message}</p>
           {state.failure.skipped !== undefined && state.failure.skipped.length > 0 && (
-            <ul className="ai-panel__skipped">
+            <ul className="m-0 flex list-disc flex-col gap-1 rounded-control border-l-[3px] border-strong bg-surface-panel py-3 pe-3 ps-6 text-xs leading-[1.45] text-secondary">
               {state.failure.skipped.map((skip) => (
                 <li key={skip.elementId}>{skip.message}</li>
               ))}
@@ -164,24 +168,31 @@ export function AiPanel(props: {
         </div>
       )}
 
+      {/* The run scrolls; the composer below it does not move. The floor keeps
+          a proposal readable even when the composer is expanded. */}
       {view !== undefined && (
-        <div className="ai-panel__results">
-          <h3 className="ai-panel__results-heading" ref={resultsRef} tabIndex={-1}>
+        <div className="flex min-h-[120px] min-w-0 flex-[1_1_auto] flex-col gap-3 overflow-auto">
+          <h3
+            className="m-0 text-sm font-semibold text-primary focus-visible:outline-2
+              focus-visible:outline-offset-4 focus-visible:outline-focus-ring"
+            ref={resultsRef}
+            tabIndex={-1}
+          >
             {view.scenarioTitle}
           </h3>
 
           {/* The Scope Lock statement is repeated here so the reviewer reads
               what an acceptance will touch at the moment of accepting it. */}
-          <p className="ai-panel__scope">
+          <p className="m-0 text-xs leading-normal text-secondary [&_strong]:text-primary">
             <strong>{view.scopeText}</strong> &middot; {view.scopeLock.protectionText}
           </p>
 
-          <p className="ai-panel__summary" role="status">
+          <p className="m-0 text-xs leading-normal text-secondary" role="status">
             {view.summary}
           </p>
 
           {view.skipped.length > 0 && (
-            <ul className="ai-panel__skipped">
+            <ul className="m-0 flex list-disc flex-col gap-1 rounded-control border-l-[3px] border-strong bg-surface-panel py-3 pe-3 ps-6 text-xs leading-[1.45] text-secondary">
               {view.skipped.map((skip) => (
                 <li key={skip.elementId}>{skip.message}</li>
               ))}
@@ -190,45 +201,57 @@ export function AiPanel(props: {
 
           {state.commitErrors.length > 0 && (
             <div role="alert">
-              <p className="field__error">
+              <p className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']">
                 The change was rejected and nothing was applied. {state.commitErrors.join(' ')}
               </p>
             </div>
           )}
 
-          <ul className="ai-panel__cards">
+          <ul className="m-0 flex list-none flex-col gap-3 p-0">
             {view.cards.map((card) => {
               const cardId = `proposal-${card.proposal.id}`
               return (
                 <li key={card.proposal.id}>
+                  {/* `proposal-card` is a query hook for the tests; status is
+                      carried by the card's text, the edge is a second cue. */}
                   <article
-                    className="proposal-card"
+                    className="proposal-card flex flex-col gap-2 rounded-card border border-default
+                      border-l-[3px] bg-surface-panel p-3 shadow-hairline
+                      data-[status=pending]:border-l-action-primary
+                      data-[status=accepted]:border-l-status-success
+                      data-[status=rejected]:border-l-strong
+                      data-[status=stale]:border-l-status-warning
+                      data-[status=invalid]:border-l-status-danger"
                     aria-labelledby={`${cardId}-title`}
                     data-status={card.status}
                     data-target-id={card.proposal.elementId}
                   >
-                    <h4 className="proposal-card__title" id={`${cardId}-title`}>
+                    <h4 className="m-0 text-[13px] font-semibold text-primary" id={`${cardId}-title`}>
                       {card.targetName}
                     </h4>
 
-                    <p className="proposal-card__meta">
-                      <code className="proposal-card__id">{card.proposal.elementId}</code>
+                    <p className="m-0 text-[11px] text-muted">
+                      <code className="font-mono">{card.proposal.elementId}</code>
                       <span aria-hidden="true"> &middot; </span>
                       <span>{card.scopeText}</span>
                     </p>
 
-                    <p className="proposal-card__summary">{card.proposal.summary}</p>
+                    <p className="m-0 text-xs leading-normal text-secondary">
+                      {card.proposal.summary}
+                    </p>
 
                     <ChangeTable card={card} />
 
                     <p
-                      className="proposal-card__status"
+                      className="proposal-card__status m-0 text-xs leading-[1.45] text-secondary
+                        focus-visible:outline-2 focus-visible:outline-offset-4
+                        focus-visible:outline-focus-ring"
                       tabIndex={-1}
                       ref={(node) => {
                         statusRefs.current.set(card.proposal.id, node)
                       }}
                     >
-                      <span className="proposal-card__status-label">
+                      <span className="font-semibold text-primary after:content-[':']">
                         {card.status === 'pending' ? 'Pending' : null}
                         {card.status === 'accepted' ? 'Accepted' : null}
                         {card.status === 'rejected' ? 'Rejected' : null}
@@ -238,10 +261,9 @@ export function AiPanel(props: {
                       {card.statusText}
                     </p>
 
-                    <div className="proposal-card__actions">
-                      <button
+                    <div className="flex flex-wrap gap-2">
+                      <ToolbarButton
                         type="button"
-                        className="toolbar-button"
                         disabled={!card.canAccept}
                         aria-label={`Accept change for ${card.targetName}`}
                         onClick={() => {
@@ -249,10 +271,9 @@ export function AiPanel(props: {
                         }}
                       >
                         Accept
-                      </button>
-                      <button
+                      </ToolbarButton>
+                      <ToolbarButton
                         type="button"
-                        className="toolbar-button"
                         disabled={!card.canReject}
                         aria-label={`Reject change for ${card.targetName}`}
                         onClick={() => {
@@ -260,7 +281,7 @@ export function AiPanel(props: {
                         }}
                       >
                         Reject
-                      </button>
+                      </ToolbarButton>
                     </div>
                   </article>
                 </li>
@@ -272,25 +293,41 @@ export function AiPanel(props: {
 
       {/* The composer is last in the DOM because it is last on screen: the rail
           scrolls the run above it and keeps the instruction box docked. */}
-      <div className="ai-panel__composer">
+      <div
+        className={`flex min-h-0 min-w-0 flex-[0_1_auto] flex-col gap-2 overflow-auto ${
+          // With no run to review there is nothing to be pushed below, so the
+          // composer sits under its heading instead of leaving the rail empty.
+          view === undefined && state.failure === undefined ? '' : 'mt-auto'
+        }`}
+      >
         {/* Short by design: the composer sits at the foot of the rail, and a
             long explanation here would push the input off screen. */}
-        <p className="inspector__hint" id={hintId}>
+        <PanelHint elementId={hintId}>
           A deterministic demo engine, not a model. Proposals only, for scope{' '}
           <strong>{EDIT_SCOPE_LABELS[scope]}</strong>: nothing changes until you accept a card.
           {canRun
             ? ''
             : ' Select at least one element on the canvas or in Layers to run an instruction.'}
-        </p>
+        </PanelHint>
 
-        <details className="ai-panel__examples">
-          <summary>Example instructions</summary>
-          <ul className="ai-panel__example-list">
+        <details className="rounded-control border border-default bg-surface-panel p-3 text-xs text-secondary">
+          <summary className="cursor-pointer font-semibold text-primary">
+            Example instructions
+          </summary>
+          {/* The examples wrap into rows rather than stacking one per line: in
+              the rail the composer must stay short enough to leave the run its
+              own room. */}
+          <ul className="m-0 mt-3 flex max-h-40 list-none flex-wrap gap-2 overflow-auto p-0">
             {scenarioExamples().map((example) => (
               <li key={example}>
                 <button
                   type="button"
-                  className="ai-panel__example"
+                  className="min-h-touch cursor-pointer rounded-control border border-default
+                    bg-surface-elevated px-3 py-2 text-left text-[13px] text-secondary
+                    transition-colors duration-instant hover:not-disabled:bg-surface-hover
+                    hover:not-disabled:text-primary focus-visible:outline-2
+                    focus-visible:outline-offset-2 focus-visible:outline-focus-ring
+                    disabled:cursor-not-allowed disabled:opacity-55"
                   disabled={!canRun}
                   onClick={() => {
                     run(example)
@@ -303,12 +340,19 @@ export function AiPanel(props: {
           </ul>
         </details>
 
-        <label className="field__label" htmlFor={fieldId}>
+        <label className="text-xs font-semibold text-secondary" htmlFor={fieldId}>
           Instruction
         </label>
-        <div className="ai-panel__input-row">
+        <div
+          className="flex min-w-0 items-center gap-2 rounded-input border border-default
+            bg-surface-canvas p-1 focus-within:border-selection
+            focus-within:ring-2 focus-within:ring-selection-fill"
+        >
           <input
-            className="field__control ai-panel__input"
+            className="min-h-9 w-full min-w-0 flex-1 rounded-input border border-transparent
+              bg-transparent p-2 font-[inherit] text-[13px] text-primary
+              focus-visible:outline-2 focus-visible:outline-offset-1
+              focus-visible:outline-focus-ring"
             id={fieldId}
             type="text"
             autoComplete="off"
@@ -324,9 +368,10 @@ export function AiPanel(props: {
               run(state.instruction)
             }}
           />
-          <button
+          <ToolbarButton
             type="button"
-            className="toolbar-button ai-panel__run"
+            tone="primary"
+            className="min-h-9 flex-none px-3 whitespace-nowrap"
             disabled={!canRun}
             aria-describedby={hintId}
             onClick={() => {
@@ -334,7 +379,7 @@ export function AiPanel(props: {
             }}
           >
             Run instruction
-          </button>
+          </ToolbarButton>
         </div>
       </div>
     </section>

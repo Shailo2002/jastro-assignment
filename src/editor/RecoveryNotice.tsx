@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 
 import { Icon } from './Icon'
+import { ToolbarButton } from './controls'
 import type { PersistenceStatus } from './persistence-status'
 
 /**
@@ -20,15 +21,19 @@ export function RecoveryNotice(props: {
   onReset: () => void
 }): JSX.Element {
   return (
-    <div className="recovery-notice" role="alert" data-tone={props.status.tone}>
-      <Icon name="warning" className="recovery-notice__icon" />
-      <p className="recovery-notice__text">
-        <strong className="recovery-notice__label">Attention &mdash; {props.status.label}.</strong>{' '}
+    <div
+      className="flex items-center gap-3 border-b border-status-warning bg-surface-elevated px-4 py-3"
+      role="alert"
+      data-tone={props.status.tone}
+    >
+      <Icon name="warning" className="text-status-warning" />
+      <p className="m-0 flex-1 text-[13px] text-secondary">
+        <strong className="text-primary">Attention &mdash; {props.status.label}.</strong>{' '}
         {props.status.detail}
       </p>
-      <button type="button" className="toolbar-button" onClick={props.onReset}>
+      <ToolbarButton type="button" onClick={props.onReset}>
         Reset project&hellip;
-      </button>
+      </ToolbarButton>
     </div>
   )
 }

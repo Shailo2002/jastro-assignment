@@ -110,10 +110,16 @@ const PATHS: Readonly<Record<IconName, JSX.Element>> = {
   ),
 }
 
+/** Base geometry every editor icon shares; callers add size and colour. */
+const ICON_CLASS =
+  'size-5 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:1.8]'
+
 export function Icon(props: { name: IconName; className?: string }): JSX.Element {
   return (
     <svg
-      className={props.className === undefined ? 'icon' : `icon ${props.className}`}
+      className={
+        props.className === undefined ? ICON_CLASS : `${ICON_CLASS} ${props.className}`
+      }
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"

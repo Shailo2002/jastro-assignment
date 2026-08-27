@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 
+import { SegmentedGroup, SegmentedItem } from './controls'
 import { VIEWPORTS, VIEWPORT_WIDTHS, type Viewport } from '../model/viewport'
 
 const VIEWPORT_LABELS: Readonly<Record<Viewport, string>> = {
@@ -25,24 +26,21 @@ export function ViewportSwitcher(props: {
   const { value, onChange } = props
 
   return (
-    <div className="segmented" role="group" aria-label="Preview viewport">
-      {VIEWPORTS.map((viewport) => {
-        const selected = viewport === value
-        return (
-          <button
-            key={viewport}
-            type="button"
-            className="segmented__item"
-            aria-pressed={selected}
-            onClick={() => {
-              onChange(viewport)
-            }}
-          >
-            <span className="segmented__label">{VIEWPORT_LABELS[viewport]}</span>
-            <span className="segmented__meta">{VIEWPORT_WIDTHS[viewport]}px</span>
-          </button>
-        )
-      })}
-    </div>
+    <SegmentedGroup label="Preview viewport">
+      {VIEWPORTS.map((viewport) => (
+        <SegmentedItem
+          key={viewport}
+          type="button"
+          className="min-h-touch"
+          aria-pressed={viewport === value}
+          label={VIEWPORT_LABELS[viewport]}
+          meta={`${VIEWPORT_WIDTHS[viewport]}px`}
+          metaHidden
+          onClick={() => {
+            onChange(viewport)
+          }}
+        />
+      ))}
+    </SegmentedGroup>
   )
 }

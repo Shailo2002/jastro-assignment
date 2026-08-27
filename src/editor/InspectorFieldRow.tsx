@@ -110,7 +110,9 @@ export function InspectorFieldRow(props: {
     id: field.id,
     'aria-describedby': describedBy.length === 0 ? undefined : describedBy.join(' '),
     'aria-invalid': error === undefined ? undefined : true,
-    className: 'field__control',
+    // `field__control` is a query hook for the focus helper above, not a
+    // style: everything visual is in the utilities beside it.
+    className: 'field__control w-full min-w-0 min-h-9 rounded-input border border-default bg-surface-canvas p-2 font-[inherit] text-[13px] text-primary hover:border-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus-ring aria-invalid:border-status-danger data-[mixed=true]:placeholder:text-muted data-[mixed=true]:placeholder:italic',
     'data-mixed': mixed,
   } as const
 
@@ -160,7 +162,7 @@ export function InspectorFieldRow(props: {
     if (field.kind === 'dimension') {
       const parts = dimensionParts(reading.value)
       return (
-        <span className="field__dimension">
+        <span className="flex min-w-0 items-center gap-2">
           <input
             {...shared}
             ref={amountRef}
@@ -180,12 +182,15 @@ export function InspectorFieldRow(props: {
               committingWithEnter.current = false
             }}
           />
-          <label className="field__unit-label" htmlFor={`${field.id}-unit`}>
-            <span className="visually-hidden">{field.label} unit</span>
+          <label htmlFor={`${field.id}-unit`}>
+            <span className="sr-only">{field.label} unit</span>
             <select
               id={`${field.id}-unit`}
               ref={unitRef}
-              className="field__unit"
+              className="min-h-9 rounded-control border border-default bg-surface-canvas
+                px-2 py-1 font-[inherit] text-[13px] text-primary
+                focus-visible:outline-2 focus-visible:outline-offset-1
+                focus-visible:outline-focus-ring"
               defaultValue={parts.unit}
               onChange={(event) => {
                 const amount = amountRef.current?.value ?? ''
@@ -230,33 +235,42 @@ export function InspectorFieldRow(props: {
   }
 
   return (
-    <div className="field" ref={rowRef} data-invalid={error !== undefined}>
-      <label className="field__label" htmlFor={field.id}>
+    <div
+      className="flex min-w-0 flex-col gap-1"
+      ref={rowRef}
+      data-invalid={error !== undefined}
+    >
+      {/* Labels are persistent and visible; a placeholder is never the label. */}
+      <label className="text-xs font-semibold text-secondary" htmlFor={field.id}>
         {field.label}
         {field.unit === undefined ? null : (
-          <span className="field__unit-hint"> ({field.unit})</span>
+          <span className="font-normal text-muted"> ({field.unit})</span>
         )}
       </label>
 
       {renderControl()}
 
       {mixed && (
-        <p className="field__note" id={`${field.id}-mixed`}>
+        <p className="m-0 text-[11px] leading-[1.45] text-muted" id={`${field.id}-mixed`}>
           Mixed across the selection. Entering a value sets it on every selected element.
         </p>
       )}
       {reading.overridden && (
-        <p className="field__note" id={`${field.id}-scope`}>
+        <p className="m-0 text-[11px] leading-[1.45] text-muted" id={`${field.id}-scope`}>
           Already overridden for {EDIT_SCOPE_LABELS[scope]}.
         </p>
       )}
       {field.help !== undefined && (
-        <p className="field__help" id={`${field.id}-help`}>
+        <p className="m-0 text-[11px] leading-[1.45] text-muted" id={`${field.id}-help`}>
           {field.help}
         </p>
       )}
       {error !== undefined && (
-        <p className="field__error" id={`${field.id}-error`} role="alert">
+        <p
+          className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']"
+          id={`${field.id}-error`}
+          role="alert"
+        >
           {error}
         </p>
       )}

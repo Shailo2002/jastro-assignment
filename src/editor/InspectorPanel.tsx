@@ -5,6 +5,7 @@ import type { ElementId } from '../model/ids'
 import type { EditablePropertyPatch } from '../model/properties'
 import type { EditScope } from '../model/viewport'
 import { InspectorFieldRow } from './InspectorFieldRow'
+import { PanelHeading, PanelHint, ToolbarButton } from './controls'
 import {
   INSPECTOR_SECTION_LABELS,
   fieldsForTypes,
@@ -108,27 +109,28 @@ export function InspectorPanel(props: {
 
   if (targets.length === 0) {
     return (
-      <div className="inspector">
-        <h2 className="inspector__heading" id="inspector-heading">
-          Design
-        </h2>
-        <p className="inspector__empty">
+      <div className="flex min-w-0 flex-col gap-3">
+        <PanelHeading id="inspector-heading">Design</PanelHeading>
+        <PanelHint>
           Nothing is selected, so there is nothing to edit. Choose an element on the canvas
           or in Layers.
-        </p>
+        </PanelHint>
       </div>
     )
   }
 
   return (
-    <div className="inspector">
-      <h2 className="inspector__heading" id="inspector-heading">
-        Design
-      </h2>
+    <div className="flex min-w-0 flex-col gap-3">
+      <PanelHeading id="inspector-heading">Design</PanelHeading>
 
       {sections.map((section) => (
-        <fieldset className="inspector__section" key={section}>
-          <legend className="inspector__legend">{INSPECTOR_SECTION_LABELS[section]}</legend>
+        <fieldset
+          className="m-0 flex min-w-0 flex-col gap-3 rounded-control border border-default p-3"
+          key={section}
+        >
+          <legend className="px-2 text-xs font-semibold text-secondary">
+            {INSPECTOR_SECTION_LABELS[section]}
+          </legend>
           {fields
             .filter((field) => field.section === section)
             .map((field) => (
@@ -156,20 +158,21 @@ export function InspectorPanel(props: {
         </fieldset>
       ))}
 
-      <fieldset className="inspector__section">
-        <legend className="inspector__legend">{INSPECTOR_SECTION_LABELS.order}</legend>
-        <p className="inspector__hint">
+      <fieldset className="m-0 flex min-w-0 flex-col gap-3 rounded-control border border-default p-3">
+        <legend className="px-2 text-xs font-semibold text-secondary">
+          {INSPECTOR_SECTION_LABELS.order}
+        </legend>
+        <PanelHint>
           Moves the element among its siblings for the current scope. The template tree is
           not restructured.
-        </p>
-        <div className="inspector__order">
+        </PanelHint>
+        <div className="flex flex-wrap gap-2">
           {(['up', 'down'] as const).map((direction) => {
             const reason = orderReason(direction)
             return (
-              <button
+              <ToolbarButton
                 key={direction}
                 type="button"
-                className="toolbar-button"
                 disabled={reason !== undefined}
                 aria-describedby={reason === undefined ? undefined : `order-${direction}-reason`}
                 onClick={() => {
@@ -177,20 +180,27 @@ export function InspectorPanel(props: {
                 }}
               >
                 Move {direction}
-              </button>
+              </ToolbarButton>
             )
           })}
         </div>
         {(['up', 'down'] as const).map((direction) => {
           const reason = orderReason(direction)
           return reason === undefined ? null : (
-            <p className="field__help" key={direction} id={`order-${direction}-reason`}>
+            <p
+              className="m-0 text-[11px] leading-[1.45] text-muted"
+              key={direction}
+              id={`order-${direction}-reason`}
+            >
               Move {direction}: {reason}
             </p>
           )
         })}
         {error?.fieldId === 'order' && (
-          <p className="field__error" role="alert">
+          <p
+            className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']"
+            role="alert"
+          >
             {error.message}
           </p>
         )}

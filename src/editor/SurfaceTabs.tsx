@@ -35,7 +35,7 @@ export function SurfaceTabs<Id extends string>(props: {
 
   return (
     <div
-      className="surface-tabs"
+      className="flex gap-1 rounded-input border border-default bg-surface-panel p-0.5 shadow-hairline"
       role="tablist"
       aria-label={props.label}
       onKeyDown={(event) => {
@@ -50,7 +50,11 @@ export function SurfaceTabs<Id extends string>(props: {
             type="button"
             role="tab"
             id={`${idPrefix}-tab-${tab.id}`}
-            className="surface-tabs__tab"
+            className="inline-flex min-h-touch cursor-pointer items-center gap-2 rounded-control
+              border border-transparent px-3 py-1 text-xs font-semibold text-secondary
+              transition-colors duration-instant hover:bg-surface-hover hover:text-primary
+              aria-selected:border-selection aria-selected:bg-surface-hover
+              aria-selected:text-primary"
             aria-selected={selected}
             aria-controls={`${idPrefix}-panel-${tab.id}`}
             tabIndex={roving.tabIndexFor(index)}
@@ -62,7 +66,7 @@ export function SurfaceTabs<Id extends string>(props: {
               onChange(tab.id)
             }}
           >
-            <Icon name={tab.icon} className="surface-tabs__icon" />
+            <Icon name={tab.icon} className="size-4" />
             <span>{tab.label}</span>
           </button>
         )

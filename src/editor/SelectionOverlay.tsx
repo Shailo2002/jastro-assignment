@@ -52,8 +52,9 @@ export function SelectionOverlay(props: {
   }
 
   return (
+    // Inert as a layer; only the individual targets take pointer input.
     <div
-      className="selection-overlay"
+      className="pointer-events-none absolute inset-0"
       role="listbox"
       aria-multiselectable="true"
       aria-label="Selectable template elements"
@@ -72,7 +73,21 @@ export function SelectionOverlay(props: {
             aria-selected={selected}
             aria-label={row.descriptor.accessibleName}
             title={`${row.descriptor.accessibleName} (${row.id})`}
-            className="selection-target"
+            /* Hover hints at interactivity but never carries the state alone:
+               the label and the 2px selected border below do that. Focus and
+               selection must not look alike, so focus is a dashed offset ring.
+               An unmeasured target still exists for keyboard and assistive
+               technology; it simply has no geometry to draw yet. */
+            /* `selection-target` carries no styling: it is the query hook the
+               browser test measures the hit target with. */
+            className="selection-target group/target pointer-events-auto absolute block
+              cursor-pointer overflow-visible
+              rounded-control border-2 border-transparent p-0 font-[inherit] text-transparent
+              hover:border-strong focus-visible:outline-2 focus-visible:outline-offset-2
+              focus-visible:outline-focus-ring focus-visible:outline-dashed
+              data-[selected=true]:border-selection data-[selected=true]:bg-selection-fill
+              data-[primary=true]:shadow-[0_0_0_1px_var(--action-primary)]
+              data-[measured=false]:static data-[measured=false]:h-0 data-[measured=false]:w-full"
             data-target-id={row.id}
             data-selected={selected}
             data-primary={primary}
@@ -101,7 +116,13 @@ export function SelectionOverlay(props: {
               selection.select(row.id, isAdditiveEvent(event))
             }}
           >
-            <span className="selection-target__label">{row.descriptor.name}</span>
+            <span
+              className="absolute -top-[22px] -left-0.5 hidden max-w-[220px] truncate rounded-pill
+                bg-action-primary px-2 py-0.5 text-[11px] font-semibold text-on-accent
+                group-data-[selected=true]/target:block"
+            >
+              {row.descriptor.name}
+            </span>
           </button>
         )
       })}

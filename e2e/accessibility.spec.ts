@@ -275,6 +275,83 @@ test('focus is visible and is not covered by the toolbar', async ({ page }) => {
   }
 })
 
+/**
+ * The ambient background is a shipped photograph, so its brightest pixel - not
+ * a token - decides whether the faintest text on it still passes AA. Only a
+ * browser can decode the asset, so the measurement lives here: it reads the
+ * scrim alpha and the text colour the app actually renders with, composites the
+ * brightest pixel of the real file under that scrim, and measures the result.
+ * Replacing the image with a lighter one fails this test until the scrim is
+ * raised to match.
+ */
+test('the ambient background keeps the faintest text at AA', async ({ page }) => {
+  await page.goto('/')
+
+  const measured = await page.evaluate(async () => {
+    const styles = window.getComputedStyle(document.documentElement)
+    const scrim = styles.getPropertyValue('--ambient-scrim')
+    const image = styles.getPropertyValue('--ambient-image')
+    const text = window.getComputedStyle(document.body).getPropertyValue('--text-muted')
+
+    const source = /url\(["']?([^"')]+)["']?\)/.exec(image)?.[1]
+    if (source === undefined) throw new Error(`No image url in --ambient-image: ${image}`)
+    const alpha = Number(/rgb\(0 0 0 \/ (\d+)%\)/.exec(scrim)?.[1]) / 100
+    if (Number.isNaN(alpha)) throw new Error(`No alpha in --ambient-scrim: ${scrim}`)
+
+    const bitmap = await createImageBitmap(await (await fetch(source)).blob())
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+    const context = canvas.getContext('2d')
+    if (context === null) throw new Error('No 2d context')
+    context.drawImage(bitmap, 0, 0)
+    const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height)
+
+    const channel = (value: number): number =>
+      value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+    const luminance = (rgb: readonly [number, number, number]): number =>
+      0.2126 * channel(rgb[0] / 255) + 0.7152 * channel(rgb[1] / 255) + 0.0722 * channel(rgb[2] / 255)
+
+    let brightest: [number, number, number] = [0, 0, 0]
+    for (let index = 0; index < data.length; index += 4) {
+      // The scrim is black, so compositing is a straight scale of each channel.
+      const pixel: [number, number, number] = [
+        (data[index] ?? 0) * (1 - alpha),
+        (data[index + 1] ?? 0) * (1 - alpha),
+        (data[index + 2] ?? 0) * (1 - alpha),
+      ]
+      if (luminance(pixel) > luminance(brightest)) brightest = pixel
+    }
+
+    const parsed = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(
+      (() => {
+        const probe = document.createElement('span')
+        probe.style.color = text.trim()
+        document.body.append(probe)
+        const resolved = window.getComputedStyle(probe).color
+        probe.remove()
+        return resolved
+      })(),
+    )
+    if (parsed === null) throw new Error(`Could not resolve --text-muted: ${text}`)
+    const faintest: [number, number, number] = [
+      Number(parsed[1]),
+      Number(parsed[2]),
+      Number(parsed[3]),
+    ]
+
+    const [high, low] = [luminance(faintest), luminance(brightest)].sort((a, b) => b - a)
+    return {
+      contrast: ((high ?? 0) + 0.05) / ((low ?? 0) + 0.05),
+      brightest: brightest.map(Math.round),
+      alpha,
+    }
+  })
+
+  expect(
+    measured.contrast,
+    `--text-muted on the brightest scrimmed pixel ${measured.brightest.join(' ')}`,
+  ).toBeGreaterThanOrEqual(4.5)
+})
+
 test('touch-intended controls are at least 44 x 44 px', async ({ page }) => {
   await page.goto('/#/editor/aster-labs')
 

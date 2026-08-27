@@ -70,6 +70,34 @@ describe('contrast', () => {
     },
   )
 
+  it('text-on-neutral reaches AA on the white action pill', () => {
+    for (const fill of ['action-neutral', 'action-neutral-hover'] as const) {
+      expect(contrast(token('text-on-neutral'), token(fill)), fill).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  /**
+   * The ambient field is a photograph, so its brightest pixel - not a token -
+   * decides whether the faintest text still passes. That measurement needs a
+   * real decoder and lives in `e2e/accessibility.spec.ts`, which reads the
+   * scrim from this file and re-measures the shipped asset. What can be
+   * asserted here is the shape the measurement depends on: the image is never
+   * painted without a scrim, and the scrim never drops below the alpha that
+   * measurement justified (42% puts the image's brightest pixel, rgb(55 64 79),
+   * at 4.65:1 against --text-muted; 40% is the last value that still clears
+   * 4.5:1).
+   */
+  it('never paints the ambient image without its contrast scrim', () => {
+    const declaration = /--ambient-page:([\s\S]*?);\n/.exec(TOKENS)?.[1] ?? ''
+
+    expect(declaration, 'ambient field must layer the image').toContain('--ambient-image')
+    expect(declaration, 'ambient field must layer the scrim').toContain('--ambient-scrim')
+
+    const alpha = /--ambient-scrim:\s*rgb\(0 0 0 \/ (\d+)%\)/.exec(TOKENS)?.[1]
+    expect(alpha, 'no --ambient-scrim alpha in tokens.css').toBeDefined()
+    expect(Number(alpha)).toBeGreaterThanOrEqual(40)
+  })
+
   it('keeps the selection border distinguishable from the canvas it sits on', () => {
     // Non-text contrast for a UI boundary is 3:1 under WCAG 2.2 (1.4.11).
     expect(contrast(token('border-selection'), token('surface-canvas'))).toBeGreaterThanOrEqual(3)
@@ -91,9 +119,41 @@ function styleSheets(): readonly { readonly path: string; readonly source: strin
   return files
 }
 
+/** Every component file - the styling surface, now that components carry it. */
+function componentSources(): readonly string[] {
+  const files: string[] = []
+  const walk = (directory: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) walk(path)
+      else if (entry.name.endsWith('.tsx') && !entry.name.includes('.test.')) files.push(path)
+    }
+  }
+  walk(STYLE_ROOT)
+  return files
+}
+
 describe('no raw values outside the token layer', () => {
   it('finds stylesheets to check', () => {
     expect(styleSheets().length).toBeGreaterThan(1)
+  })
+
+  /**
+   * Components hold their own styling in `className`, so this is where a raw
+   * colour would hide now: Tailwind's arbitrary-value syntax accepts one
+   * happily. Utilities are named after the semantic tokens (`bg-surface-panel`,
+   * `text-secondary`), and an arbitrary value may reference a token with
+   * `var(--…)` - it may never inline a literal colour.
+   */
+  it.each(componentSources())('%s styles with tokens, not raw colours', (path) => {
+    const source = readFileSync(path, 'utf8')
+    const withoutComments = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+    const arbitrary = [...withoutComments.matchAll(/-\[([^\]]+)\]/g)].map((match) => match[1] ?? '')
+
+    for (const value of arbitrary) {
+      expect(value, `raw hex colour in ${path}`).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
+      expect(value, `raw rgb()/hsl() colour in ${path}`).not.toMatch(/\b(?:rgba?|hsla?)\(/)
+    }
   })
 
   it.each(styleSheets().map((sheet) => sheet.path))('%s uses semantic tokens only', (path) => {

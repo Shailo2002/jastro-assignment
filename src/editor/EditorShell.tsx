@@ -11,7 +11,9 @@ import { AiPanel } from './AiPanel'
 import { CodePanel, type CodeDraft } from './CodePanel'
 import { EditorDock } from './EditorDock'
 import { HistoryPanel, type RestoreRequest } from './HistoryPanel'
+import { BrandMark } from '../brand/BrandMark'
 import { Icon } from './Icon'
+import { DockToggle, ToolbarButton } from './controls'
 import { InspectorPanel } from './InspectorPanel'
 import { LayersPanel } from './LayersPanel'
 import { PreviewFrame } from './PreviewFrame'
@@ -31,7 +33,6 @@ import { useDocumentStore } from './use-document-store'
 import { useElementRects } from './use-element-rects'
 import type { SelectionApi } from './use-selection'
 import { useSelection } from './use-selection'
-import './editor-shell.css'
 
 /**
  * Measured canvas selection layer.
@@ -259,13 +260,24 @@ export function EditorShell(props: {
   }
 
   return (
-    <div className="shell">
-      <header className="shell__toolbar">
-        <div className="shell__toolbar-start">
+    <div
+      className="flex h-[100dvh] flex-col overflow-hidden bg-surface-canvas text-sm
+        max-[900px]:h-auto max-[900px]:min-h-[100dvh] max-[900px]:overflow-visible"
+    >
+      <header
+        className="flex min-h-[52px] flex-none flex-nowrap items-center justify-between gap-2
+          border-b border-default bg-surface-shell/88 px-3 py-2 backdrop-blur-[18px]
+          max-[900px]:flex-wrap"
+      >
+        <div className="flex min-w-0 flex-1 basis-0 flex-nowrap items-center gap-2
+          max-[900px]:flex-auto">
           {props.onBackToTemplates === undefined ? null : (
             <button
               type="button"
-              className="shell__back"
+              className="inline-flex size-touch shrink-0 cursor-pointer items-center
+                justify-center rounded-input border border-transparent p-0 text-secondary
+                hover:bg-surface-hover hover:text-primary active:translate-y-px
+                active:bg-surface-elevated"
               onClick={props.onBackToTemplates}
               aria-label="Back to templates"
               title="Back to templates"
@@ -273,19 +285,20 @@ export function EditorShell(props: {
               <Icon name="chevron-left" />
             </button>
           )}
-          <span className="shell__project-mark" aria-hidden="true">
-            <span />
-          </span>
-          <div className="shell__project-copy">
-            <h1 className="shell__title">
-              <span className="visually-hidden">Scoped AI Template Editor</span>
+          {/* Product identity, the same mark the gallery rail shows. */}
+          <BrandMark className="size-6" />
+          <div className="flex min-w-0 items-baseline gap-2">
+            <h1 className="m-0 min-w-0 truncate text-sm font-semibold tracking-[-0.01em] text-primary">
+              <span className="sr-only">Scoped AI Template Editor</span>
               <span aria-hidden="true">{props.templateName ?? 'Aster Labs'}</span>
             </h1>
-            <span className="shell__project-state">main</span>
+            <span className="text-[11px] text-muted max-[1180px]:hidden">main</span>
           </div>
         </div>
 
-        <div className="shell__toolbar-center">
+        <div className="flex min-w-0 flex-none flex-nowrap items-center justify-center gap-2
+          max-[900px]:order-3 max-[900px]:w-full max-[900px]:justify-start
+          max-[900px]:overflow-x-auto">
           <SurfaceTabs
             tabs={SURFACE_TABS}
             value={surface}
@@ -294,16 +307,23 @@ export function EditorShell(props: {
             idPrefix="surface"
           />
           <ViewportSwitcher value={viewport} onChange={setViewport} />
-          <span className="shell__page-pill">Homepage</span>
+          <span
+            className="min-w-[92px] truncate rounded-input border border-default bg-surface-panel
+              px-3 py-2 text-center text-xs text-secondary shadow-hairline max-[1180px]:hidden"
+          >
+            Homepage
+          </span>
         </div>
 
-        <div className="shell__toolbar-end">
+        <div className="flex min-w-0 flex-1 basis-0 flex-nowrap items-center justify-end gap-2
+          max-[900px]:flex-auto">
           {/* Dock toggles: each carries a tooltip and the expanded state of the
               panel it owns, so "open" is never signalled by colour alone. */}
-          <div className="shell__dock-toggles" role="group" aria-label="Panels">
-            <button
+          <div className="flex gap-2" role="group" aria-label="Panels">
+            <DockToggle
               type="button"
-              className="dock-toggle"
+              icon="sliders"
+              label="Design"
               ref={designToggleRef}
               aria-pressed={designOpen}
               aria-expanded={designOpen}
@@ -312,13 +332,11 @@ export function EditorShell(props: {
               onClick={() => {
                 setDesignOpen((current) => !current)
               }}
-            >
-              <Icon name="sliders" />
-              <span>Design</span>
-            </button>
-            <button
+            />
+            <DockToggle
               type="button"
-              className="dock-toggle"
+              icon="layers"
+              label="Layers"
               ref={layersToggleRef}
               aria-pressed={layersOpen}
               aria-expanded={layersOpen}
@@ -327,22 +345,19 @@ export function EditorShell(props: {
               onClick={() => {
                 setLayersOpen((current) => !current)
               }}
-            >
-              <Icon name="layers" />
-              <span>Layers</span>
-            </button>
+            />
           </div>
 
-          <button
+          <ToolbarButton
             type="button"
-            className="toolbar-button"
+            variant="chrome"
             aria-label="Reset project…"
             onClick={() => {
               setResetPending(true)
             }}
           >
             Reset&hellip;
-          </button>
+          </ToolbarButton>
         </div>
       </header>
 
@@ -358,37 +373,78 @@ export function EditorShell(props: {
       {/* Scope Lock is above every surface rather than inside one panel: what an
           edit will touch is the same statement whether the edit comes from the
           inspector, the code view, an AI proposal, or a restore. */}
-      <div className="shell__scopebar">
+      <div
+        className="flex min-h-[46px] flex-none flex-wrap items-center justify-between gap-2
+          border-b border-default bg-surface-shell px-3 py-1 max-[620px]:items-stretch"
+      >
         <ScopeLock scope={editScope} targetNames={selectedNames} />
 
-        <div className="shell__scopebar-end">
-          <p className="persistence-chip" data-tone={persistence.tone}>
-            <span className="persistence-chip__dot" aria-hidden="true" />
+        {/* Stays on the right even when Scope Lock has taken the whole row. */}
+        <div className="flex min-w-0 flex-[0_1_auto] flex-wrap items-center gap-3 ms-auto
+          max-[620px]:m-0 max-[620px]:w-full max-[620px]:overflow-x-auto">
+          <p
+            className="group/persist m-0 inline-flex min-h-8 items-center gap-2 rounded-pill
+              border border-default px-2 py-1 text-xs whitespace-nowrap text-secondary
+              data-[tone=warning]:border-status-warning data-[tone=warning]:text-primary"
+            data-tone={persistence.tone}
+          >
+            {/* The dot repeats the tone; the label beside it always states it
+                in words, so the status never rests on colour. */}
+            <span
+              className="size-2 rounded-pill bg-muted
+                group-data-[tone=saved]/persist:bg-status-success
+                group-data-[tone=warning]/persist:bg-status-warning"
+              aria-hidden="true"
+            />
             {persistence.label}
-            <span className="visually-hidden">. {persistence.detail}</span>
+            <span className="sr-only">. {persistence.detail}</span>
           </p>
           <ScopeSwitcher value={editScope} onChange={setEditScope} />
         </div>
       </div>
 
+      {/* The main track is min-width 0 so a 1440px preview cannot push the
+          rail - or the page - into horizontal overflow. */}
       <div
-        className="shell__body"
+        className="group/body relative grid min-h-0 min-w-0 flex-1
+          grid-cols-[minmax(0,320px)_minmax(0,1fr)]
+          max-[1180px]:grid-cols-[minmax(0,292px)_minmax(0,1fr)]
+          max-[900px]:grid-cols-[minmax(0,1fr)]"
         data-surface={surface}
         data-docks={Number(designOpen) + Number(layersOpen)}
       >
-        <aside className="rail" aria-label="History and AI">
-          <div className="rail__intro">
-            <span className="rail__intro-icon" aria-hidden="true">
-              <Icon name="sparkle" />
+        {/* The AI composer above, element history below: both are reference
+            material for whatever is being edited. */}
+        <aside
+          className="flex min-h-0 min-w-0 flex-col border-r border-default bg-surface-shell
+            max-[900px]:border-r-0 max-[900px]:border-b"
+          aria-label="History and AI"
+        >
+          <div className="flex min-w-0 flex-none items-center gap-3 border-b border-default p-3">
+            <span
+              className="grid size-[34px] flex-none place-items-center rounded-control
+                bg-accent-brand text-primary"
+              aria-hidden="true"
+            >
+              <Icon name="sparkle" className="size-[18px]" />
             </span>
-            <div>
-              <p className="rail__eyebrow">Build with AI</p>
-              <h2>Describe the next change</h2>
+            <div className="min-w-0">
+              <p className="m-0 text-xs font-semibold text-secondary">Build with AI</p>
+              <h2 className="m-0 text-sm font-semibold text-primary">
+                Describe the next change
+              </h2>
             </div>
-            <span className="rail__mode">Proposal mode</span>
+            <span
+              className="ms-auto rounded-pill border px-2 py-1 text-xs whitespace-nowrap
+                text-status-success border-status-success/35"
+            >
+              Proposal mode
+            </span>
           </div>
 
-          <div className="rail__composer">
+          {/* The composer may hold a whole proposal run, but it must never crowd
+              the history out; past this it scrolls inside itself. */}
+          <div className="flex min-h-0 flex-1 overflow-hidden p-3 max-[900px]:max-h-none">
             <AiPanel
               document={state.document}
               selectedIds={selection.selectedIds}
@@ -399,41 +455,56 @@ export function EditorShell(props: {
             />
           </div>
 
-          <div className="rail__scroll">
+          <div className="max-h-[38%] flex-[0_1_34%] overflow-auto border-t border-default
+            bg-surface-canvas p-3 max-[900px]:max-h-none">
             <HistoryPanel
               document={state.document}
               selectedIds={selection.selectedIds}
               onRestore={restore}
+              showGuidance={false}
             />
           </div>
         </aside>
 
-        <main className="shell__main" aria-label={SURFACE_LABELS[surface]}>
+        {/* The workspace carries the same ambient field as the gallery, so the
+            two surfaces read as one product; the preview frame paints its own
+            opaque background on top, so nothing under review is tinted. */}
+        {/* Above 1100px an open dock insets this surface instead of covering
+            it, so opening Design never hides the part of the canvas being
+            edited. Below that it overlays - the only honest answer when there
+            is no room for both. */}
+        <main
+          className="flex min-h-0 min-w-0 bg-ambient transition-[margin] duration-fast
+            min-[1101px]:group-data-[docks='1']/body:me-[328px]
+            min-[1101px]:group-data-[docks='2']/body:me-[656px]"
+          aria-label={SURFACE_LABELS[surface]}
+        >
           <div
             role="tabpanel"
             id={`surface-panel-${surface}`}
             aria-labelledby={`surface-tab-${surface}`}
-            className="shell__surface"
+            className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-6"
           >
             {surface === 'preview' ? (
               <>
-                <div className="shell__canvas-status">
-                  <p className="shell__status">
+                <div className="flex min-w-0 flex-none flex-wrap items-center justify-between
+                  gap-x-4 gap-y-2 px-1">
+                  <p className="m-0 text-[13px] text-secondary">
                     Previewing {viewport} at {VIEWPORT_WIDTHS[viewport]}px &middot; revision{' '}
                     {state.document.revision}
                   </p>
-                  <div className="shell__canvas-tools">
+                  <div className="flex min-w-0 flex-wrap items-center gap-3">
                     <SelectionSummary rows={rows} selectedIds={selection.selectedIds} />
-                    <button
+                    <ToolbarButton
                       type="button"
-                      className="toolbar-button"
+                      variant="chrome"
                       aria-pressed={fit}
                       onClick={() => {
                         setFit((current) => !current)
                       }}
                     >
                       Fit to canvas
-                    </button>
+                    </ToolbarButton>
                   </div>
                 </div>
 
@@ -453,10 +524,25 @@ export function EditorShell(props: {
                 />
               </>
             ) : (
-              <div className="shell__code-workspace">
-                <aside className="shell__files" aria-label="Project files">
-                  <p>Project</p>
-                  <ul>
+              <div
+                className="mx-auto grid min-h-0 w-[min(1040px,100%)] grid-cols-[172px_minmax(0,1fr)]
+                  overflow-hidden rounded-panel border border-default bg-surface-panel
+                  shadow-raised max-[620px]:grid-cols-[minmax(0,1fr)]"
+              >
+                <aside
+                  className="min-w-0 border-r border-default bg-surface-shell px-3 py-4
+                    max-[620px]:hidden"
+                  aria-label="Project files"
+                >
+                  <p className="m-0 mb-2 text-xs font-semibold text-secondary">Project</p>
+                  <ul
+                    /* The open file is marked, so the illustrative tree still
+                       says which document the editor beside it is showing. */
+                    className="m-0 flex list-none flex-col gap-0.5 p-0 font-mono text-xs
+                      text-secondary [&>li]:truncate [&>li]:rounded-sm [&>li]:p-2
+                      [&>li[data-depth='1']]:ps-5
+                      [&>li:nth-child(3)]:bg-surface-hover [&>li:nth-child(3)]:text-primary"
+                  >
                     <li>src</li>
                     <li data-depth="1">components</li>
                     <li data-depth="1">template.json</li>
@@ -464,10 +550,16 @@ export function EditorShell(props: {
                     <li>styles</li>
                   </ul>
                 </aside>
-                <div className="shell__code">
-                  <div className="shell__code-heading">
+                {/* A reading width, not a full-bleed one: JSON keyed by stable
+                    id is easier to check when lines do not run the whole screen. */}
+                <div className="m-0 w-auto overflow-auto p-4">
+                  <div
+                    className="-mx-4 -mt-4 mb-4 flex items-center justify-between gap-3
+                      border-b border-default bg-surface-shell px-4 py-3 font-mono text-xs
+                      text-primary"
+                  >
                     <span>template.json</span>
-                    <span>Validated structured properties</span>
+                    <span className="font-ui text-muted">Validated structured properties</span>
                   </div>
                   <CodePanel
                     targets={targets}
@@ -485,7 +577,12 @@ export function EditorShell(props: {
           </div>
         </main>
 
-        <div className="shell__docks">
+        {/* The docks overlay the right edge; the layer itself is inert so the
+            canvas keeps taking pointer input everywhere a dock is not. */}
+        <div
+          className="pointer-events-none absolute inset-y-0 end-0 z-20 flex max-w-full
+            items-stretch gap-2 p-2 max-[900px]:inset-0 max-[900px]:flex-col max-[900px]:p-0"
+        >
           <EditorDock
             id="design-panel"
             labelledBy="inspector-heading"

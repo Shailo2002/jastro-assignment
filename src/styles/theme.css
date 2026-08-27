@@ -1,0 +1,111 @@
+/**
+ * Utility layer.
+ *
+ * Components carry their own styling in `className`, so this file exists to
+ * give those utilities the product's semantic names: `bg-surface-panel`,
+ * `text-secondary`, `border-default`, `rounded-card`, `shadow-hairline`. Every
+ * entry is `inline`, which means Tailwind writes the token reference straight
+ * into the utility instead of copying a value - so `tokens.css` stays the one
+ * place a raw value is allowed to exist, and a token change still reaches every
+ * component without touching one of them.
+ *
+ * Tailwind's default spacing step is 4px, which is exactly the product's
+ * `--space-1`, so `p-1 p-2 p-3 p-4 p-5 p-6 p-8` already mean 4/8/12/16/20/24/32
+ * and no spacing scale needs redefining here.
+ */
+
+@import "tailwindcss";
+
+@theme inline {
+  /* Surfaces: bg-surface-canvas, bg-surface-panel, ... */
+  --color-surface-canvas: var(--surface-canvas);
+  --color-surface-shell: var(--surface-shell);
+  --color-surface-panel: var(--surface-panel);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-hover: var(--surface-hover);
+
+  /* Text: text-primary, text-secondary, text-muted, text-on-accent, ... */
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-on-accent: var(--text-on-accent);
+  --color-on-neutral: var(--text-on-neutral);
+
+  /* Borders: border-default, border-strong, border-selection. */
+  --color-default: var(--border-default);
+  --color-strong: var(--border-strong);
+  --color-selection: var(--border-selection);
+
+  /* Actions and status: bg-action-primary, text-status-danger, ... */
+  --color-action-primary: var(--action-primary);
+  --color-action-primary-hover: var(--action-primary-hover);
+  --color-action-primary-active: var(--action-primary-active);
+  --color-action-neutral: var(--action-neutral);
+  --color-action-neutral-hover: var(--action-neutral-hover);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-danger: var(--status-danger);
+
+  /* Identity, focus, and fills. */
+  --color-accent-brand: var(--accent-brand);
+  --color-accent-brand-soft: var(--accent-brand-soft);
+  --color-accent-warm: var(--accent-warm);
+  --color-focus-ring: var(--focus-ring);
+  --color-selection-fill: var(--selection-fill);
+  --color-overlay-scrim: var(--overlay-scrim);
+
+  /* Type scale: text-xs ... text-xl, each with the leading its size wants. */
+  --text-xs: var(--type-xs);
+  --text-xs--line-height: 1.5;
+  --text-sm: var(--type-sm);
+  --text-sm--line-height: 1.5;
+  --text-md: var(--type-md);
+  --text-md--line-height: 1.5;
+  --text-lg: var(--type-lg);
+  --text-lg--line-height: 1.2;
+  --text-xl: var(--type-xl);
+  --text-xl--line-height: 1.15;
+
+  /* Faces: font-ui, font-mono. */
+  --font-ui: var(--face-ui);
+  --font-mono: var(--face-mono);
+
+  /* Radii: rounded-xs ... rounded-pill. */
+  --radius-xs: var(--corner-xs);
+  --radius-sm: var(--corner-sm);
+  --radius-control: var(--corner-control);
+  --radius-input: var(--corner-input);
+  --radius-card: var(--corner-card);
+  --radius-panel: var(--corner-panel);
+  --radius-pill: var(--corner-pill);
+
+  /* Elevation: shadow-hairline, shadow-soft, shadow-raised, shadow-glow. */
+  --shadow-hairline: var(--elevation-hairline);
+  --shadow-soft: var(--elevation-soft);
+  --shadow-raised: var(--elevation-raised);
+  --shadow-glow: var(--elevation-glow);
+
+  /* The minimum touch target, as a named spacing step: min-h-touch, w-touch. */
+  --spacing-touch: var(--target-touch-min);
+}
+
+/* Motion durations are tokens, not numbers, so components ask for the intent
+   rather than the millisecond count. */
+@utility duration-instant {
+  transition-duration: var(--duration-instant);
+}
+
+@utility duration-fast {
+  transition-duration: var(--duration-fast);
+}
+
+@utility duration-normal {
+  transition-duration: var(--duration-normal);
+}
+
+/* The ambient field, fixed to the viewport. Every main surface asks for this
+   one utility rather than restating the layer stack. */
+@utility bg-ambient {
+  background: var(--ambient-page);
+  background-attachment: fixed;
+}

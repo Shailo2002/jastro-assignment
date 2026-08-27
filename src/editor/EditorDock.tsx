@@ -1,6 +1,6 @@
 import type { JSX, ReactNode } from 'react'
 
-import { Icon } from './Icon'
+import { IconButton } from './controls'
 
 /**
  * A right-hand dock.
@@ -34,7 +34,9 @@ export function EditorDock(props: {
 }): JSX.Element {
   return (
     <aside
-      className="dock"
+      className="pointer-events-auto relative flex w-[min(320px,calc(100vw-var(--space-4)))]
+        min-h-0 flex-col overflow-hidden rounded-panel border border-default bg-surface-shell
+        shadow-raised max-[900px]:w-full max-[900px]:rounded-none"
       id={props.id}
       aria-labelledby={props.labelledBy}
       hidden={!props.open}
@@ -45,18 +47,19 @@ export function EditorDock(props: {
         props.onClose()
       }}
     >
-      <div className="dock__chrome">
-        <button
+      {/* The close control floats over the corner rather than taking a row of
+          its own, so the panel's own heading stays the first thing in the dock. */}
+      <div className="absolute end-2 top-2 z-[1]">
+        <IconButton
           type="button"
-          className="icon-button dock__close"
+          icon="close"
           aria-label={`Close ${props.title}`}
           title={`Close ${props.title}`}
           onClick={props.onClose}
-        >
-          <Icon name="close" />
-        </button>
+        />
       </div>
-      <div className="dock__body">{props.children}</div>
+      {/* Panel headings inside keep clear of the floating close control. */}
+      <div className="min-h-0 flex-1 overflow-auto p-4 [&_h2]:pe-touch">{props.children}</div>
     </aside>
   )
 }

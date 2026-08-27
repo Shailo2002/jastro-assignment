@@ -47,16 +47,20 @@ export function PreviewFrame(props: {
   const scale = fitScale(containerSize?.width, virtualWidth, fit)
 
   return (
-    <div className="preview" ref={containerRef}>
+    // The frame is scaled to fit, so this only scrolls when Fit is off.
+    <div className="min-w-0 overflow-x-auto" ref={containerRef}>
       <div
-        className="preview__scaler"
+        className="mx-auto"
         style={{
           width: virtualWidth * scale,
           ...(frameSize === undefined ? {} : { height: frameSize.height * scale }),
         }}
       >
+        {/* `preview__frame` and `preview__document` carry no styling: they are
+            query hooks the browser tests use to measure the real frame. */}
         <div
-          className="preview__frame"
+          className="preview__frame relative origin-top-left overflow-hidden rounded-card
+            border border-default bg-surface-canvas shadow-raised"
           ref={frameRef}
           style={{ width: virtualWidth, transform: `scale(${scale})` }}
           data-viewport={viewport}

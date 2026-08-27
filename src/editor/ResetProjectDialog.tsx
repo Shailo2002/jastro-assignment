@@ -1,5 +1,7 @@
 import { useEffect, useRef, type JSX, type KeyboardEvent } from 'react'
 
+import { ToolbarButton } from './controls'
+
 /**
  * Reset confirmation.
  *
@@ -58,10 +60,16 @@ export function ResetProjectDialog(props: {
   }
 
   return (
-    <div className="dialog-backdrop" onMouseDown={props.onCancel}>
+    // `dialog-backdrop` carries no styling; it is the tests' query hook.
+    <div
+      className="dialog-backdrop fixed inset-0 z-40 flex items-center justify-center
+        bg-overlay-scrim p-4"
+      onMouseDown={props.onCancel}
+    >
       <div
         ref={dialogRef}
-        className="dialog"
+        className="w-[min(440px,100%)] rounded-panel border border-default bg-surface-panel
+          p-6 shadow-raised"
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="reset-dialog-title"
@@ -71,23 +79,34 @@ export function ResetProjectDialog(props: {
           event.stopPropagation()
         }}
       >
-        <h2 className="dialog__title" id="reset-dialog-title">
+        <h2 className="m-0 mb-3 text-md font-semibold text-primary" id="reset-dialog-title">
           Reset project?
         </h2>
-        <div className="dialog__body" id="reset-dialog-description">
+        <div
+          className="text-[13px] text-secondary [&>p]:m-0 [&>p]:mb-3"
+          id="reset-dialog-description"
+        >
           <p>The original template is loaded and this browser&rsquo;s saved copy is deleted.</p>
-          <ul className="dialog__list">
+          <ul className="m-0 mb-3 list-disc ps-5 [&>li]:mb-1">
             <li>Every element edit and viewport override is discarded.</li>
             <li>All revision history is cleared, so nothing can be restored afterwards.</li>
             <li>Any unapplied code draft and any pending AI proposal are discarded.</li>
           </ul>
-          <p className="dialog__note">This cannot be undone.</p>
+          <p className="text-primary">This cannot be undone.</p>
         </div>
-        <div className="dialog__actions">
-          <button type="button" className="toolbar-button" ref={cancelRef} onClick={props.onCancel}>
+        <div className="mt-5 flex justify-end gap-3">
+          <ToolbarButton type="button" ref={cancelRef} onClick={props.onCancel}>
             Cancel
-          </button>
-          <button type="button" className="dialog__danger" onClick={props.onConfirm}>
+          </ToolbarButton>
+          {/* Danger styling appears here only - at confirmation time, never on
+              the routine toolbar control that opens this dialog. */}
+          <button
+            type="button"
+            className="min-h-touch cursor-pointer rounded-control border border-status-danger
+              bg-status-danger px-4 text-[13px] font-semibold text-on-accent
+              hover:brightness-110 active:translate-y-px active:brightness-95"
+            onClick={props.onConfirm}
+          >
             Reset project
           </button>
         </div>

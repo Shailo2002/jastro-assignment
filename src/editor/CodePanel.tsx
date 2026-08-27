@@ -9,6 +9,7 @@ import {
   type CodeDraftError,
   type CodeTarget,
 } from './code-document'
+import { PanelHeading, PanelHint, ToolbarButton } from './controls'
 import { EDIT_SCOPE_LABELS } from './edit-scope'
 import { describeElement } from './element-names'
 import type { EditTarget } from './inspector-model'
@@ -41,11 +42,19 @@ export interface CodeDraft {
 
 function ErrorList(props: { id: string; errors: readonly CodeDraftError[] }): JSX.Element {
   return (
-    <ul className="code-panel__errors" id={props.id}>
+    <ul
+      className="m-0 flex list-none flex-col gap-2 rounded-control border border-status-danger p-3"
+      id={props.id}
+    >
       {props.errors.map((error, index) => (
-        <li className="code-panel__error" key={`${error.code}:${error.path ?? index}`}>
+        <li
+          className="flex flex-col gap-1 text-xs leading-[1.45] text-primary
+            before:font-semibold before:text-status-danger
+            before:content-['\26A0__Invalid_draft']"
+          key={`${error.code}:${error.path ?? index}`}
+        >
           {error.path === undefined ? null : (
-            <span className="code-panel__error-path">{error.path}</span>
+            <span className="font-mono text-[11px] text-secondary">{error.path}</span>
           )}
           <span>{error.message}</span>
         </li>
@@ -81,14 +90,12 @@ export function CodePanel(props: {
 
   if (targets.length === 0) {
     return (
-      <section className="code-panel" aria-labelledby="code-heading">
-        <h2 className="inspector__heading" id="code-heading">
-          Structured code
-        </h2>
-        <p className="inspector__empty">
+      <section className="flex min-w-0 flex-col gap-3" aria-labelledby="code-heading">
+        <PanelHeading id="code-heading">Structured code</PanelHeading>
+        <PanelHint>
           Nothing is selected, so there is no code to show. Choose an element on the canvas
           or in Layers.
-        </p>
+        </PanelHint>
       </section>
     )
   }
@@ -140,20 +147,18 @@ export function CodePanel(props: {
   }
 
   return (
-    <section className="code-panel" aria-labelledby="code-heading">
-      <h2 className="inspector__heading" id="code-heading">
-        Structured code
-      </h2>
+    <section className="flex min-w-0 flex-col gap-3" aria-labelledby="code-heading">
+      <PanelHeading id="code-heading">Structured code</PanelHeading>
 
-      <p className="inspector__hint" id={helpId}>
+      <PanelHint elementId={helpId}>
         Validated JSON for the selected element{targets.length === 1 ? '' : 's'}, keyed by
         stable id, for scope <strong>{EDIT_SCOPE_LABELS[scope]}</strong>. This is structured
         data, not JSX or CSS: only allowlisted properties are accepted, and identity, revision
         and history fields cannot be set here. Press Escape to move focus from the editor to
         the panel actions; Tab also leaves the editor normally.
-      </p>
+      </PanelHint>
 
-      <ul className="code-panel__targets">
+      <ul className="m-0 flex list-none flex-col gap-1 p-0">
         {targets.map((target) => {
           const descriptor = describeElement({
             id: target.element.id,
@@ -161,19 +166,26 @@ export function CodePanel(props: {
             properties: target.displayed,
           })
           return (
-            <li className="code-panel__target" key={target.element.id}>
-              <span className="code-panel__target-name">{descriptor.accessibleName}</span>
-              <code className="code-panel__target-id">{target.element.id}</code>
+            <li
+              className="flex flex-wrap items-baseline gap-2 rounded-card bg-surface-panel
+                p-2 text-xs text-secondary shadow-hairline"
+              key={target.element.id}
+            >
+              <span>{descriptor.accessibleName}</span>
+              <code className="font-mono text-[11px] text-muted">{target.element.id}</code>
             </li>
           )
         })}
       </ul>
 
-      <label className="field__label" htmlFor={fieldId}>
+      <label className="text-xs font-semibold text-secondary" htmlFor={fieldId}>
         Element properties (JSON)
       </label>
       <textarea
-        className="code-panel__editor"
+        className="w-full min-w-0 resize-y rounded-input border border-default bg-surface-canvas
+          p-3 font-mono text-xs leading-relaxed whitespace-pre text-primary [tab-size:2]
+          focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus-ring
+          aria-invalid:border-status-danger"
         id={fieldId}
         spellCheck={false}
         rows={18}
@@ -187,14 +199,19 @@ export function CodePanel(props: {
         }}
       />
 
-      <p className="field__note">
+      <p className="m-0 text-[11px] leading-[1.45] text-muted">
         {isDirty
           ? `Unapplied draft, prepared against revision ${baseRevision}.`
           : `Showing revision ${revision}. Canvas edits appear here automatically.`}
       </p>
 
       {isStale && (
-        <p className="code-panel__notice" role="status">
+        <p
+          className="m-0 rounded-control border-l-[3px] border-status-warning bg-surface-elevated
+            px-3 py-2 text-xs leading-[1.45] text-primary
+            before:font-semibold before:content-['Stale_draft:_']"
+          role="status"
+        >
           The document moved to revision {revision} while this draft was open. Applying it
           will be rejected; revert to load the current values.
         </p>
@@ -204,27 +221,26 @@ export function CodePanel(props: {
 
       {commitErrors.length > 0 && (
         <div role="alert">
-          <p className="field__error">
+          <p className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']">
             The edit was rejected and nothing changed. {commitErrors.join(' ')}
           </p>
         </div>
       )}
 
-      <div className="code-panel__actions">
-        <button
+      <div className="flex flex-wrap gap-2">
+        <ToolbarButton
           type="button"
-          className="toolbar-button"
           ref={applyRef}
           disabled={!prepared.ok}
           onClick={apply}
         >
           Apply
-        </button>
+        </ToolbarButton>
         {/* Never disabled: it is the editor's guaranteed keyboard exit, and
             reloading the canonical values is meaningful even when clean. */}
-        <button type="button" className="toolbar-button" ref={revertRef} onClick={revert}>
+        <ToolbarButton type="button" ref={revertRef} onClick={revert}>
           Revert
-        </button>
+        </ToolbarButton>
       </div>
     </section>
   )
