@@ -36,6 +36,16 @@ body {
   display: none !important;
 }
 
+/* Scrollbars carry a thumb and no track. The platform default lights a channel
+   behind the thumb as soon as the pointer is near it, which reads as a bright
+   column stapled to the side of whatever is scrolling - loudest against the
+   rail, where it sits right beside the cards. Only the standard property is
+   set: the ::-webkit-scrollbar pseudo-elements would replace macOS overlay
+   scrollbars with classic ones that permanently occupy layout width. */
+* {
+  scrollbar-color: var(--border-strong) transparent;
+}
+
 /* The editor shell owns page scrolling; the body must never scroll sideways. */
 body {
   overflow-x: hidden;

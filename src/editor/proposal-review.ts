@@ -80,7 +80,14 @@ export function outcomeFor(state: ProposalReviewState, proposalId: string): Prop
  * part of it is persisted, and the document does not know a run exists.
  */
 export interface AiPanelState {
+  /** What is in the composer right now, which the reviewer keeps editing. */
   readonly instruction: string
+  /**
+   * The instruction the current run was started from, kept separately so the
+   * transcript reports the words that produced these proposals even after the
+   * composer has been retyped. Absent until the first run.
+   */
+  readonly submittedInstruction: string | undefined
   readonly review: ProposalReviewState | undefined
   readonly failure: ProposalRunFailure | undefined
   /** Errors from the shared pipeline when an acceptance was rejected. */
@@ -89,6 +96,7 @@ export interface AiPanelState {
 
 export const EMPTY_AI_PANEL_STATE: AiPanelState = {
   instruction: '',
+  submittedInstruction: undefined,
   review: undefined,
   failure: undefined,
   commitErrors: [],

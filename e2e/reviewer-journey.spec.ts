@@ -104,7 +104,8 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   await showPanel(page, 'Layers')
   await layer(page, 'hero.heading').click()
   await layer(page, 'hero.subheading').click({ modifiers: ['Shift'] })
-  const instruction = page.getByLabel('Instruction')
+  // Exact: the send control beside the field is named "Run instruction".
+  const instruction = page.getByLabel('Instruction', { exact: true })
   await instruction.fill('Align the selected elements to center')
   await page.getByRole('button', { name: 'Run instruction' }).click()
   const cards = page.locator('.proposal-card')
@@ -118,13 +119,14 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   await cards.nth(1).getByRole('button', { name: /^Reject change for/ }).click()
   await expect(cards.nth(1)).toContainText(/Rejected/i)
 
-  /* 9. Restore one element in one scope, from the history in the rail. */
-  const card = page.locator('.revision-card').first()
+  /* 9. Restore one element in one scope, from the history in the rail. The
+        transcript runs oldest first, so the newest entry is the last one. */
+  const card = page.locator('.revision-card').last()
   await card.getByRole('button', { name: /^Restore/ }).click()
   await card.getByRole('button', { name: 'Restore', exact: true }).click()
   await expect(page.locator('.revision-card__status').filter({ hasText: 'Restored' })).toHaveCount(1)
   // The restore is recorded as a new entry rather than rewinding the document.
-  await expect(page.locator('.revision-card').first()).toHaveAttribute('data-source', 'restore')
+  await expect(page.locator('.revision-card').last()).toHaveAttribute('data-source', 'restore')
 
   /* 10. A real reload keeps the document and its history. */
   const beforeReload = await headingSize(page)

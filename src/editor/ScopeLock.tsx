@@ -8,9 +8,12 @@ import { describeScopeLock } from './edit-scope'
  * Scope Lock indicator.
  *
  * States, before any commit, what an edit will touch and what it provably will
- * not. It sits in the one top bar rather than inside a panel, because that
- * statement is the same whether the edit comes from the inspector, the code
- * view, an AI proposal, or a restore.
+ * not. The statement is the same whether the edit comes from the inspector, the
+ * code view, an AI proposal, or a restore, so it is drawn once: at the head of
+ * the composer, which is the one surface that is always mounted and never
+ * scrolls away. It was in the top bar until the composer began naming the
+ * selection too - two places saying the same thing is one place too many, and
+ * the bar is for controls.
  *
  * Only the SHORT form is drawn - the count and the scope, beside a lock, lit up
  * when there is something to edit. The guarantee itself is longer than a
@@ -35,8 +38,10 @@ export function ScopeLock(props: {
 
   return (
     <section
-      className="flex min-w-0 flex-none items-center gap-2 rounded-pill border border-transparent
-        px-2.5 py-1 data-[editable=true]:border-selection data-[editable=true]:bg-selection-fill"
+      className="flex w-fit min-w-0 flex-none items-center gap-1.5 rounded-pill border
+        border-transparent px-2 py-1 text-muted
+        data-[editable=true]:border-selection/45 data-[editable=true]:bg-selection-fill
+        data-[editable=true]:text-action-primary"
       aria-labelledby="scope-lock-heading"
       data-scope={props.scope}
       data-editable={description.canEdit}
@@ -45,12 +50,17 @@ export function ScopeLock(props: {
       <h2 className="sr-only" id="scope-lock-heading">
         Scope Lock
       </h2>
-      <Icon name="lock" className="size-4 text-muted" />
+      {/* The glyph changes with the state as well as the fill: an open padlock
+          for nothing to edit, the selection marquee once there is. */}
+      <Icon
+        name={description.canEdit ? 'selection' : 'lock'}
+        className="size-[13px] shrink-0"
+      />
 
       {/* Announced politely, but the canvas status line owns the `status`
           role, so a screen reader hears one selection summary, not two. */}
       <p
-        className="m-0 truncate text-xs whitespace-nowrap text-primary"
+        className="m-0 truncate text-[11px] font-semibold whitespace-nowrap"
         aria-live="polite"
       >
         <strong>{description.targetText}</strong>

@@ -267,6 +267,9 @@ describe('confirming', () => {
     await openReset(user)
     await confirmReset(user)
 
-    expect(screen.getByRole('region', { name: 'Scope Lock' })).toHaveTextContent(/Nothing selected/i)
+    expect(screen.getByRole('status', { name: 'Selection' })).toHaveTextContent(
+      'Nothing selected',
+    )
+    expect(screen.queryByRole('region', { name: 'Scope Lock' })).not.toBeInTheDocument()
   })
 })

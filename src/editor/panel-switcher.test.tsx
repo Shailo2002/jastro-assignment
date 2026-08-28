@@ -147,7 +147,11 @@ describe('the panel switcher', () => {
     // The chrome keeps the two controls that state what an edit would do.
     expect(screen.getByRole('button', { name: /^Preview viewport/ })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Edit scope' })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Scope Lock' })).toBeInTheDocument()
+    // With nothing selected there is no Scope Lock to draw: the canvas states
+    // the empty selection, and the composer has nothing to promise about it.
+    expect(screen.getByRole('status', { name: 'Selection' })).toHaveTextContent(
+      'Nothing selected',
+    )
   })
 })
 
@@ -245,8 +249,9 @@ describe('a docked panel owns its own keys', () => {
     heading.focus()
     await user.keyboard('{Escape}')
 
-    expect(screen.getByRole('region', { name: 'Scope Lock' })).toHaveTextContent(
-      /Nothing selected/i,
+    expect(screen.queryByRole('region', { name: 'Scope Lock' })).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Selection' })).toHaveTextContent(
+      'Nothing selected',
     )
     // Escape inside the tree belongs to the tree: it clears the selection and
     // must not also dismiss the dock the user is working in.

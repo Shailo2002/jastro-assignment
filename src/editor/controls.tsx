@@ -136,10 +136,32 @@ export function ToolbarButton({
 export function IconButton({
   icon,
   variant = 'panel',
+  tone = 'neutral',
   className = '',
   ...rest
-}: ComponentProps<'button'> & { icon: IconName; variant?: 'chrome' | 'panel' }): JSX.Element {
+}: ComponentProps<'button'> & {
+  icon: IconName
+  variant?: 'chrome' | 'panel'
+  /**
+   * `primary` fills the well, for the one glyph in a surface that RUNS
+   * something rather than revealing it - the composer's send control. Kept a
+   * variant so no caller ends up with two background utilities on one span.
+   */
+  tone?: 'neutral' | 'primary'
+}): JSX.Element {
   if (variant === 'chrome') {
+    // The filled well's disabled skin is chosen here rather than with a
+    // `group-disabled` variant: both states paint the same property, and a
+    // variant would leave which one wins to CSS ordering.
+    const primaryWell =
+      rest.disabled === true
+        ? 'border-dashed border-default bg-surface-panel text-muted'
+        : 'border-action-primary bg-action-primary text-on-accent' +
+          ' group-hover/chip:bg-action-primary-hover'
+    const well =
+      tone === 'primary'
+        ? primaryWell
+        : `border-transparent group-hover/chip:bg-surface-elevated ${CHIP_PRESSED}`
     return (
       <button
         className={`group/chip inline-flex size-touch cursor-pointer items-center justify-center
@@ -148,9 +170,8 @@ export function IconButton({
         {...rest}
       >
         <span
-          className={`grid size-8 place-items-center rounded-pill border border-transparent
-            transition-colors duration-instant group-hover/chip:bg-surface-elevated
-            ${CHIP_PRESSED}`}
+          className={`grid size-8 place-items-center rounded-pill border
+            transition-colors duration-instant ${well}`}
         >
           <Icon name={icon} className="size-[18px]" />
         </span>

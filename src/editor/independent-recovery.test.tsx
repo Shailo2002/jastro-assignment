@@ -79,11 +79,16 @@ async function editFontSize(user: User, value: string): Promise<void> {
   await user.tab()
 }
 
+/**
+ * The most recent revision card for one element. The rail is a transcript, so
+ * the newest entry is the LAST one - the one next to the composer.
+ */
 function newestCard(id: string): HTMLElement {
-  const node = window.document.querySelector<HTMLElement>(
-    `.revision-card[data-target-id="${id}"]`,
-  )
-  if (node === null) throw new Error(`No revision card for "${id}".`)
+  const nodes = [
+    ...window.document.querySelectorAll<HTMLElement>(`.revision-card[data-target-id="${id}"]`),
+  ]
+  const node = nodes.at(-1)
+  if (node === undefined) throw new Error(`No revision card for "${id}".`)
   return node
 }
 

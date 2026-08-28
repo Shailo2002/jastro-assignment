@@ -10,12 +10,13 @@ import { describeProposalChanges } from './proposal-review'
 /**
  * History description, as pure functions.
  *
- * The panel shows history for the elements that are selected, grouped by the
- * scope each entry was committed at, because that pair - one element, one scope
- * - is exactly what a restore addresses. Nothing here reads or writes the
- * document store: a view is derived from the current document on every render,
- * so an entry's restore preview always compares against live values rather than
- * against whatever was true when the panel was opened.
+ * Every entry belongs to one element AND one scope, because that pair is
+ * exactly what a restore addresses. Two shapes are derived from that: the
+ * per-element view, grouped by scope, and the rail's flat chronological
+ * timeline, which is the same entries read as a transcript. Nothing here reads
+ * or writes the document store: a view is derived from the current document on
+ * every render, so an entry's restore preview always compares against live
+ * values rather than against whatever was true when the panel was opened.
  *
  * Restoring an entry returns its element/scope to `entry.before`, the state
  * immediately before that commit. The preview therefore compares CURRENT values
@@ -174,19 +175,27 @@ function summarize(total: number, scopes: number): string {
   return `${total} revision${total === 1 ? '' : 's'} across ${scopes} scope${scopes === 1 ? '' : 's'}.`
 }
 
+/** The readable name of one element, or `undefined` if it is not in the document. */
+function elementNameFor(
+  document: TemplateDocument,
+  elementIdValue: ElementId,
+): string | undefined {
+  const element = document.elements[elementIdValue]
+  if (element === undefined) return undefined
+  return describeElement({
+    id: element.id,
+    type: element.type,
+    properties: element.base,
+  }).accessibleName
+}
+
 /** The history of one element, grouped by scope; `undefined` if it is gone. */
 export function describeElementHistory(
   document: TemplateDocument,
   elementIdValue: ElementId,
 ): ElementHistoryView | undefined {
-  const element = document.elements[elementIdValue]
-  if (element === undefined) return undefined
-
-  const elementName = describeElement({
-    id: element.id,
-    type: element.type,
-    properties: element.base,
-  }).accessibleName
+  const elementName = elementNameFor(document, elementIdValue)
+  if (elementName === undefined) return undefined
 
   const entries = listElementHistory(document, elementIdValue)
 
@@ -228,4 +237,115 @@ export function describeSelectedHistory(input: {
     const view = describeElementHistory(input.document, id)
     return view === undefined ? [] : [view]
   })
+}
+
+/* -------------------------------------------------------------------------- */
+/* The rail timeline                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Whose history the rail is showing. `document` is the resting state - the
+ * whole layout's change log - and a selection narrows it to those elements.
+ */
+export type HistoryTimelineMode = 'document' | 'selection'
+
+export interface HistoryTimelineView {
+  readonly mode: HistoryTimelineMode
+  /** e.g. `Whole layout` or `Heading: Ship a landing page ...`. */
+  readonly title: string
+  /** e.g. `8 changes across 3 elements.` */
+  readonly summary: string
+  /**
+   * OLDEST first. The rail reads as a transcript, so the most recent change
+   * ends up next to the composer at the foot of it, the way the newest message
+   * of a conversation does.
+   */
+  readonly entries: readonly RevisionEntryView[]
+  /** What would produce content, shown when the timeline is empty. */
+  readonly emptyText: string
+}
+
+const TIMELINE_EXPLAINER =
+  'Edits from the inspector, the code panel, an accepted AI proposal, and a restore all appear here.'
+
+/**
+ * Chronological order across elements.
+ *
+ * The document revision is the primary key rather than the timestamp: it is
+ * assigned by the commit pipeline, it is unique across the document, and it
+ * still orders two entries correctly when a fixed clock stamps them with the
+ * same instant. The remaining comparisons only exist so the sort is total.
+ */
+function compareEntries(left: RevisionEntryView, right: RevisionEntryView): number {
+  const byRevision = left.entry.documentRevision - right.entry.documentRevision
+  if (byRevision !== 0) return byRevision
+  const byTime = left.entry.createdAt.localeCompare(right.entry.createdAt)
+  if (byTime !== 0) return byTime
+  return left.entry.id.localeCompare(right.entry.id)
+}
+
+function timelineSummary(entries: readonly RevisionEntryView[]): string {
+  if (entries.length === 0) return 'No changes recorded yet.'
+  const elements = new Set(entries.map((view) => view.entry.elementId)).size
+  return `${entries.length} change${entries.length === 1 ? '' : 's'} across ${elements} element${elements === 1 ? '' : 's'}.`
+}
+
+/**
+ * Every recorded change, as one flat transcript.
+ *
+ * Selection is a FILTER here, not a precondition. With nothing selected the
+ * rail is the change log of the whole layout, which is what a reviewer arriving
+ * at the editor wants to read; selecting elements narrows it to their entries,
+ * so the surface answers "what happened to this?" without changing shape.
+ *
+ * A restore is still unambiguous either way, because an entry names its own
+ * element and scope: the panel never has to infer a target from the selection,
+ * which is exactly why widening the default view is safe.
+ */
+export function describeHistoryTimeline(input: {
+  readonly document: TemplateDocument
+  readonly selectedIds: readonly ElementId[]
+}): HistoryTimelineView {
+  const { document, selectedIds } = input
+
+  if (selectedIds.length > 0) {
+    const views = describeSelectedHistory(input)
+    const entries = views
+      .flatMap((view) => view.groups.flatMap((group) => group.entries))
+      .sort(compareEntries)
+    const title =
+      views.length === 1
+        ? (views[0]?.elementName ?? '')
+        : `${views.length} selected element${views.length === 1 ? '' : 's'}`
+
+    return {
+      mode: 'selection',
+      title,
+      summary: timelineSummary(entries),
+      entries,
+      emptyText: `No changes recorded for ${title} yet. ${TIMELINE_EXPLAINER}`,
+    }
+  }
+
+  // Names are resolved once per element rather than once per entry: one
+  // element commonly owns many revisions.
+  const names = new Map<ElementId, string | undefined>()
+  const entries = Object.values(document.history)
+    .flat()
+    .flatMap((entry) => {
+      if (!names.has(entry.elementId)) {
+        names.set(entry.elementId, elementNameFor(document, entry.elementId))
+      }
+      const name = names.get(entry.elementId)
+      return name === undefined ? [] : [describeEntry(document, entry, name)]
+    })
+    .sort(compareEntries)
+
+  return {
+    mode: 'document',
+    title: 'Whole layout',
+    summary: timelineSummary(entries),
+    entries,
+    emptyText: `Nothing has changed yet. ${TIMELINE_EXPLAINER} Select an element on the canvas or in Layers to narrow this to its own history.`,
+  }
 }

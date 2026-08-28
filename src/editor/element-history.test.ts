@@ -9,6 +9,7 @@ import { commandId, elementId } from '../model/ids'
 import { createInitialTemplateDocument } from '../model/initial-template'
 import {
   describeElementHistory,
+  describeHistoryTimeline,
   describeRestorePreview,
   describeSelectedHistory,
   formatRevisionTime,
@@ -169,5 +170,79 @@ describe('selected history', () => {
     expect(
       describeSelectedHistory({ document, selectedIds: [elementId('nope.missing')] }),
     ).toEqual([])
+  })
+})
+
+describe('history timeline', () => {
+  /** One commit against the heading, one against the button, in that order. */
+  function twoElements(): TemplateDocument {
+    const first = commit(createInitialTemplateDocument(), {}, 1)
+    return commit(
+      first,
+      { targetIds: [BUTTON], changes: { [BUTTON]: { typography: { fontSize: 20 } } } },
+      2,
+    )
+  }
+
+  it('reads as the whole layout when nothing is selected', () => {
+    const view = describeHistoryTimeline({ document: twoElements(), selectedIds: [] })
+
+    expect(view.mode).toBe('document')
+    expect(view.title).toBe('Whole layout')
+    expect(view.summary).toBe('2 changes across 2 elements.')
+    expect(view.entries.map((entry) => entry.entry.elementId)).toEqual([HEADING, BUTTON])
+  })
+
+  it('orders every element together, oldest first, so the newest is last', () => {
+    let document = twoElements()
+    document = commit(document, { changes: { [HEADING]: { typography: { fontSize: 41 } } } }, 3)
+
+    const view = describeHistoryTimeline({ document, selectedIds: [] })
+    // Document revision, not the element it belongs to, decides the order.
+    expect(view.entries.map((entry) => entry.entry.documentRevision)).toEqual([1, 2, 3])
+    expect(view.entries.at(-1)?.entry.elementId).toBe(HEADING)
+  })
+
+  it('narrows to the selection without changing shape', () => {
+    const view = describeHistoryTimeline({ document: twoElements(), selectedIds: [BUTTON] })
+
+    expect(view.mode).toBe('selection')
+    expect(view.title).toBe(describeElementHistory(twoElements(), BUTTON)?.elementName)
+    expect(view.summary).toBe('1 change across 1 element.')
+    expect(view.entries.map((entry) => entry.entry.elementId)).toEqual([BUTTON])
+  })
+
+  it('names how many elements a multi-selection covers', () => {
+    const view = describeHistoryTimeline({
+      document: twoElements(),
+      selectedIds: [HEADING, BUTTON],
+    })
+
+    expect(view.title).toBe('2 selected elements')
+    expect(view.entries).toHaveLength(2)
+  })
+
+  it('explains what would produce content rather than showing an empty list', () => {
+    const empty = describeHistoryTimeline({
+      document: createInitialTemplateDocument(),
+      selectedIds: [],
+    })
+
+    expect(empty.entries).toHaveLength(0)
+    expect(empty.summary).toBe('No changes recorded yet.')
+    expect(empty.emptyText).toContain('Nothing has changed yet.')
+    expect(empty.emptyText).toContain('an accepted AI proposal')
+  })
+
+  it('keeps every entry restorable in its own right, whatever is selected', () => {
+    const document = twoElements()
+    const fromDocument = describeHistoryTimeline({ document, selectedIds: [] })
+    const fromSelection = describeHistoryTimeline({ document, selectedIds: [BUTTON] })
+
+    // The wider view describes the same entry the narrow one does: a restore
+    // is addressed by the entry, never by what happens to be selected.
+    const wide = fromDocument.entries.find((entry) => entry.entry.elementId === BUTTON)
+    expect(wide?.restoreText).toBe(fromSelection.entries[0]?.restoreText)
+    expect(wide?.canRestore).toBe(true)
   })
 })

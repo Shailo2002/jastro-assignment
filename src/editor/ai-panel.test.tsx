@@ -103,13 +103,18 @@ async function runInstruction(
 const CENTER = 'Align the selected elements to center'
 
 describe('running an instruction', () => {
-  it('explains the block and disables Run with nothing selected', () => {
+  it('blocks running and states the empty selection with nothing selected', () => {
     render(<EditorShell store={store} />)
 
+    // The prerequisite is not spelled out under the composer at all: every
+    // control that would run is disabled, there is no Scope Lock to draw over
+    // an empty selection, and the canvas states that selection once.
     expect(screen.getByRole('button', { name: 'Run instruction' })).toBeDisabled()
-    expect(
-      screen.getByText(/Select at least one element on the canvas or in Layers/),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: CENTER })).toBeDisabled()
+    expect(screen.queryByRole('region', { name: 'Scope Lock' })).not.toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Selection' })).toHaveTextContent(
+      'Nothing selected',
+    )
   })
 
   it('offers the supported example instructions to the reviewer', async () => {

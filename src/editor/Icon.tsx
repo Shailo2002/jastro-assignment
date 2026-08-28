@@ -11,6 +11,7 @@ import {
   Smartphone,
   SlidersHorizontal,
   Sparkles,
+  SquareDashedMousePointer,
   Tablet,
   TriangleAlert,
   X,
@@ -53,6 +54,7 @@ export type IconName =
   | 'clock'
   | 'sparkle'
   | 'send'
+  | 'selection'
 
 const GLYPHS: Readonly<Record<IconName, LucideIcon>> = {
   lock: Lock,
@@ -70,6 +72,7 @@ const GLYPHS: Readonly<Record<IconName, LucideIcon>> = {
   clock: Clock,
   sparkle: Sparkles,
   send: ArrowUp,
+  selection: SquareDashedMousePointer,
 }
 
 /** Base geometry every editor icon shares; callers add size and colour. */

@@ -162,7 +162,13 @@ describe('editor shell', () => {
       })
     })
 
-    expect(await screen.findByText(/revision 1/)).toBeInTheDocument()
+    // Scoped to the preview: the rail's transcript now reports the same
+    // revision number on the card the commit produced.
+    expect(
+      await within(screen.getByRole('main', { name: 'Template preview' })).findByText(
+        /revision 1/,
+      ),
+    ).toBeInTheDocument()
     expect(headingSize(container)).toBe('44px')
     await previewViewport(user, 'Mobile')
     // The mobile override still wins over the new base value.

@@ -187,7 +187,9 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   // 7. Run an instruction and accept its proposal, from the rail's composer.
   //    Enter in the instruction field runs it, so the composer needs no reach
   //    for the mouse and no second tab stop.
-  const instruction = page.getByLabel('Instruction')
+  // Exact: the send control beside the field is named "Run instruction",
+  // which a substring match would also pick up.
+  const instruction = page.getByLabel('Instruction', { exact: true })
   await tabTo(page, instruction)
   await instruction.press('ControlOrMeta+a')
   await page.keyboard.type('Make the heading bolder')
@@ -198,8 +200,9 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await expect(page.locator('.proposal-card').first()).toContainText(/Accepted/i)
 
   // 8. Restore one revision for one element and scope, and return focus. The
-  //    history is in the rail, above the composer, so nothing is switched.
-  const restoreTrigger = page.getByRole('button', { name: /^Restore/ }).first()
+  //    history is in the rail, above the composer, so nothing is switched; the
+  //    newest entry is the LAST one, the way the newest message of a chat is.
+  const restoreTrigger = page.getByRole('button', { name: /^Restore/ }).last()
   await tabTo(page, restoreTrigger)
   await page.keyboard.press('Enter')
   await expect(page.getByText('Restore this revision?')).toBeFocused()
@@ -210,11 +213,11 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await tabTo(page, page.getByRole('button', { name: 'Restore', exact: true }))
   await page.keyboard.press('Enter')
   // The restore reports on its own card, and is itself recorded as a new entry
-  // at the top of the list rather than rewinding the document.
+  // at the foot of the transcript rather than rewinding the document.
   await expect(
     page.locator('.revision-card__status').filter({ hasText: 'Restored' }),
   ).toHaveCount(1)
-  await expect(page.locator('.revision-card').first()).toContainText('Restore')
+  await expect(page.locator('.revision-card').last()).toContainText('Restore')
 
   // 9. Back to the desktop preview, which is where every scoped edit landed.
   await tabTo(page, viewportControl(page))

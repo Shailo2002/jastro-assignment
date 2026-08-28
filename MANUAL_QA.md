@@ -91,7 +91,7 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 
 ## Scope Lock
 
-- [ ] Target count and scope are both readable as text in the toolbar.
+- [ ] Target count and scope are both readable as text at the head of the AI composer, whatever panel is docked.
 - [ ] The protected views are named for a viewport-scoped edit (hover the indicator, or read it with a screen reader).
 - [ ] Affected element names are reachable the same way.
 - [ ] It updates immediately when the selection or the scope changes.
@@ -117,7 +117,7 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 
 ## Deterministic AI demo
 
-- [ ] Run is disabled or explained with no selection.
+- [ ] Run is disabled with no selection, the composer shows no Scope Lock chip, and the canvas states `Nothing selected`.
 - [ ] Example instructions are reviewer-visible.
 - [ ] Same input/state/scope returns the same proposal.
 - [ ] Canvas does not change at proposal generation.

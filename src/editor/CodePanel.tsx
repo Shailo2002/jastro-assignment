@@ -2,7 +2,6 @@ import { useId, useRef, useState, type JSX, type KeyboardEvent } from 'react'
 
 import type { ElementId } from '../model/ids'
 import type { EditablePropertyPatch } from '../model/properties'
-import type { EditScope } from '../model/viewport'
 import {
   prepareCodeEdit,
   serializeCodeDraft,
@@ -10,7 +9,6 @@ import {
   type CodeTarget,
 } from './code-document'
 import { PanelHeading, PanelHint, ToolbarButton } from './controls'
-import { EDIT_SCOPE_LABELS } from './edit-scope'
 import { describeElement } from './element-names'
 import type { EditTarget } from './inspector-model'
 
@@ -65,7 +63,6 @@ function ErrorList(props: { id: string; errors: readonly CodeDraftError[] }): JS
 
 export function CodePanel(props: {
   targets: readonly EditTarget[]
-  scope: EditScope
   /** Current canonical document revision. */
   revision: number
   /** Unapplied draft for the current selection and scope, if there is one. */
@@ -77,7 +74,7 @@ export function CodePanel(props: {
     baseRevision: number
   }) => readonly string[]
 }): JSX.Element {
-  const { targets, scope, revision, draft } = props
+  const { targets, revision, draft } = props
   const [commitErrors, setCommitErrors] = useState<readonly string[]>([])
   const applyRef = useRef<HTMLButtonElement | null>(null)
   const revertRef = useRef<HTMLButtonElement | null>(null)
@@ -114,7 +111,6 @@ export function CodePanel(props: {
       ? []
       : prepared.errors
   const errorsId = `${fieldId}-errors`
-  const helpId = `${fieldId}-help`
 
   const apply = (): void => {
     if (!prepared.ok) return
@@ -150,14 +146,6 @@ export function CodePanel(props: {
     <section className="flex min-w-0 flex-col gap-3" aria-labelledby="code-heading">
       <PanelHeading id="code-heading">Structured code</PanelHeading>
 
-      <PanelHint elementId={helpId}>
-        Validated JSON for the selected element{targets.length === 1 ? '' : 's'}, keyed by
-        stable id, for scope <strong>{EDIT_SCOPE_LABELS[scope]}</strong>. This is structured
-        data, not JSX or CSS: only allowlisted properties are accepted, and identity, revision
-        and history fields cannot be set here. Press Escape to move focus from the editor to
-        the panel actions; Tab also leaves the editor normally.
-      </PanelHint>
-
       <ul className="m-0 flex list-none flex-col gap-1 p-0">
         {targets.map((target) => {
           const descriptor = describeElement({
@@ -191,7 +179,7 @@ export function CodePanel(props: {
         rows={18}
         value={text}
         aria-invalid={draftErrors.length > 0}
-        aria-describedby={draftErrors.length > 0 ? `${helpId} ${errorsId}` : helpId}
+        aria-describedby={draftErrors.length > 0 ? errorsId : undefined}
         onKeyDown={onKeyDown}
         onChange={(event) => {
           props.onDraftChange({ revision: baseRevision, text: event.target.value })

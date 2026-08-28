@@ -161,15 +161,16 @@ Recommended typography:
 At 1280 px, the editor must remain usable:
 
 ```text
-top toolbar: 52px - project | Scope Lock statement + edit scope | viewport,
+top toolbar: 52px - project | edit scope | viewport,
                     Design/Code/Layers, reset
-left rail:   320px - AI task flow first, compact element history below
+left rail:   320px - one conversation, no title block: the change transcript
+                    above, the AI composer docked at its foot
 main:        minmax(0, 1fr) - the preview canvas, always
 right dock:  360px, the same for every panel - one at a time, Design by default,
              dismissable from its own corner
 ```
 
-Scope Lock is chrome, not panel furniture: it sits above every surface, because the same statement governs an inspector edit, a code apply, an accepted proposal, and a restore. It shares the one toolbar with the scope switcher that sets it - a second strip would have repeated the same subject and spent a row of the thing under review. Only the short statement is drawn; the protected views and the affected element names live in the region's accessible name and its tooltip, complete rather than truncated across the chrome. The persistence status is not a control, so it sits with the revision counter above the canvas.
+Scope Lock governs every surface - an inspector edit, a code apply, an accepted proposal, a restore - so it is drawn once, at the head of the composer, which is the one surface that is always mounted and never scrolls away - and only when there is a selection to lock, since over an empty selection it would promise nothing. It sat in the top bar until the composer began stating the selection too; two places saying the same thing is one place too many, and the bar is for controls. The scope switcher that sets it stays in the bar. Only the short statement is drawn; the protected views and the affected element names live in the region's accessible name and its tooltip, complete rather than truncated. The persistence status is not a control, so it sits with the revision counter above the canvas.
 
 Every dock is the same width whatever it holds, so the canvas beside it never resizes as the reviewer moves between panels. Each one can be dismissed from a close control in its top corner, which returns focus to the switch that opened it and gives the canvas the whole workspace; nothing about the document, the selection, or an unapplied draft changes when it does.
 
@@ -223,6 +224,7 @@ Every interactive component must define default, hover, focus-visible, active, d
 
 ### Scope Lock indicator
 
+- Sits at the head of the AI composer, where the next instruction is written, and is visible whatever panel is docked.
 - Must state target count and edit scope in text, for example “2 selected · Mobile only.”
 - Must carry the affected element names and the protected views - reading them may cost a hover or a screen reader, but they are never abbreviated away.
 - Must update immediately when selection or scope changes.
@@ -269,11 +271,17 @@ Every interactive component must define default, hover, focus-visible, active, d
 - Apply is disabled until the draft differs and parses successfully.
 - Parse/schema errors include a useful location or field path.
 - Invalid drafts remain editable; closing/reverting requires an explicit choice if unsaved.
-- Keyboard focus must not become trapped inside the editor; document the escape shortcut.
+- Keyboard focus must not become trapped inside the editor; document the escape shortcut. It is documented in the README rather than printed above the field: a paragraph of standing prose over the editor pushed the code itself down the panel, and the format, the allowlist, and the escape key do not change between visits.
+- The panel does not restate the scope. Scope Lock is drawn once, on the composer, which is visible whatever panel is docked.
 
 ### AI edit and proposal cards
 
-- Show example prompts as buttons or copyable choices.
+- The run appears as the last turn of the rail's transcript: the submitted instruction is shown as the reviewer's own message, and the proposals answer it below. The instruction shown is the one the run was generated from, not whatever the composer holds now.
+- The composer is docked at the foot of the rail and never scrolls away; Enter runs the instruction and the send control keeps a full 44px target with a spelled-out name. It is one box - Scope Lock on top once there is a selection to lock, then the field, then the control that starts the run - under a single scrolling row of example chips. That row hides its scrollbar and each chip paints a 30px pill inside a 44px target, so the composer reads light without any control shrinking under a finger.
+- The chip at the head of the box is Scope Lock itself, not a summary of it, so there is one statement of what an edit would touch and no way for two of them to disagree.
+- Show example prompts as buttons or copyable choices, in the open rather than behind a disclosure: a deterministic engine answers to a fixed set of instructions, so that set is the product's vocabulary and hiding it hides the product.
+- The composer carries no standing paragraph of prose at all, and nothing at all is drawn over an empty selection: with nothing selected there is no Scope Lock chip, because a lock has nothing to promise there, the canvas states `Nothing selected` once above the thing being selected, and every control that would run is visibly disabled.
+- The seam between the transcript and the composer is a fade, not a rule. A line drawn across the rail cut one continuous surface into two panels; the transcript now runs out under the composer instead.
 - Run action is disabled without selection and explains why.
 - Each proposal card shows element name/ID, scope, before, after, validation status, Accept, and Reject.
 - Accept/reject outcomes are independent.
@@ -282,10 +290,22 @@ Every interactive component must define default, hover, focus-visible, active, d
 
 ### History and restore
 
-- Entries show source, time, scope, and a meaningful changed-field summary.
+- The rail reads as a transcript: entries run oldest first, so the newest change sits at the foot of the list beside the composer that will produce the next one, and the list scrolls to that foot when it grows.
+- Selection filters the transcript rather than gating it. With nothing selected it is the whole layout's change log, labelled `Whole layout`; a selection narrows it to those elements and says whose history is on screen. Widening the default is safe because an entry names its own element and scope - a restore target is never inferred from the selection.
+- The transcript's label floats: `History`, whose history it is, and the change count stick to the top of the scrolling rail on one line, so the subject of the column survives any scroll position. The full sentence (`21 changes across 7 elements.`) stays in the accessible name rather than on screen - the bar is a label, not a report.
+- A card points at its own element. Clicking the card body selects it, so the canvas, Layers, and the inspector move to the entry's subject and the transcript narrows to that element's history. Selection IS the highlight - it is permanent, already understood everywhere else in the editor, and does not time out from under a reader - and the element's name on the card is a real button, so the same move is reachable from the keyboard. Clicks are ignored inside controls and while a restore is being confirmed.
+- A card is four lines and no more: source and time, the element and scope it belongs to, one `path old → new` line per changed field, and the Restore control. Values are on the card, not behind a disclosure - a field name alone does not say what happened. The arrow is decorative and read as "to"; the source glyph repeats the source label; neither stands alone.
+- What a restore would do is not printed on every card. The before/after table and the sentence naming the target belong to the confirmation, which is read at the moment the decision is made; the reason a disabled Restore is unavailable rides on the control itself.
 - Restore action must state exactly one target and one scope.
 - Confirmation preview should show current vs restored values.
 - Restored entries remain in chronological history as new commits.
+
+
+### Scrollbars
+
+- Scroll containers show a thumb and no track: `scrollbar-color: <thumb> transparent` in `global.css`. The platform default lights a channel behind the thumb on hover, which reads as a bright column pinned to the side of the rail.
+- Only the standard property is set. The `::-webkit-scrollbar` pseudo-elements would trade macOS overlay scrollbars for classic ones that permanently occupy layout width.
+- A row that hides its scrollbar outright (the composer's example chips) must stay reachable by keyboard - it is a tab stop with a visible focus ring.
 
 ### Toasts, errors, and empty states
 

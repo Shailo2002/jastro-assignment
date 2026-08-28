@@ -84,7 +84,7 @@ In a moderated five-task usability check, compare completion with and without Sc
 
 ### Implementation evidence
 
-Scope Lock ships as a persistent block in the editor's left rail, above the inspector: `src/editor/ScopeLock.tsx`, with its wording derived by the pure functions in `src/editor/edit-scope.ts` (`describeScopeLock`, `protectedViewports`, `EDIT_SCOPE_LABELS`).
+Scope Lock ships as a persistent block in the editor's left rail, at the head of the AI composer: `src/editor/ScopeLock.tsx`, with its wording derived by the pure functions in `src/editor/edit-scope.ts` (`describeScopeLock`, `protectedViewports`, `EDIT_SCOPE_LABELS`).
 
 What it actually states, before any action:
 
@@ -96,7 +96,7 @@ What it actually states, before any action:
 
 None of it is carried by colour: count, scope, affected names, and protected views are text inside a bordered block with an icon, and the summary is announced politely while the canvas status line keeps the single `status` role.
 
-The same scope information is repeated at the point of AI review: each proposal card names its target, that target's stable id, and the scope the change would be committed at (`src/editor/AiPanel.tsx`, `src/editor/proposal-review.ts`).
+The same scope information is repeated at the point of AI review: each proposal card names its target, that target's stable id, and the scope the change would be committed at (`src/editor/ProposalThread.tsx`, `src/editor/proposal-review.ts`).
 
 Tests: `src/editor/scope-lock.test.ts` (target count and scope text, the named protected views, the shared-edit caveat, empty selection, name ordering), `src/editor/viewport-isolation.test.tsx` and `e2e/smoke.spec.ts` (*a scoped inspector edit changes one viewport and protects the others*) for the behaviour the indicator promises, and `e2e/accessibility.spec.ts` for reaching and changing scope with the keyboard alone.
 

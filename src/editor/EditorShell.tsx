@@ -14,19 +14,17 @@ import {
   type EditScope,
   type Viewport,
 } from "../model/viewport";
-import { AiPanel } from "./AiPanel";
 import { CodePanel, type CodeDraft } from "./CodePanel";
+import { ConversationRail } from "./ConversationRail";
 import { EditorDock } from "./EditorDock";
-import { HistoryPanel, type RestoreRequest } from "./HistoryPanel";
+import { type RestoreRequest } from "./HistoryTimeline";
 import { BrandMark } from "../brand/BrandMark";
-import { Icon } from "./Icon";
 import { IconButton, ToolbarButton } from "./controls";
 import { InspectorPanel } from "./InspectorPanel";
 import { LayersPanel } from "./LayersPanel";
 import { PreviewFrame } from "./PreviewFrame";
 import { RecoveryNotice } from "./RecoveryNotice";
 import { ResetProjectDialog } from "./ResetProjectDialog";
-import { ScopeLock } from "./ScopeLock";
 import { ScopeSwitcher } from "./ScopeSwitcher";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { SelectionSummary } from "./SelectionSummary";
@@ -81,12 +79,12 @@ function CanvasSelectionLayer(props: {
 /**
  * The editor shell.
  *
- * The layout has three regions. A left rail holds the two surfaces that are
- * about change over time - the per-element history above, the AI instruction
- * composer docked below it - and stays visible, because both of them are
- * reference material for whatever is being edited. The centre is the rendered
- * template and nothing else: it is what is under review, so no editor surface
- * ever takes its place. The right is one dock holding one panel at a time -
+ * The layout has three regions. A left rail holds one conversation about the
+ * layout - the transcript of what has changed above, the AI composer that
+ * writes the next change docked under it - and stays visible, because both of
+ * them are reference material for whatever is being edited. The centre is the
+ * rendered template and nothing else: it is what is under review, so no editor
+ * surface ever takes its place. The right is one dock holding one panel at a time -
  * Design, Code, or Layers - chosen by a segmented switcher the same shape as
  * the viewport control, because these are mutually exclusive choices too.
  *
@@ -292,9 +290,9 @@ export function EditorShell(props: {
           </div>
         </div>
 
-        {/* The statement and the control that sets it, adjacent: what an edit
-            will touch, then where it will be written. */}
-        <ScopeLock scope={editScope} targetNames={selectedNames} />
+        {/* The control that decides where an edit is written. The statement of
+            what it would touch - Scope Lock - is drawn once, at the head of the
+            composer, rather than twice. */}
         <ScopeSwitcher value={editScope} onChange={setEditScope} />
 
         <div className="ms-auto flex min-w-0 flex-none flex-nowrap items-center gap-2">
@@ -335,62 +333,21 @@ export function EditorShell(props: {
           max-[900px]:grid-cols-[minmax(0,1fr)]"
         data-panel={panel}
       >
-        {/* The AI composer above, element history below: both are reference
-            material for whatever is being edited. */}
-        <aside
-          className="flex min-h-0 min-w-0 flex-col border-r border-default bg-surface-shell
-            max-[900px]:border-r-0 max-[900px]:border-b"
-          aria-label="History and AI"
-        >
-          <div className="flex min-w-0 flex-none items-center gap-3 border-b border-default p-3">
-            <span
-              className="grid size-[34px] flex-none place-items-center rounded-control
-                bg-accent-brand text-primary"
-              aria-hidden="true"
-            >
-              <Icon name="sparkle" className="size-[18px]" />
-            </span>
-            <div className="min-w-0">
-              <p className="m-0 text-xs font-semibold text-secondary">
-                Build with AI
-              </p>
-              <h2 className="m-0 text-sm font-semibold text-primary">
-                Describe the next change
-              </h2>
-            </div>
-            <span
-              className="ms-auto rounded-pill border px-2 py-1 text-xs whitespace-nowrap
-                text-status-success border-status-success/35"
-            >
-              Proposal mode
-            </span>
-          </div>
-
-          {/* The composer may hold a whole proposal run, but it must never crowd
-              the history out; past this it scrolls inside itself. */}
-          <div className="flex min-h-0 flex-1 overflow-hidden p-3 max-[900px]:max-h-none">
-            <AiPanel
-              document={state.document}
-              selectedIds={selection.selectedIds}
-              scope={editScope}
-              state={aiState}
-              onStateChange={setAiState}
-              onAccept={acceptProposal}
-            />
-          </div>
-
-          <div
-            className="max-h-[38%] flex-[0_1_34%] overflow-auto border-t border-default
-            bg-surface-canvas p-3 max-[900px]:max-h-none"
-          >
-            <HistoryPanel
-              document={state.document}
-              selectedIds={selection.selectedIds}
-              onRestore={restore}
-              showGuidance={false}
-            />
-          </div>
-        </aside>
+        {/* One conversation: the change transcript above, the composer that
+            writes the next change docked under it. */}
+        <ConversationRail
+          document={state.document}
+          selectedIds={selection.selectedIds}
+          selectedNames={selectedNames}
+          scope={editScope}
+          state={aiState}
+          onStateChange={setAiState}
+          onSelectElement={(elementId) => {
+            selection.select(elementId, false);
+          }}
+          onAccept={acceptProposal}
+          onRestore={restore}
+        />
 
         {/* The workspace carries the same ambient field as the gallery, so the
             two surfaces read as one product; the preview frame paints its own
@@ -507,7 +464,6 @@ export function EditorShell(props: {
           >
             <CodePanel
               targets={targets}
-              scope={editScope}
               revision={state.document.revision}
               draft={
                 codeDraft?.key === codeDraftKey ? codeDraft.draft : undefined

@@ -314,10 +314,12 @@ describe('scope lock', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
 
-    expect(within(scopeLock()).getByText('Nothing selected')).toBeInTheDocument()
-    expect(within(scopeLock()).getByText('All views')).toBeInTheDocument()
+    // Scope Lock is drawn only when there is a selection to lock; the empty
+    // state is stated once, by the canvas.
+    expect(screen.queryByRole('region', { name: 'Scope Lock' })).not.toBeInTheDocument()
 
     await selectLayer(user, 'hero.heading')
+    expect(within(scopeLock()).getByText('All views')).toBeInTheDocument()
     expect(within(scopeLock()).getByText('1 selected')).toBeInTheDocument()
 
     await user.keyboard('{Shift>}')

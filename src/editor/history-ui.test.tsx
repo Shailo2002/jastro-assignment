@@ -84,15 +84,23 @@ function panel(): HTMLElement {
   return screen.getByRole('region', { name: 'History' })
 }
 
-/** Revision cards for one element, newest first. */
+/**
+ * Revision cards for one element, OLDEST first: the rail is a transcript, so
+ * the newest entry is the one at the foot of it, next to the composer.
+ */
 function cards(id: string): readonly HTMLElement[] {
   return [
     ...window.document.querySelectorAll<HTMLElement>(`.revision-card[data-target-id="${id}"]`),
   ]
 }
 
+/** Every revision card on screen, whichever element it belongs to. */
+function allCards(): readonly HTMLElement[] {
+  return [...window.document.querySelectorAll<HTMLElement>('.revision-card')]
+}
+
 function newestCard(id: string): HTMLElement {
-  const node = cards(id)[0]
+  const node = cards(id).at(-1)
   if (node === undefined) throw new Error(`No revision card for "${id}".`)
   return node
 }
@@ -107,11 +115,12 @@ function historyLength(id = HEADING): number {
 }
 
 describe('history panel', () => {
-  it('shows a manual commit with its source, scope, time, and changed fields', async () => {
+  it('shows a manual commit with its source, scope, time, and value change', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
 
     await user.click(canvasTarget('hero.heading'))
+    const fontSizeBefore = fontSize('desktop')
     await editFontSize(user, '44')
 
     const card = newestCard(HEADING)
@@ -120,15 +129,86 @@ describe('history panel', () => {
     expect(within(card).getByRole('heading', { name: 'Manual edit' })).toBeInTheDocument()
     expect(card).toHaveTextContent('All views')
     expect(card).toHaveTextContent('26 Aug 2026, 10:00 UTC')
-    expect(card).toHaveTextContent('Changed typography.fontSize.')
+
+    // The old and the new value are on the card itself: a field name alone
+    // does not tell the reviewer what happened.
+    const change = within(card).getByRole('listitem')
+    expect(change).toHaveTextContent('typography.fontSize')
+    expect(change).toHaveTextContent(String(fontSizeBefore))
+    expect(change).toHaveTextContent('44')
   })
 
-  it('asks for the element to be selected before offering any history', () => {
+  it('explains what produces content when nothing has changed yet', () => {
     render(<EditorShell store={store} />)
 
-    expect(
-      within(panel()).getByText(/Select an element on the canvas or in Layers/),
-    ).toBeInTheDocument()
+    expect(within(panel()).getByText(/Nothing has changed yet/)).toBeInTheDocument()
+    expect(allCards()).toHaveLength(0)
+  })
+
+  it('reads as the whole layout while nothing is selected', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    await user.click(canvasTarget('hero.heading'))
+    await editFontSize(user, '44')
+    await user.click(canvasTarget('hero.subheading'))
+    await editFontSize(user, '19')
+
+    // Deselecting is not a reason to stop reporting: with no target chosen the
+    // transcript is every element's history, oldest first.
+    canvasTarget('hero.subheading').focus()
+    await user.keyboard('{Escape}')
+
+    expect(within(panel()).getByText('Whole layout')).toBeInTheDocument()
+    expect(within(panel()).getByText('2 changes across 2 elements.')).toBeInTheDocument()
+    expect(allCards().map((card) => card.dataset['targetId'])).toEqual([HEADING, SUBHEADING])
+  })
+
+  it('points at the element a card belongs to, by click and from the keyboard', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    await user.click(canvasTarget('hero.heading'))
+    await editFontSize(user, '44')
+    await user.click(canvasTarget('hero.subheading'))
+    await editFontSize(user, '19')
+    canvasTarget('hero.subheading').focus()
+    await user.keyboard('{Escape}')
+
+    const selection = (): HTMLElement => screen.getByRole('status', { name: 'Selection' })
+    expect(selection()).toHaveTextContent('Nothing selected')
+
+    // Clicking the card body selects its element, so the canvas, Layers, and
+    // the inspector all move to the thing the entry is about - and the
+    // transcript narrows to that element's own history.
+    const card = allCards()[0]
+    if (card === undefined) throw new Error('No revision card on screen.')
+    await user.click(within(card).getByText(/typography.fontSize/))
+
+    expect(selection()).toHaveTextContent('1 selected')
+    expect(selection()).toHaveTextContent(/Heading: /)
+    expect(cards(SUBHEADING)).toHaveLength(0)
+
+  })
+
+  it('offers the same target as a real control, not a click area on a card', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    await user.click(canvasTarget('hero.heading'))
+    await editFontSize(user, '44')
+    await user.click(canvasTarget('hero.subheading'))
+    await editFontSize(user, '19')
+    canvasTarget('hero.subheading').focus()
+    await user.keyboard('{Escape}')
+
+    // The element's name on the card is a button, so the move is reachable by
+    // keyboard and announced, rather than a click target painted on a div.
+    await user.click(within(panel()).getByRole('button', { name: /^Select Text: Aster Labs/ }))
+
+    expect(screen.getByRole('status', { name: 'Selection' })).toHaveTextContent(
+      /Text: Aster Labs/,
+    )
     expect(cards(HEADING)).toHaveLength(0)
   })
 
@@ -265,9 +345,12 @@ describe('restore', () => {
     await editFontSize(user, '44')
     await editFontSize(user, '56')
 
-    const oldest = cards(HEADING).at(-1)
+    const oldest = cards(HEADING)[0]
     if (oldest === undefined) throw new Error('expected two revision cards')
-    expect(within(oldest).getByRole('button', { name: /^Restore/ })).toBeDisabled()
-    expect(oldest).toHaveTextContent('nothing to restore')
+    // The card itself stays terse; the reason a restore is unavailable is
+    // carried by the control it applies to.
+    const restore = within(oldest).getByRole('button', { name: /^Restore/ })
+    expect(restore).toBeDisabled()
+    expect(restore).toHaveAttribute('title', expect.stringContaining('nothing to restore'))
   })
 })
