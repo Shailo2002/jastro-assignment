@@ -367,16 +367,26 @@ describe('order operation', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await selectLayer(user, 'hero.cta.secondary')
-    await user.click(screen.getByRole('button', { name: 'Layers' }))
 
-    const ids = (): (string | null)[] =>
-      within(screen.getByRole('tree', { name: 'Template layers' }))
+    // One dock, so the order is read from Layers and the move is made from
+    // Design; the selection is what carries between them.
+    const ids = async (): Promise<(string | null)[]> => {
+      await user.click(screen.getByRole('button', { name: 'Layers panel' }))
+      return within(screen.getByRole('tree', { name: 'Template layers' }))
         .getAllByRole('treeitem')
         .map((item) => item.getAttribute('data-target-id'))
+    }
 
-    expect(ids().indexOf('hero.cta.primary')).toBeLessThan(ids().indexOf('hero.cta.secondary'))
+    const before = await ids()
+    expect(before.indexOf('hero.cta.primary')).toBeLessThan(
+      before.indexOf('hero.cta.secondary'),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Design panel' }))
     await user.click(screen.getByRole('button', { name: 'Move up' }))
-    expect(ids().indexOf('hero.cta.secondary')).toBeLessThan(ids().indexOf('hero.cta.primary'))
+
+    const after = await ids()
+    expect(after.indexOf('hero.cta.secondary')).toBeLessThan(after.indexOf('hero.cta.primary'))
   })
 
   it('scopes a reorder to one viewport', async () => {

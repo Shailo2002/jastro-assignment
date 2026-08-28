@@ -36,11 +36,11 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 
 - [ ] Opens without console errors.
 - [ ] Usable at 1280 x 720.
-- [ ] Initial editor view has a focused canvas with Design and Layers closed.
-- [ ] Selecting the first canvas or layer target reveals Design and keeps the selection visible.
-- [ ] The left rail and the right docks do not cover essential toolbar actions.
-- [ ] Design and Layers close/reopen without losing selection or draft state.
-- [ ] Switching Preview/Code keeps the selection, the code draft, and any pending proposal.
+- [ ] Initial editor view shows the canvas with the Design panel docked, and only that panel.
+- [ ] The panel switcher marks exactly one of Design, Code, and Layers as pressed.
+- [ ] The left rail and the right dock do not cover essential toolbar actions.
+- [ ] Switching Design/Code/Layers keeps the selection, the code draft, and any pending proposal.
+- [ ] The rendered template stays on screen whichever panel is docked.
 - [ ] No unintended page-level horizontal scroll.
 
 ## Preview sizes

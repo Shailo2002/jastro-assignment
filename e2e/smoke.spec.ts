@@ -1,16 +1,6 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
-/**
- * Preview viewport and edit scope are separate controls with deliberately
- * similar labels ("Tablet" vs "Tablet only"), so a query must name its group.
- */
-function viewportButton(page: Page, name: RegExp) {
-  return page.getByRole('group', { name: 'Preview viewport' }).getByRole('button', { name })
-}
-
-function scopeButton(page: Page, name: RegExp) {
-  return page.getByRole('group', { name: 'Edit scope' }).getByRole('button', { name })
-}
+import { scopeButton, setViewport, viewportControl } from './controls'
 
 /** MANUAL_QA "Editor shell" is written for 1280 x 720. */
 test.use({ viewport: { width: 1280, height: 720 } })
@@ -48,9 +38,9 @@ test('every preview size is inspectable without editor-shell horizontal overflow
     ['Tablet', 768],
     ['Mobile', 375],
   ] as const) {
-    await viewportButton(page, new RegExp(name)).click()
+    await setViewport(page, name)
 
-    await expect(viewportButton(page, new RegExp(name))).toHaveAttribute('aria-pressed', 'true')
+    await expect(viewportControl(page)).toHaveAccessibleName(new RegExp(`${name} ${width}px`))
     // The template lays out at its true virtual width...
     await expect(frame).toHaveCSS('width', `${width}px`)
     // ...is scaled to fit, and never forces the shell to scroll sideways.
@@ -87,11 +77,10 @@ test('viewport controls are reachable and operable by keyboard', async ({ page }
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeVisible()
 
-  await viewportButton(page, /Desktop/).focus()
-  await page.keyboard.press('Tab')
+  await viewportControl(page).focus()
   await page.keyboard.press('Enter')
 
-  await expect(viewportButton(page, /Tablet/)).toHaveAttribute('aria-pressed', 'true')
+  await expect(viewportControl(page)).toHaveAccessibleName(/Tablet 768px/)
   await expect(page.locator('.preview__frame')).toHaveCSS('width', '768px')
 })
 
@@ -119,7 +108,7 @@ test('canvas selection overlay lines up with the rendered element and agrees wit
 
   await overlayTarget.click()
   await expect(overlayTarget).toHaveAttribute('aria-selected', 'true')
-  await page.getByRole('button', { name: /^Layers/ }).click()
+  await page.getByRole('button', { name: 'Layers panel' }).click()
   await expect(
     page.getByRole('tree', { name: 'Template layers' }).locator('[data-target-id="hero.heading"]'),
   ).toHaveAttribute('aria-selected', 'true')
@@ -149,9 +138,11 @@ test('a scoped inspector edit changes one viewport and protects the others', asy
     return value
   }
 
-  await page.getByRole('button', { name: /^Layers/ }).click()
+  await page.getByRole('button', { name: 'Layers panel' }).click()
   await page.getByRole('tree', { name: 'Template layers' }).locator('[data-target-id="hero.heading"]').click()
   await scopeButton(page, /Desktop only/).click()
+  // One dock at a time, so the inspector is docked back for the edit itself.
+  await page.getByRole('button', { name: 'Design panel' }).click()
 
   await expect(page.getByRole('region', { name: 'Scope Lock' })).toContainText('1 selected')
   await expect(page.getByRole('region', { name: 'Scope Lock' })).toContainText(
@@ -167,9 +158,9 @@ test('a scoped inspector edit changes one viewport and protects the others', asy
   await expect.poll(headingSize).toBe('40px')
 
   // The protected views still resolve to their own values.
-  await viewportButton(page, /Tablet/).click()
+  await setViewport(page, 'Tablet')
   await expect.poll(headingSize).toBe('42px')
-  await viewportButton(page, /Mobile/).click()
+  await setViewport(page, 'Mobile')
   await expect.poll(headingSize).toBe('32px')
 
   expect(

@@ -102,8 +102,8 @@ Canvas and code do not synchronize directly. Both read the same canonical docume
 One toolbar, one scope bar, and three regions below them:
 
 - **Left rail** - the AI task flow is primary, with compact per-element history below it. Both stay available because they answer the two immediate questions: what should change next, and what already happened to this element.
-- **Main surface** - one thing at a time, chosen by a tablist: the rendered preview, or the structured code view.
-- **Right docks** - the editor starts with a clean canvas; the first selection reveals Design, while Layers remains available from the toolbar for tree navigation and additive selection. Each is a disclosure, not a modal: the canvas stays selectable underneath, both can be open at once, and Escape or the close control returns focus to the toggle that owns it. Above 1100 px an open dock insets the main surface instead of covering it. Docks are hidden rather than unmounted, so closing one cannot discard the layers tree's focus position or the inspector's pending error.
+- **Main surface** - the rendered template, always. It is what is under review, so no editor surface ever takes its place.
+- **Right dock** - one panel at a time: Design (the default), Code, or Layers, chosen by a segmented switcher the same shape as the viewport control, so exactly one is ever pressed. The canvas stays selectable beside it, and above 1100 px the dock insets the main surface instead of covering it. Panels are hidden rather than unmounted, so switching cannot discard the layers tree's focus position, the inspector's pending error, or an unapplied code draft.
 
 Scope Lock sits in the chrome above every surface rather than inside one panel, because the same statement governs an inspector edit, a code apply, an accepted proposal, and a restore.
 
@@ -117,7 +117,7 @@ Base values apply across views. Desktop, tablet, and mobile overrides are merged
 
 ### Structured code surface
 
-The Code surface - the second tab of the main tablist - shows the current selection as formatted JSON, keyed by stable element id, for the scope Scope Lock currently names:
+The Code panel - the second item of the panel switcher - shows the current selection as formatted JSON, keyed by stable element id, for the scope Scope Lock currently names:
 
 ```json
 {
@@ -178,7 +178,7 @@ Deliberately **not** installed:
 | Independent proposal outcomes | `src/editor/AiPanel.tsx`, `src/editor/proposal-review.ts` | `src/editor/ai-panel.test.tsx`, `src/editor/proposal-review.test.ts` |
 | Per-element/scope recovery | `src/engine/history.ts`, `src/engine/restore.ts`, `src/editor/element-history.ts`, `src/editor/HistoryPanel.tsx` | `src/engine/history.test.ts`, `src/engine/history-restore.test.ts`, `src/editor/element-history.test.ts`, `src/editor/history-ui.test.tsx`, `src/editor/independent-recovery.test.tsx` |
 | Persistence and reset | `src/store/persistence.ts`, `src/store/document-store.ts`, `src/editor/persistence-status.ts`, `src/editor/RecoveryNotice.tsx`, `src/editor/ResetProjectDialog.tsx` | `src/store/persistence.test.ts`, `src/editor/persistence-status.test.ts`, `src/editor/persistence-ui.test.tsx`, `src/editor/reset-project.test.tsx`, `e2e/persistence.spec.ts` |
-| Keyboard accessibility | `src/editor/use-roving-focus.ts`, `src/editor/SurfaceTabs.tsx`, `src/editor/EditorDock.tsx`, `src/editor/ResetProjectDialog.tsx`, `src/editor/InspectorFieldRow.tsx` | `e2e/accessibility.spec.ts`, `src/editor/inspector-keyboard.test.tsx`, `src/editor/panel-collapse.test.tsx` |
+| Keyboard accessibility | `src/editor/use-roving-focus.ts`, `src/editor/PanelSwitcher.tsx`, `src/editor/EditorDock.tsx`, `src/editor/ResetProjectDialog.tsx`, `src/editor/InspectorFieldRow.tsx` | `e2e/accessibility.spec.ts`, `src/editor/inspector-keyboard.test.tsx`, `src/editor/panel-switcher.test.tsx` |
 | WCAG 2.2 AA contrast and design tokens | `src/styles/tokens.css`, `src/editor/Icon.tsx` | `src/styles/tokens.test.ts` |
 
 The complete working checklist is in [REQUIREMENTS_CHECKLIST.md](./REQUIREMENTS_CHECKLIST.md).
@@ -189,15 +189,15 @@ The complete working checklist is in [REQUIREMENTS_CHECKLIST.md](./REQUIREMENTS_
 - The canvas is `inert`: the rendered template's own links and buttons are not in the tab order and cannot be activated, so the selection overlay above it is the only interactive canvas surface.
 - Every token pair the shell uses is asserted at WCAG 2.2 AA in `src/styles/tokens.test.ts`. Two DESIGN_SYSTEM draft values were adjusted to reach it (`--text-muted`, and the ink used on accent and danger fills); both are documented at their definition.
 - Raw colour values and emoji icons are banned from component files by the same test; icons are inline SVG from `src/editor/Icon.tsx`.
-- The Design and Layers docks are opened from labelled toolbar controls carrying `aria-expanded`/`aria-controls`, and close from the toggle, their own close button, or Escape - all three returning focus to the toggle. A closed dock is hidden rather than unmounted, so selection, code drafts, and pending proposals survive.
-- Axe (`@axe-core/playwright`) scans the gallery, both main surfaces with the rail and both docks on screen, and the reset dialog for serious and critical findings.
+- The panel switcher is a labelled group of ordinary buttons, each its own tab stop, each carrying `aria-pressed` and `aria-controls` for the dock it fills; a panel that is not docked is hidden rather than unmounted, so selection, code drafts, and pending proposals survive a switch.
+- Axe (`@axe-core/playwright`) scans the gallery, each docked panel with the canvas and rail on screen, and the reset dialog for serious and critical findings.
 - Verified in a real browser: visible focus that the toolbar does not clip, focus returning from every dialog and popover, 44x44px toolbar targets, 200% zoom without sideways scrolling, and reduced motion that removes transitions while keeping state changes.
 - Editor surfaces are not lazy-loaded: the production bundle is ~123 kB gzipped and builds in under a second, so splitting it would add complexity without a measured need.
 
 ## Persistence and reset
 
 - The canonical document is saved to `localStorage` under a versioned envelope (`scoped-ai-template-editor.project`) after every successful commit, restore, and reset. Nothing is written unless it re-validates, and nothing is hydrated without validation.
-- Transient editor state is deliberately **not** persisted: selection, preview viewport, edit scope, which main surface is showing, which docks are open, unapplied code drafts, and pending AI proposals. A proposal generated against an older document must not come back to life after a refresh.
+- Transient editor state is deliberately **not** persisted: selection, preview viewport, edit scope, which panel is docked, unapplied code drafts, and pending AI proposals. A proposal generated against an older document must not come back to life after a refresh.
 - The scope bar states the persistence status ("Original template", "Saved locally", "Recovered", "Not saved") in words, not colour alone.
 - If stored data is unreadable, from another storage/schema version, or unwritable, the editor loads the original template, keeps the untrusted copy under a quarantine key, and shows a recovery notice with the one action that clears it. The editor stays fully usable in every one of those cases.
 - **Reset Project** is the only destructive action. It opens a confirmation that names what will be lost; Cancel, Escape, and clicking outside all leave everything untouched. Confirming clears the stored project and the quarantined copy, reloads the original template, and discards the pending code draft, pending AI run, and selection that belonged to the discarded document.

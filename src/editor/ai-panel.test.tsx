@@ -349,15 +349,15 @@ describe('keyboard and announcements', () => {
     expect(status).toHaveTextContent('2 proposals: 2 awaiting review.')
   })
 
-  it('keeps a run when the main surface changes', async () => {
+  it('keeps a run when the docked panel changes', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await select(user, 'hero.heading')
     await runInstruction(user, 'Make the heading bolder')
 
     // The composer lives in the rail, so the run is not even off screen while
-    // the centre switches to the code surface - and it is still decidable.
-    await user.click(screen.getByRole('tab', { name: 'Code' }))
+    // the dock switches to the code panel - and it is still decidable.
+    await user.click(screen.getByRole('button', { name: 'Code panel' }))
 
     expect(cards()).toHaveLength(1)
     expect(within(card(HEADING)).getByRole('button', { name: /^Accept/ })).toBeEnabled()

@@ -12,3 +12,4 @@ playwright/.cache/
 .env.*
 !.env.example
 CODE_WALKTHROUGH.md
+temp.md

@@ -144,7 +144,7 @@ describe('the panel switcher', () => {
       screen.getByRole('listbox', { name: 'Selectable template elements' }),
     ).toBeInTheDocument()
     // The chrome keeps the two controls that state what an edit would do.
-    expect(screen.getByRole('group', { name: 'Preview viewport' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Preview viewport/ })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Edit scope' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Scope Lock' })).toBeInTheDocument()
   })

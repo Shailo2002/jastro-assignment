@@ -161,18 +161,18 @@ Recommended typography:
 At 1280 px, the editor must remain usable:
 
 ```text
-top toolbar: 54px - project | Preview/Code + viewport + page | docks + reset
+top toolbar: 54px - project | viewport + page | Design/Code/Layers + reset
 scope bar:   compact Scope Lock statement | edit scope
 left rail:   320px - AI task flow first, compact element history below
-main:        minmax(0, 1fr) - preview canvas or structured-code workspace
-right docks: 320px each, revealed contextually (Design) or on demand (Layers)
+main:        minmax(0, 1fr) - the preview canvas, always
+right dock:  320px (440px for Code) - one panel at a time, Design by default
 ```
 
 Scope Lock is chrome, not panel furniture: it sits above every surface, because the same statement governs an inspector edit, a code apply, an accepted proposal, and a restore.
 
-A dock is a disclosure, not a modal. The canvas underneath stays selectable while one is open, focus is not stolen when it opens, and Escape or the close control returns focus to the toolbar toggle that owns it. Above 1100 px an open dock insets the main surface rather than covering it; below that it overlays, which is the only honest answer when there is no room for both. At narrower editor widths the rail stacks above the main surface instead of shrinking the canvas to unusable dimensions. The preview itself must be zoomable/fit-to-canvas so a 1440 px virtual viewport can be inspected within the workspace.
+The dock is a region of the shell, not a modal. The canvas underneath stays selectable, and focus is not stolen when a panel is docked. Above 1100 px the dock insets the main surface rather than covering it; below that it overlays, which is the only honest answer when there is no room for both. At narrower editor widths the rail stacks above the main surface instead of shrinking the canvas to unusable dimensions. The preview itself must be zoomable/fit-to-canvas so a 1440 px virtual viewport can be inspected within the workspace.
 
-The initial editor view must keep both right docks closed so the canvas is the visual focus. Selecting the first canvas or layer target must reveal Design without requiring a second discovery step. Layers remains independently available for keyboard navigation and additive selection. The Code surface should retain the same shell and AI context, and must present structured properties as an editor workspace rather than pretending to be an unrestricted source-code IDE.
+Design, Code, and Layers are mutually exclusive, so they are one segmented switcher - the same shape as the viewport control - with exactly one pressed item, never three independent toggles. Design is the default, because it is the panel an edit starts from. The centre is always the rendered template: no panel ever replaces what is under review. Panels are hidden rather than unmounted, so switching between them keeps the layers tree's focus position, the inspector's pending error, and an unapplied code draft. The Code panel must present structured properties as an editor workspace rather than pretending to be an unrestricted source-code IDE.
 
 ## Component rules
 
@@ -202,7 +202,7 @@ Every interactive component must define default, hover, focus-visible, active, d
 ### Gallery navigation rail
 
 - The rail is one column of 44 px rows: identity, search, filters, saved-work report, and a footer callout.
-- The active filter must be marked by fill, border, weight, and a text mark - never by colour alone - and must expose `aria-pressed="true"`.
+- The active filter must be marked by fill, border, and weight together - never by colour alone - and must expose `aria-pressed="true"`.
 - A rail control that advertises a keyboard shortcut must implement it; the search badge names the platform key it actually binds.
 - Collapsing the rail must hide labels visually only. Every control keeps its accessible name, its tooltip, and its position in the tab order, and reaching the search field by keyboard while collapsed must reopen the rail.
 - Collapsing must read as one movement, not a swap: the rail width animates, the identity mark holds its place rather than being relocated or unmounted, and the collapse toggle travels from the end of the identity row to the row beneath the mark. The catalog beside it must follow the same animation instead of snapping to the new width.
@@ -348,7 +348,7 @@ Avoid:
 
 - [ ] 1280 px editor shell is usable.
 - [ ] 1440/768/375 preview frames fit or zoom without clipping.
-- [ ] The Design and Layers docks close and reopen without losing state.
+- [ ] Switching between the Design, Code, and Layers panels loses no state.
 - [ ] Keyboard focus order follows visual order.
 - [ ] All control states are visible.
 - [ ] Scope Lock is readable before every edit.

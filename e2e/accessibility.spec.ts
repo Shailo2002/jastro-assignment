@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { pressToViewport, viewportControl } from './controls'
+
 /**
  * Accessibility acceptance, in a real browser.
  *
@@ -30,17 +32,14 @@ async function tabTo(page: Page, target: Locator, limit = 200): Promise<void> {
 }
 
 /**
- * Moves between main surfaces the way a keyboard user must: the tablist uses a
- * roving tabindex, so only the ACTIVE tab is a tab stop; the others are reached
- * with the arrow keys and activated with Enter.
+ * Docks one panel the way a keyboard user must: the switcher is a group of
+ * ordinary buttons, so each one is its own tab stop and Enter activates it.
  */
-async function activateSurface(page: Page, from: string, to: string, steps: number): Promise<void> {
-  await tabTo(page, page.getByRole('tab', { name: from }))
-  // Arrow movement clamps rather than wrapping, so backwards moves go left.
-  const key = steps < 0 ? 'ArrowLeft' : 'ArrowRight'
-  for (let step = 0; step < Math.abs(steps); step += 1) await page.keyboard.press(key)
+async function activatePanel(page: Page, name: 'Design' | 'Code' | 'Layers'): Promise<void> {
+  const button = page.getByRole('button', { name: `${name} panel` })
+  await tabTo(page, button)
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('tab', { name: to })).toHaveAttribute('aria-selected', 'true')
+  await expect(button).toHaveAttribute('aria-pressed', 'true')
 }
 
 /** Walks a roving-tabindex group with the arrow key until `target` has focus. */
@@ -52,10 +51,6 @@ async function arrowTo(page: Page, target: Locator, limit = 40): Promise<void> {
   throw new Error(`Arrow navigation never reached ${target.toString()}`)
 }
 
-function viewportButton(page: Page, name: RegExp): Locator {
-  return page.getByRole('group', { name: 'Preview viewport' }).getByRole('button', { name })
-}
-
 function scopeButton(page: Page, name: RegExp): Locator {
   return page.getByRole('group', { name: 'Edit scope' }).getByRole('button', { name })
 }
@@ -64,10 +59,11 @@ function layer(page: Page, id: string): Locator {
   return page.getByRole('tree', { name: 'Template layers' }).locator(`[data-target-id="${id}"]`)
 }
 
-/** The Layers dock is opened from the toolbar; it starts closed. */
-async function openLayers(page: Page): Promise<void> {
-  const toggle = page.getByRole('button', { name: /^Layers/ })
-  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click()
+/** Docks one panel; exactly one of the three is ever showing. */
+async function showPanel(page: Page, name: 'Design' | 'Code' | 'Layers'): Promise<void> {
+  const button = page.getByRole('button', { name: `${name} panel` })
+  if ((await button.getAttribute('aria-pressed')) !== 'true') await button.click()
+  await expect(button).toHaveAttribute('aria-pressed', 'true')
 }
 
 /** The selection summary, which is one of two named live regions on the page. */
@@ -88,20 +84,20 @@ test('the gallery has no serious or critical axe findings', async ({ page }) => 
   ).toEqual([])
 })
 
-test('every editor surface and dock has no serious or critical axe findings', async ({ page }) => {
+test('every docked panel has no serious or critical axe findings', async ({ page }) => {
   await page.goto('/#/editor/aster-labs')
-  await openLayers(page)
+  await showPanel(page, 'Layers')
   await layer(page, 'hero.heading').click()
 
-  // Both docks are open, and the rail's history and AI panels are always on
-  // screen, so each pass covers everything except the surface being switched.
-  for (const surface of ['Preview', 'Code']) {
-    await page.getByRole('tab', { name: surface }).click()
+  // The canvas and the rail's history and AI panels are always on screen, so
+  // each pass covers everything except the panel being switched.
+  for (const panel of ['Design', 'Code', 'Layers'] as const) {
+    await showPanel(page, panel)
     const results = await analyze(page)
     const serious = results.violations.filter(
       (violation) => violation.impact === 'serious' || violation.impact === 'critical',
     )
-    expect(serious, `${surface} surface: ${serious.map((v) => v.id).join(', ')}`).toEqual([])
+    expect(serious, `${panel} panel: ${serious.map((v) => v.id).join(', ')}`).toEqual([])
   }
 })
 
@@ -124,10 +120,9 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await expect(page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeVisible()
 
   // 2. Change the preview viewport.
-  await tabTo(page, viewportButton(page, /Desktop/))
-  await page.keyboard.press('Tab')
+  await tabTo(page, viewportControl(page))
   await page.keyboard.press('Enter')
-  await expect(viewportButton(page, /Tablet/)).toHaveAttribute('aria-pressed', 'true')
+  await expect(viewportControl(page)).toHaveAccessibleName(/Tablet 768px/)
 
   // 3. Change the edit scope.
   await tabTo(page, scopeButton(page, /All views/))
@@ -135,14 +130,9 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await page.keyboard.press('Enter')
   await expect(scopeButton(page, /Desktop only/)).toHaveAttribute('aria-pressed', 'true')
 
-  // 4. Open the Layers dock from the toolbar, then select one element and add
+  // 4. Dock the Layers panel from the toolbar, then select one element and add
   //    a second from the tree.
-  await tabTo(page, page.getByRole('button', { name: /^Layers/ }))
-  await page.keyboard.press('Enter')
-  await expect(page.getByRole('button', { name: /^Layers/ })).toHaveAttribute(
-    'aria-expanded',
-    'true',
-  )
+  await activatePanel(page, 'Layers')
 
   await tabTo(page, page.getByRole('tree', { name: 'Template layers' }).locator('[tabindex="0"]'))
   await arrowTo(page, layer(page, 'hero.heading'))
@@ -156,7 +146,8 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await page.keyboard.press('Shift+Enter')
   await expect(selectionStatus(page)).toContainText('1 selected')
 
-  // 5. Change one property from the inspector.
+  // 5. Change one property from the inspector, which is the Design panel.
+  await activatePanel(page, 'Design')
   const fontSize = page.getByLabel(/Font size/)
   await tabTo(page, fontSize)
   await fontSize.press('ControlOrMeta+a')
@@ -172,11 +163,11 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await expect(page.getByLabel(/Font size/)).not.toBeFocused()
 
   // 6. Apply a valid structured code edit.
-  await activateSurface(page, 'Preview', 'Code', 1)
+  await activatePanel(page, 'Code')
   const editor = page.getByLabel('Element properties (JSON)')
   await expect(editor).toBeVisible()
   await tabTo(page, editor)
-  // The code surface sets values, it does not remove them, so the whole
+  // The code panel sets values, it does not remove them, so the whole
   // property set is retyped with one field changed.
   const current = JSON.parse(await editor.inputValue()) as Record<
     string,
@@ -186,12 +177,12 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   if (heading?.typography !== undefined) heading.typography['fontSize'] = 48
   await editor.press('ControlOrMeta+a')
   await page.keyboard.type(JSON.stringify(current))
-  // The documented escape route out of the code surface.
+  // The documented escape route out of the code editor.
   await page.keyboard.press('Escape')
   await tabTo(page, page.getByRole('button', { name: 'Apply' }))
   await page.keyboard.press('Enter')
-  // The Design dock sits beside the code surface rather than instead of it, so
-  // the committed value is readable without switching back.
+  // The commit is read back from the inspector, which holds the same value.
+  await activatePanel(page, 'Design')
   await expect(page.getByLabel(/Font size/)).toHaveValue('48')
 
   // 7. Run an instruction and accept its proposal, from the rail's composer.
@@ -227,10 +218,9 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await expect(page.locator('.revision-card').first()).toContainText('Restore')
 
   // 9. Back to the desktop preview, which is where every scoped edit landed.
-  await activateSurface(page, 'Code', 'Preview', -1)
-  await tabTo(page, viewportButton(page, /Desktop/))
-  await page.keyboard.press('Enter')
-  await expect(viewportButton(page, /Desktop/)).toHaveAttribute('aria-pressed', 'true')
+  await tabTo(page, viewportControl(page))
+  await pressToViewport(page, 'Desktop')
+  await expect(viewportControl(page)).toHaveAccessibleName(/Desktop 1440px/)
   await expect
     .poll(() =>
       page
@@ -256,7 +246,7 @@ test('a dialog returns focus to the control that opened it', async ({ page }) =>
 
 test('focus is visible and is not covered by the toolbar', async ({ page }) => {
   await page.goto('/#/editor/aster-labs')
-  const button = viewportButton(page, /Tablet/)
+  const button = viewportControl(page)
   await button.focus()
 
   const outline = await button.evaluate((node) => {
@@ -374,7 +364,7 @@ test('200% zoom keeps essential actions reachable without sideways scrolling', a
   await page.setViewportSize({ width: 640, height: 720 })
   await page.goto('/#/editor/aster-labs')
 
-  await expect(viewportButton(page, /Mobile/)).toBeVisible()
+  await expect(viewportControl(page)).toBeVisible()
   await expect(scopeButton(page, /Mobile only/)).toBeVisible()
   await expect(page.getByRole('banner').getByRole('button', { name: /Reset project/ })).toBeVisible()
 
@@ -389,15 +379,15 @@ test.describe('reduced motion', () => {
     // build does not apply to the media query the stylesheets read.
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/#/editor/aster-labs')
-    const tablet = viewportButton(page, /Tablet/)
+    const viewport = viewportControl(page)
 
-    const duration = await tablet.evaluate(
+    const duration = await viewport.evaluate(
       (node) => window.getComputedStyle(node).transitionDuration,
     )
     expect(Number.parseFloat(duration)).toBeLessThanOrEqual(0.001)
 
-    await tablet.click()
-    await expect(tablet).toHaveAttribute('aria-pressed', 'true')
+    await viewport.click()
+    await expect(viewport).toHaveAccessibleName(/Tablet 768px/)
     await expect(page.locator('.preview__frame')).toHaveCSS('width', '768px')
   })
 })

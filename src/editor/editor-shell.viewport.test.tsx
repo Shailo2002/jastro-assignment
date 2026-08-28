@@ -1,8 +1,9 @@
 import { act, render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import userEvent, { type UserEvent } from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { commandId, elementId } from '../model/ids'
+import { VIEWPORTS } from '../model/viewport'
 import { createDocumentStore, type DocumentStore } from '../store/document-store'
 import type { StorageLike } from '../store/persistence'
 import { EditorShell } from './EditorShell'
@@ -42,13 +43,27 @@ function headingSize(container: HTMLElement): string | undefined {
 }
 
 /**
- * Preview viewport and edit scope are two separate controls with deliberately
- * similar labels, so every query here names the group it means.
+ * The preview viewport is one button that cycles Desktop -> Tablet -> Mobile,
+ * so a test asks for a viewport by pressing until the control reports it. The
+ * edit scope stays a separate group with deliberately similar wording, which is
+ * why nothing here queries by a bare "Tablet".
  */
-function viewportButton(name: RegExp): HTMLElement {
-  return within(screen.getByRole('group', { name: 'Preview viewport' })).getByRole('button', {
-    name,
-  })
+function viewportControl(): HTMLElement {
+  return screen.getByRole('button', { name: /^Preview viewport/ })
+}
+
+async function previewViewport(user: UserEvent, name: string): Promise<void> {
+  for (let press = 0; press < VIEWPORTS.length; press += 1) {
+    if (new RegExp(`^Preview viewport: ${name}`, 'i').test(accessibleName(viewportControl()))) {
+      return
+    }
+    await user.click(viewportControl())
+  }
+  throw new Error(`The viewport control never reached "${name}".`)
+}
+
+function accessibleName(element: HTMLElement): string {
+  return element.getAttribute('aria-label') ?? ''
 }
 
 describe('editor shell', () => {
@@ -67,26 +82,22 @@ describe('editor shell', () => {
   it('starts on desktop and reports the current preview in text', () => {
     render(<EditorShell store={store} />)
 
-    expect(viewportButton(/Desktop/)).toHaveAttribute('aria-pressed', 'true')
+    expect(viewportControl()).toHaveAccessibleName(/Desktop 1440px/)
     expect(screen.getByText(/Previewing desktop at 1440px/)).toBeInTheDocument()
   })
 
   it('keeps the preview viewport separate from the edit scope', () => {
     render(<EditorShell store={store} />)
 
-    const viewportGroup = screen.getByRole('group', { name: 'Preview viewport' })
     const scopeGroup = screen.getByRole('group', { name: 'Edit scope' })
 
-    expect(viewportGroup).not.toBe(scopeGroup)
+    expect(scopeGroup).not.toContainElement(viewportControl())
     expect(within(scopeGroup).getByRole('button', { name: /All views/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
-    // Switching the preview must not move the edit scope.
-    expect(within(viewportGroup).getByRole('button', { name: /Desktop/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    // The two controls are worded apart: one names a preview, one names a write.
+    expect(viewportControl()).toHaveAccessibleName(/Preview viewport: Desktop/)
   })
 
   it.each([
@@ -98,7 +109,7 @@ describe('editor shell', () => {
 
     expect(headingSize(container)).toBe('56px')
 
-    await user.click(viewportButton(new RegExp(viewport, 'i')))
+    await previewViewport(user, viewport)
 
     expect(headingSize(container)).toBe(expectedSize)
     expect(container.querySelector('.preview__frame')).toHaveStyle({ width: expectedWidth })
@@ -115,9 +126,9 @@ describe('editor shell', () => {
     }
 
     expect(columns()).toBe('repeat(3, minmax(0, 1fr))')
-    await user.click(viewportButton(/Tablet/))
+    await previewViewport(user, 'Tablet')
     expect(columns()).toBe('repeat(2, minmax(0, 1fr))')
-    await user.click(viewportButton(/Mobile/))
+    await previewViewport(user, 'Mobile')
     expect(columns()).toBe('repeat(1, minmax(0, 1fr))')
   })
 
@@ -128,9 +139,9 @@ describe('editor shell', () => {
     const before = store.getState()
     const serialized = JSON.stringify(before.document)
 
-    await user.click(viewportButton(/Mobile/))
-    await user.click(viewportButton(/Tablet/))
-    await user.click(viewportButton(/Desktop/))
+    await previewViewport(user, 'Mobile')
+    await previewViewport(user, 'Tablet')
+    await previewViewport(user, 'Desktop')
 
     expect(store.getState()).toBe(before)
     expect(JSON.stringify(store.getState().document)).toBe(serialized)
@@ -153,7 +164,7 @@ describe('editor shell', () => {
 
     expect(await screen.findByText(/revision 1/)).toBeInTheDocument()
     expect(headingSize(container)).toBe('44px')
-    await user.click(viewportButton(/Mobile/))
+    await previewViewport(user, 'Mobile')
     // The mobile override still wins over the new base value.
     expect(headingSize(container)).toBe('32px')
   })

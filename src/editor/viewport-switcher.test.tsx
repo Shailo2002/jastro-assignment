@@ -4,41 +4,49 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { ViewportSwitcher } from './ViewportSwitcher'
 
+/** The control is icon-only, so its whole state lives in its accessible name. */
+function control(): HTMLElement {
+  return screen.getByRole('button', { name: /^Preview viewport/ })
+}
+
 describe('viewport switcher', () => {
-  it('exposes a labelled group of viewport controls', () => {
+  it('names the current preview and its nominal width', () => {
     render(<ViewportSwitcher value="desktop" onChange={vi.fn()} />)
 
-    const group = screen.getByRole('group', { name: 'Preview viewport' })
-    expect(group).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Desktop/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Tablet/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Mobile/ })).toBeInTheDocument()
+    expect(control()).toHaveAccessibleName(/Desktop 1440px/)
   })
 
-  it('names each control with its nominal width', () => {
-    render(<ViewportSwitcher value="desktop" onChange={vi.fn()} />)
-
-    expect(screen.getByRole('button', { name: /Desktop\s*1440px/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Tablet\s*768px/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Mobile\s*375px/ })).toBeInTheDocument()
-  })
-
-  it('marks exactly one control as pressed', () => {
+  it('says what one press will change the preview to', () => {
     render(<ViewportSwitcher value="tablet" onChange={vi.fn()} />)
 
-    expect(screen.getByRole('button', { name: /Tablet/ })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: /Desktop/ })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByRole('button', { name: /Mobile/ })).toHaveAttribute('aria-pressed', 'false')
+    expect(control()).toHaveAccessibleName(/Tablet 768px/)
+    expect(control()).toHaveAccessibleName(/Switch to Mobile/)
   })
 
-  it('reports the chosen viewport on click', async () => {
+  it('shows the device the current preview stands for', () => {
+    const { rerender } = render(<ViewportSwitcher value="desktop" onChange={vi.fn()} />)
+    expect(control().querySelector('[data-icon="monitor"]')).toBeInTheDocument()
+
+    rerender(<ViewportSwitcher value="tablet" onChange={vi.fn()} />)
+    expect(control().querySelector('[data-icon="tablet"]')).toBeInTheDocument()
+
+    rerender(<ViewportSwitcher value="mobile" onChange={vi.fn()} />)
+    expect(control().querySelector('[data-icon="smartphone"]')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['desktop', 'tablet'],
+    ['tablet', 'mobile'],
+    // The cycle closes, so the widest preview is always one press away.
+    ['mobile', 'desktop'],
+  ] as const)('advances %s to %s on click', async (from, to) => {
     const onChange = vi.fn()
     const user = userEvent.setup()
-    render(<ViewportSwitcher value="desktop" onChange={onChange} />)
+    render(<ViewportSwitcher value={from} onChange={onChange} />)
 
-    await user.click(screen.getByRole('button', { name: /Mobile/ }))
+    await user.click(control())
 
-    expect(onChange).toHaveBeenCalledExactlyOnceWith('mobile')
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(to)
   })
 
   it('is operable by keyboard alone', async () => {
@@ -47,9 +55,7 @@ describe('viewport switcher', () => {
     render(<ViewportSwitcher value="desktop" onChange={onChange} />)
 
     await user.tab()
-    expect(screen.getByRole('button', { name: /Desktop/ })).toHaveFocus()
-    await user.tab()
-    expect(screen.getByRole('button', { name: /Tablet/ })).toHaveFocus()
+    expect(control()).toHaveFocus()
     await user.keyboard('{Enter}')
 
     expect(onChange).toHaveBeenCalledExactlyOnceWith('tablet')

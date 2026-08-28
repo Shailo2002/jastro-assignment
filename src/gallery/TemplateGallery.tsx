@@ -33,13 +33,6 @@ const RAIL_WIDTH_OPEN = 248;
 const RAIL_WIDTH_COLLAPSED = 76;
 
 /**
- * The active filter is marked by fill, border, weight, AND this text mark, so
- * the state never rests on colour alone. Written as escapes because interface
- * marks must not be pictographic characters in the source.
- */
-const ACTIVE_MARK = "✓ ";
-
-/**
  * A rail row: 44px tall, label between icon and count, with the pressed state
  * carried by fill, border, and weight together.
  */
@@ -200,7 +193,6 @@ export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
           }`}
           aria-label={countLabel(count)}
         >
-          {isActive ? ACTIVE_MARK : ""}
           {count}
         </span>
       </button>

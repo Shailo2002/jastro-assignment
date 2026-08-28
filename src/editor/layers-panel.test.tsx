@@ -40,14 +40,14 @@ beforeEach(() => {
 })
 
 /**
- * Renders the shell with the Layers dock open.
+ * Renders the shell with the Layers panel docked.
  *
  * The dock starts closed - the canvas already offers the same targets - so
  * every test here opens it first, the same way a reviewer would.
  */
 function renderWithLayers(): void {
   render(<EditorShell store={store} />)
-  fireEvent.click(screen.getByRole('button', { name: 'Layers' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Layers panel' }))
 }
 
 function layers(): HTMLElement {

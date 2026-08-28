@@ -17,10 +17,11 @@ function layer(page: Page, id: string) {
   return page.getByRole('tree', { name: 'Template layers' }).locator(`[data-target-id="${id}"]`)
 }
 
-/** The Layers dock is opened from the toolbar; it starts closed. */
-async function openLayers(page: Page): Promise<void> {
-  const toggle = page.getByRole('button', { name: /^Layers/ })
-  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click()
+/** Docks one panel; exactly one of the three is ever showing. */
+async function showPanel(page: Page, name: 'Design' | 'Code' | 'Layers'): Promise<void> {
+  const button = page.getByRole('button', { name: `${name} panel` })
+  if ((await button.getAttribute('aria-pressed')) !== 'true') await button.click()
+  await expect(button).toHaveAttribute('aria-pressed', 'true')
 }
 
 function resetButton(page: Page) {
@@ -40,8 +41,10 @@ function headingSize(page: Page): Promise<string> {
 
 /** One committed desktop-base edit: the work every test below expects to keep. */
 async function editHeading(page: Page, value: string): Promise<void> {
-  await openLayers(page)
+  await showPanel(page, 'Layers')
   await layer(page, 'hero.heading').click()
+  // One dock at a time: the tree makes the selection, the inspector edits it.
+  await showPanel(page, 'Design')
   const fontSize = page.getByLabel(/Font size/)
   await fontSize.fill(value)
   await fontSize.press('Enter')
@@ -58,8 +61,9 @@ test('a committed edit and its history survive a real reload', async ({ page }) 
   await expect.poll(() => headingSize(page)).toBe('40px')
 
   // The inspector agrees with the canvas...
-  await openLayers(page)
+  await showPanel(page, 'Layers')
   await layer(page, 'hero.heading').click()
+  await showPanel(page, 'Design')
   await expect(page.getByLabel(/Font size/)).toHaveValue('40')
 
   // ...and the revision is still recoverable after the reload, from the
@@ -114,7 +118,7 @@ test('confirming reset restores the fixture and clears stored history', async ({
   await expect(page.getByText('Original template')).toBeVisible()
 
   // Nothing is left to restore, and nothing is left to rehydrate.
-  await openLayers(page)
+  await showPanel(page, 'Layers')
   await layer(page, 'hero.heading').click()
   await expect(page.getByRole('button', { name: /Restore/ })).toHaveCount(0)
 

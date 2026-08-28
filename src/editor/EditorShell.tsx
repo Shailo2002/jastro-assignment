@@ -1,38 +1,59 @@
-import { useEffect, useMemo, useRef, useState, type JSX, type RefObject } from 'react'
+import { useMemo, useState, type JSX, type RefObject } from "react";
 
-import { resolveDocument, resolveElementProperties } from '../engine/responsive-resolver'
-import type { DocumentStore } from '../store/document-store'
-import type { EditSource } from '../model/history'
-import type { ElementId } from '../model/ids'
-import type { Proposal } from '../engine/proposal'
-import type { EditablePropertyPatch } from '../model/properties'
-import { VIEWPORT_WIDTHS, type EditScope, type Viewport } from '../model/viewport'
-import { AiPanel } from './AiPanel'
-import { CodePanel, type CodeDraft } from './CodePanel'
-import { EditorDock } from './EditorDock'
-import { HistoryPanel, type RestoreRequest } from './HistoryPanel'
-import { BrandMark } from '../brand/BrandMark'
-import { Icon } from './Icon'
-import { DockToggle, ToolbarButton } from './controls'
-import { InspectorPanel } from './InspectorPanel'
-import { LayersPanel } from './LayersPanel'
-import { PreviewFrame } from './PreviewFrame'
-import { RecoveryNotice } from './RecoveryNotice'
-import { ResetProjectDialog } from './ResetProjectDialog'
-import { ScopeLock } from './ScopeLock'
-import { ScopeSwitcher } from './ScopeSwitcher'
-import { SelectionOverlay } from './SelectionOverlay'
-import { SelectionSummary } from './SelectionSummary'
-import { SurfaceTabs, type SurfaceTab } from './SurfaceTabs'
-import { ViewportSwitcher } from './ViewportSwitcher'
-import { collectElementIds, flattenResolvedDocument, type ElementTreeRow } from './element-tree'
-import type { EditTarget } from './inspector-model'
-import { describePersistenceStatus } from './persistence-status'
-import { EMPTY_AI_PANEL_STATE, toAiEditDraft, type AiPanelState } from './proposal-review'
-import { useDocumentStore } from './use-document-store'
-import { useElementRects } from './use-element-rects'
-import type { SelectionApi } from './use-selection'
-import { useSelection } from './use-selection'
+import {
+  resolveDocument,
+  resolveElementProperties,
+} from "../engine/responsive-resolver";
+import type { DocumentStore } from "../store/document-store";
+import type { EditSource } from "../model/history";
+import type { ElementId } from "../model/ids";
+import type { Proposal } from "../engine/proposal";
+import type { EditablePropertyPatch } from "../model/properties";
+import {
+  VIEWPORT_WIDTHS,
+  type EditScope,
+  type Viewport,
+} from "../model/viewport";
+import { AiPanel } from "./AiPanel";
+import { CodePanel, type CodeDraft } from "./CodePanel";
+import { EditorDock } from "./EditorDock";
+import { HistoryPanel, type RestoreRequest } from "./HistoryPanel";
+import { BrandMark } from "../brand/BrandMark";
+import { Icon } from "./Icon";
+import { IconButton, ToolbarButton } from "./controls";
+import { InspectorPanel } from "./InspectorPanel";
+import { LayersPanel } from "./LayersPanel";
+import { PreviewFrame } from "./PreviewFrame";
+import { RecoveryNotice } from "./RecoveryNotice";
+import { ResetProjectDialog } from "./ResetProjectDialog";
+import { ScopeLock } from "./ScopeLock";
+import { ScopeSwitcher } from "./ScopeSwitcher";
+import { SelectionOverlay } from "./SelectionOverlay";
+import { SelectionSummary } from "./SelectionSummary";
+import { PanelSwitcher } from "./PanelSwitcher";
+import {
+  PANEL_DOCK_IDS,
+  PANEL_HEADING_IDS,
+  PANEL_TITLES,
+  type EditorPanel,
+} from "./editor-panels";
+import { ViewportSwitcher } from "./ViewportSwitcher";
+import {
+  collectElementIds,
+  flattenResolvedDocument,
+  type ElementTreeRow,
+} from "./element-tree";
+import type { EditTarget } from "./inspector-model";
+import { describePersistenceStatus } from "./persistence-status";
+import {
+  EMPTY_AI_PANEL_STATE,
+  toAiEditDraft,
+  type AiPanelState,
+} from "./proposal-review";
+import { useDocumentStore } from "./use-document-store";
+import { useElementRects } from "./use-element-rects";
+import type { SelectionApi } from "./use-selection";
+import { useSelection } from "./use-selection";
 
 /**
  * Measured canvas selection layer.
@@ -41,27 +62,20 @@ import { useSelection } from './use-selection'
  * `PreviewFrame` owns, without `PreviewFrame` itself knowing about selection.
  */
 function CanvasSelectionLayer(props: {
-  frameRef: RefObject<HTMLDivElement | null>
-  scale: number
-  changeKey: string
-  rows: readonly ElementTreeRow[]
-  selection: SelectionApi
+  frameRef: RefObject<HTMLDivElement | null>;
+  scale: number;
+  changeKey: string;
+  rows: readonly ElementTreeRow[];
+  selection: SelectionApi;
 }): JSX.Element {
-  const rects = useElementRects(props.frameRef, props.scale, props.changeKey)
-  return <SelectionOverlay rows={props.rows} rects={rects} selection={props.selection} />
-}
-
-/** Which surface fills the centre of the shell. */
-type Surface = 'preview' | 'code'
-
-const SURFACE_TABS: readonly SurfaceTab<Surface>[] = [
-  { id: 'preview', label: 'Preview', icon: 'monitor' },
-  { id: 'code', label: 'Code', icon: 'code' },
-]
-
-const SURFACE_LABELS: Readonly<Record<Surface, string>> = {
-  preview: 'Template preview',
-  code: 'Structured code',
+  const rects = useElementRects(props.frameRef, props.scale, props.changeKey);
+  return (
+    <SelectionOverlay
+      rows={props.rows}
+      rects={rects}
+      selection={props.selection}
+    />
+  );
 }
 
 /**
@@ -70,38 +84,43 @@ const SURFACE_LABELS: Readonly<Record<Surface, string>> = {
  * The layout has three regions. A left rail holds the two surfaces that are
  * about change over time - the per-element history above, the AI instruction
  * composer docked below it - and stays visible, because both of them are
- * reference material for whatever is being edited. The centre is one surface at
- * a time, chosen by a tablist: the rendered preview or the structured code
- * view. Design and Layers are docks: opened from the toolbar, overlaid on the
- * right, closed again when they are not needed, so the preview keeps its width.
+ * reference material for whatever is being edited. The centre is the rendered
+ * template and nothing else: it is what is under review, so no editor surface
+ * ever takes its place. The right is one dock holding one panel at a time -
+ * Design, Code, or Layers - chosen by a segmented switcher the same shape as
+ * the viewport control, because these are mutually exclusive choices too.
  *
- * Five pieces of state live here and are deliberately NOT part of the canonical
+ * Four pieces of state live here and are deliberately NOT part of the canonical
  * document: the preview viewport (what is on screen), the selection (which
  * stable IDs an edit targets), the edit scope (whether a commit writes the
- * shared base or one viewport's override), which surface is showing, and which
- * docks are open. Only commits reach the document, and every one of them goes
- * through the store's single validated command pipeline.
+ * shared base or one viewport's override), and which panel is docked. Only
+ * commits reach the document, and every one of them goes through the store's
+ * single validated command pipeline.
  */
 export function EditorShell(props: {
-  store: DocumentStore
-  onBackToTemplates?: () => void
-  templateName?: string
+  store: DocumentStore;
+  onBackToTemplates?: () => void;
+  templateName?: string;
 }): JSX.Element {
-  const { store } = props
-  const state = useDocumentStore(store)
-  const [viewport, setViewport] = useState<Viewport>('desktop')
-  const [editScope, setEditScope] = useState<EditScope>('all')
-  const [fit, setFit] = useState(true)
-  const [surface, setSurface] = useState<Surface>('preview')
+  const { store } = props;
+  const state = useDocumentStore(store);
+  const [viewport, setViewport] = useState<Viewport>("desktop");
+  const [editScope, setEditScope] = useState<EditScope>("all");
+  const [fit, setFit] = useState(true);
+  /**
+   * Which panel the right dock holds. Design is the resting choice: it is the
+   * panel an edit starts from, and the one a fresh selection wants.
+   */
+  const [panel, setPanel] = useState<EditorPanel>("design");
   /**
    * The unapplied code draft. It lives here rather than inside the code panel
    * so that leaving the code surface does not silently throw away typed work,
    * and so that a change of selection or scope discards it deliberately, in one
    * place.
    */
-  const [codeDraft, setCodeDraft] = useState<{ key: string; draft: CodeDraft } | undefined>(
-    undefined,
-  )
+  const [codeDraft, setCodeDraft] = useState<
+    { key: string; draft: CodeDraft } | undefined
+  >(undefined);
   /**
    * The AI panel's transient state: the instruction, the generated run, and the
    * per-proposal outcomes. Unlike a code draft it deliberately SURVIVES a
@@ -109,47 +128,24 @@ export function EditorShell(props: {
    * it was generated from, so it is shown as no longer applicable rather than
    * silently vanishing. Nothing here is durable, and none of it is persisted.
    */
-  const [aiState, setAiState] = useState<AiPanelState>(EMPTY_AI_PANEL_STATE)
+  const [aiState, setAiState] = useState<AiPanelState>(EMPTY_AI_PANEL_STATE);
   /** Reset is confirmed in a modal; opening it changes nothing on its own. */
-  const [resetPending, setResetPending] = useState(false)
-  /**
-   * Dock visibility. The editor arrives as a focused canvas; the first
-   * selection reveals Design, and Layers opens when the tree is wanted. Both
-   * are hidden rather than unmounted, so closing one cannot discard the layers
-   * tree's focus position or the inspector's pending error - and cannot
-   * silently move the canvas out from under a measurement.
-   */
-  const [layersOpen, setLayersOpen] = useState(false)
-  const [designOpen, setDesignOpen] = useState(false)
-  /** Closing a dock returns focus to the toggle that owns it. */
-  const layersToggleRef = useRef<HTMLButtonElement | null>(null)
-  const designToggleRef = useRef<HTMLButtonElement | null>(null)
+  const [resetPending, setResetPending] = useState(false);
 
   // Canvas and layers read one traversal of one projection, so the two surfaces
   // offer the same targets, names, and order.
   const resolved = useMemo(
     () => resolveDocument(state.document, viewport),
     [state.document, viewport],
-  )
-  const rows = useMemo(() => flattenResolvedDocument(resolved), [resolved])
-  const knownIds = useMemo(() => collectElementIds(rows), [rows])
-  const selection = useSelection(knownIds)
-  const previousSelectionSize = useRef(0)
-
-  /* The first selection reveals its editing context. When Layers is already
-     open it remains available for additive selection, while Design appears
-     beside it; a direct canvas selection opens Design on its own. */
-  useEffect(() => {
-    if (previousSelectionSize.current === 0 && selection.selectedIds.length > 0) {
-      setDesignOpen(true)
-    }
-    previousSelectionSize.current = selection.selectedIds.length
-  }, [selection.selectedIds.length])
+  );
+  const rows = useMemo(() => flattenResolvedDocument(resolved), [resolved]);
+  const knownIds = useMemo(() => collectElementIds(rows), [rows]);
+  const selection = useSelection(knownIds);
 
   const selectedNames = selection.selectedIds.flatMap((id) => {
-    const row = rows.find((candidate) => candidate.id === id)
-    return row === undefined ? [] : [row.descriptor.accessibleName]
-  })
+    const row = rows.find((candidate) => candidate.id === id);
+    return row === undefined ? [] : [row.descriptor.accessibleName];
+  });
 
   /**
    * What the inspector shows: the shared base for scope `all`, otherwise the
@@ -157,22 +153,24 @@ export function EditorShell(props: {
    * preview, decides - so "edit mobile while looking at desktop" stays honest.
    */
   const targets: readonly EditTarget[] = selection.selectedIds.flatMap((id) => {
-    const element = state.document.elements[id]
-    if (element === undefined) return []
+    const element = state.document.elements[id];
+    if (element === undefined) return [];
     return [
       {
         element,
         displayed:
-          editScope === 'all' ? element.base : resolveElementProperties(element, editScope),
+          editScope === "all"
+            ? element.base
+            : resolveElementProperties(element, editScope),
       },
-    ]
-  })
+    ];
+  });
 
   // A draft belongs to the selection and scope it was written for; anything
   // else would let one element's values be applied under another's name.
-  const codeDraftKey = `${editScope}:${selection.selectedIds.join(',')}`
+  const codeDraftKey = `${editScope}:${selection.selectedIds.join(",")}`;
   if (codeDraft !== undefined && codeDraft.key !== codeDraftKey) {
-    setCodeDraft(undefined)
+    setCodeDraft(undefined);
   }
 
   /**
@@ -182,10 +180,10 @@ export function EditorShell(props: {
    * someone else's edit is rejected instead of overwriting it.
    */
   const commit = (input: {
-    source: Extract<EditSource, 'canvas' | 'code'>
-    targetIds: readonly ElementId[]
-    changes: Readonly<Record<ElementId, EditablePropertyPatch>>
-    baseRevision?: number
+    source: Extract<EditSource, "canvas" | "code">;
+    targetIds: readonly ElementId[];
+    changes: Readonly<Record<ElementId, EditablePropertyPatch>>;
+    baseRevision?: number;
   }): readonly string[] => {
     const result = store.commit({
       source: input.source,
@@ -193,9 +191,9 @@ export function EditorShell(props: {
       scope: editScope,
       changes: input.changes,
       baseRevision: input.baseRevision,
-    })
-    return result.ok ? [] : result.errors.map((error) => error.message)
-  }
+    });
+    return result.ok ? [] : result.errors.map((error) => error.message);
+  };
 
   /**
    * Accepting one proposal. It is a separate path from `commit` for two
@@ -208,9 +206,9 @@ export function EditorShell(props: {
   const acceptProposal = (proposal: Proposal): readonly string[] => {
     const result = store.commit(toAiEditDraft(proposal, state.document), {
       selectionSnapshot: selection.selectedIds,
-    })
-    return result.ok ? [] : result.errors.map((error) => error.message)
-  }
+    });
+    return result.ok ? [] : result.errors.map((error) => error.message);
+  };
 
   /**
    * Restoring one revision. Like acceptance it is deliberately not routed
@@ -221,11 +219,11 @@ export function EditorShell(props: {
    * what makes the restore itself appear in history.
    */
   const restore = (request: RestoreRequest): readonly string[] => {
-    const result = store.restore(request)
-    return result.ok ? [] : result.errors.map((error) => error.message)
-  }
+    const result = store.restore(request);
+    return result.ok ? [] : result.errors.map((error) => error.message);
+  };
 
-  const persistence = describePersistenceStatus(state)
+  const persistence = describePersistenceStatus(state);
 
   /**
    * The one destructive action in the editor, reached only from the confirmed
@@ -239,25 +237,15 @@ export function EditorShell(props: {
    * nothing from the discarded document, and moving it would be a surprise.
    */
   const resetProject = (): void => {
-    store.reset()
-    selection.clear()
-    setCodeDraft(undefined)
-    setAiState(EMPTY_AI_PANEL_STATE)
-    setViewport('desktop')
-    setEditScope('all')
-    setSurface('preview')
-    setResetPending(false)
-  }
-
-  const closeLayers = (): void => {
-    setLayersOpen(false)
-    layersToggleRef.current?.focus()
-  }
-
-  const closeDesign = (): void => {
-    setDesignOpen(false)
-    designToggleRef.current?.focus()
-  }
+    store.reset();
+    selection.clear();
+    setCodeDraft(undefined);
+    setAiState(EMPTY_AI_PANEL_STATE);
+    setViewport("desktop");
+    setEditScope("all");
+    setPanel("design");
+    setResetPending(false);
+  };
 
   return (
     <div
@@ -265,95 +253,62 @@ export function EditorShell(props: {
         max-[900px]:h-auto max-[900px]:min-h-[100dvh] max-[900px]:overflow-visible"
     >
       <header
-        className="flex min-h-[52px] flex-none flex-nowrap items-center justify-between gap-2
-          border-b border-default bg-surface-shell/88 px-3 py-2 backdrop-blur-[18px]
+        className="flex min-h-[52px] flex-none flex-nowrap items-center justify-between gap-3
+          border-b border-default bg-surface-shell/88 px-3 py-1 backdrop-blur-[18px]
           max-[900px]:flex-wrap"
       >
-        <div className="flex min-w-0 flex-1 basis-0 flex-nowrap items-center gap-2
-          max-[900px]:flex-auto">
+        <div
+          className="flex min-w-0 flex-1 basis-0 flex-nowrap items-center gap-2
+          max-[900px]:flex-auto"
+        >
           {props.onBackToTemplates === undefined ? null : (
-            <button
+            <IconButton
               type="button"
-              className="inline-flex size-touch shrink-0 cursor-pointer items-center
-                justify-center rounded-input border border-transparent p-0 text-secondary
-                hover:bg-surface-hover hover:text-primary active:translate-y-px
-                active:bg-surface-elevated"
+              variant="chrome"
+              icon="chevron-left"
+              className="shrink-0"
               onClick={props.onBackToTemplates}
               aria-label="Back to templates"
               title="Back to templates"
-            >
-              <Icon name="chevron-left" />
-            </button>
+            />
           )}
           {/* Product identity, the same mark the gallery rail shows. */}
-          <BrandMark className="size-6" />
+          <BrandMark className="size-[22px] flex-none" />
           <div className="flex min-w-0 items-baseline gap-2">
-            <h1 className="m-0 min-w-0 truncate text-sm font-semibold tracking-[-0.01em] text-primary">
+            <h1 className="m-0 min-w-0 truncate text-[13px] font-semibold tracking-[-0.01em] text-primary">
               <span className="sr-only">Scoped AI Template Editor</span>
-              <span aria-hidden="true">{props.templateName ?? 'Aster Labs'}</span>
+              <span aria-hidden="true">
+                {props.templateName ?? "Aster Labs"}
+              </span>
             </h1>
-            <span className="text-[11px] text-muted max-[1180px]:hidden">main</span>
+            <span className="text-[11px] text-muted max-[1180px]:hidden">
+              main
+            </span>
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-none flex-nowrap items-center justify-center gap-2
+        <div
+          className="flex min-w-0 flex-none flex-nowrap items-center justify-center gap-2
           max-[900px]:order-3 max-[900px]:w-full max-[900px]:justify-start
-          max-[900px]:overflow-x-auto">
-          <SurfaceTabs
-            tabs={SURFACE_TABS}
-            value={surface}
-            onChange={setSurface}
-            label="Editing surface"
-            idPrefix="surface"
-          />
+          max-[900px]:overflow-x-auto"
+        >
           <ViewportSwitcher value={viewport} onChange={setViewport} />
-          <span
-            className="min-w-[92px] truncate rounded-input border border-default bg-surface-panel
-              px-3 py-2 text-center text-xs text-secondary shadow-hairline max-[1180px]:hidden"
-          >
-            Homepage
-          </span>
         </div>
 
-        <div className="flex min-w-0 flex-1 basis-0 flex-nowrap items-center justify-end gap-2
-          max-[900px]:flex-auto">
-          {/* Dock toggles: each carries a tooltip and the expanded state of the
-              panel it owns, so "open" is never signalled by colour alone. */}
-          <div className="flex gap-2" role="group" aria-label="Panels">
-            <DockToggle
-              type="button"
-              icon="sliders"
-              label="Design"
-              ref={designToggleRef}
-              aria-pressed={designOpen}
-              aria-expanded={designOpen}
-              aria-controls="design-panel"
-              title="Design panel"
-              onClick={() => {
-                setDesignOpen((current) => !current)
-              }}
-            />
-            <DockToggle
-              type="button"
-              icon="layers"
-              label="Layers"
-              ref={layersToggleRef}
-              aria-pressed={layersOpen}
-              aria-expanded={layersOpen}
-              aria-controls="layers-panel"
-              title="Layers panel"
-              onClick={() => {
-                setLayersOpen((current) => !current)
-              }}
-            />
-          </div>
+        <div
+          className="flex min-w-0 flex-1 basis-0 flex-nowrap items-center justify-end gap-2
+          max-[900px]:flex-auto"
+        >
+          {/* One switcher, not three toggles: the dock holds one panel, so the
+              control that chooses it reports exactly one pressed item. */}
+          <PanelSwitcher value={panel} onChange={setPanel} />
 
           <ToolbarButton
             type="button"
             variant="chrome"
             aria-label="Reset project…"
             onClick={() => {
-              setResetPending(true)
+              setResetPending(true);
             }}
           >
             Reset&hellip;
@@ -365,7 +320,7 @@ export function EditorShell(props: {
         <RecoveryNotice
           status={persistence}
           onReset={() => {
-            setResetPending(true)
+            setResetPending(true);
           }}
         />
       ) : null}
@@ -380,8 +335,10 @@ export function EditorShell(props: {
         <ScopeLock scope={editScope} targetNames={selectedNames} />
 
         {/* Stays on the right even when Scope Lock has taken the whole row. */}
-        <div className="flex min-w-0 flex-[0_1_auto] flex-wrap items-center gap-3 ms-auto
-          max-[620px]:m-0 max-[620px]:w-full max-[620px]:overflow-x-auto">
+        <div
+          className="flex min-w-0 flex-[0_1_auto] flex-wrap items-center gap-3 ms-auto
+          max-[620px]:m-0 max-[620px]:w-full max-[620px]:overflow-x-auto"
+        >
           <p
             className="group/persist m-0 inline-flex min-h-8 items-center gap-2 rounded-pill
               border border-default px-2 py-1 text-xs whitespace-nowrap text-secondary
@@ -410,8 +367,7 @@ export function EditorShell(props: {
           grid-cols-[minmax(0,320px)_minmax(0,1fr)]
           max-[1180px]:grid-cols-[minmax(0,292px)_minmax(0,1fr)]
           max-[900px]:grid-cols-[minmax(0,1fr)]"
-        data-surface={surface}
-        data-docks={Number(designOpen) + Number(layersOpen)}
+        data-panel={panel}
       >
         {/* The AI composer above, element history below: both are reference
             material for whatever is being edited. */}
@@ -429,7 +385,9 @@ export function EditorShell(props: {
               <Icon name="sparkle" className="size-[18px]" />
             </span>
             <div className="min-w-0">
-              <p className="m-0 text-xs font-semibold text-secondary">Build with AI</p>
+              <p className="m-0 text-xs font-semibold text-secondary">
+                Build with AI
+              </p>
               <h2 className="m-0 text-sm font-semibold text-primary">
                 Describe the next change
               </h2>
@@ -455,8 +413,10 @@ export function EditorShell(props: {
             />
           </div>
 
-          <div className="max-h-[38%] flex-[0_1_34%] overflow-auto border-t border-default
-            bg-surface-canvas p-3 max-[900px]:max-h-none">
+          <div
+            className="max-h-[38%] flex-[0_1_34%] overflow-auto border-t border-default
+            bg-surface-canvas p-3 max-[900px]:max-h-none"
+          >
             <HistoryPanel
               document={state.document}
               selectedIds={selection.selectedIds}
@@ -469,142 +429,113 @@ export function EditorShell(props: {
         {/* The workspace carries the same ambient field as the gallery, so the
             two surfaces read as one product; the preview frame paints its own
             opaque background on top, so nothing under review is tinted. */}
-        {/* Above 1100px an open dock insets this surface instead of covering
-            it, so opening Design never hides the part of the canvas being
-            edited. Below that it overlays - the only honest answer when there
-            is no room for both. */}
+        {/* Above 1100px the dock insets this surface instead of covering it,
+            so a panel never hides the part of the canvas being edited; the code
+            panel is wider, so the inset widens with it. Below that it overlays
+            - the only honest answer when there is no room for both. */}
         <main
           className="flex min-h-0 min-w-0 bg-ambient transition-[margin] duration-fast
-            min-[1101px]:group-data-[docks='1']/body:me-[328px]
-            min-[1101px]:group-data-[docks='2']/body:me-[656px]"
-          aria-label={SURFACE_LABELS[surface]}
+            min-[1101px]:me-82 min-[1101px]:group-data-[panel=code]/body:me-114"
+          aria-label="Template preview"
         >
-          <div
-            role="tabpanel"
-            id={`surface-panel-${surface}`}
-            aria-labelledby={`surface-tab-${surface}`}
-            className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-6"
-          >
-            {surface === 'preview' ? (
-              <>
-                <div className="flex min-w-0 flex-none flex-wrap items-center justify-between
-                  gap-x-4 gap-y-2 px-1">
-                  <p className="m-0 text-[13px] text-secondary">
-                    Previewing {viewport} at {VIEWPORT_WIDTHS[viewport]}px &middot; revision{' '}
-                    {state.document.revision}
-                  </p>
-                  <div className="flex min-w-0 flex-wrap items-center gap-3">
-                    <SelectionSummary rows={rows} selectedIds={selection.selectedIds} />
-                    <ToolbarButton
-                      type="button"
-                      variant="chrome"
-                      aria-pressed={fit}
-                      onClick={() => {
-                        setFit((current) => !current)
-                      }}
-                    >
-                      Fit to canvas
-                    </ToolbarButton>
-                  </div>
-                </div>
-
-                <PreviewFrame
-                  document={state.document}
-                  viewport={viewport}
-                  fit={fit}
-                  renderOverlay={({ frameRef, scale }) => (
-                    <CanvasSelectionLayer
-                      frameRef={frameRef}
-                      scale={scale}
-                      changeKey={`${state.document.revision}:${viewport}:${String(fit)}`}
-                      rows={rows}
-                      selection={selection}
-                    />
-                  )}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-6">
+            <div
+              className="flex min-w-0 flex-none flex-wrap items-center justify-between
+              gap-x-4 gap-y-2 px-1"
+            >
+              <p className="m-0 text-[13px] text-secondary">
+                Previewing {viewport} at {VIEWPORT_WIDTHS[viewport]}px &middot;
+                revision {state.document.revision}
+              </p>
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                <SelectionSummary
+                  rows={rows}
+                  selectedIds={selection.selectedIds}
                 />
-              </>
-            ) : (
-              <div
-                className="mx-auto grid min-h-0 w-[min(1040px,100%)] grid-cols-[172px_minmax(0,1fr)]
-                  overflow-hidden rounded-panel border border-default bg-surface-panel
-                  shadow-raised max-[620px]:grid-cols-[minmax(0,1fr)]"
-              >
-                <aside
-                  className="min-w-0 border-r border-default bg-surface-shell px-3 py-4
-                    max-[620px]:hidden"
-                  aria-label="Project files"
+                <ToolbarButton
+                  type="button"
+                  variant="chrome"
+                  aria-pressed={fit}
+                  onClick={() => {
+                    setFit((current) => !current);
+                  }}
                 >
-                  <p className="m-0 mb-2 text-xs font-semibold text-secondary">Project</p>
-                  <ul
-                    /* The open file is marked, so the illustrative tree still
-                       says which document the editor beside it is showing. */
-                    className="m-0 flex list-none flex-col gap-0.5 p-0 font-mono text-xs
-                      text-secondary [&>li]:truncate [&>li]:rounded-sm [&>li]:p-2
-                      [&>li[data-depth='1']]:ps-5
-                      [&>li:nth-child(3)]:bg-surface-hover [&>li:nth-child(3)]:text-primary"
-                  >
-                    <li>src</li>
-                    <li data-depth="1">components</li>
-                    <li data-depth="1">template.json</li>
-                    <li data-depth="1">responsive.json</li>
-                    <li>styles</li>
-                  </ul>
-                </aside>
-                {/* A reading width, not a full-bleed one: JSON keyed by stable
-                    id is easier to check when lines do not run the whole screen. */}
-                <div className="m-0 w-auto overflow-auto p-4">
-                  <div
-                    className="-mx-4 -mt-4 mb-4 flex items-center justify-between gap-3
-                      border-b border-default bg-surface-shell px-4 py-3 font-mono text-xs
-                      text-primary"
-                  >
-                    <span>template.json</span>
-                    <span className="font-ui text-muted">Validated structured properties</span>
-                  </div>
-                  <CodePanel
-                    targets={targets}
-                    scope={editScope}
-                    revision={state.document.revision}
-                    draft={codeDraft?.key === codeDraftKey ? codeDraft.draft : undefined}
-                    onDraftChange={(draft) => {
-                      setCodeDraft(draft === undefined ? undefined : { key: codeDraftKey, draft })
-                    }}
-                    onApply={(input) => commit({ source: 'code', ...input })}
-                  />
-                </div>
+                  Fit to canvas
+                </ToolbarButton>
               </div>
-            )}
+            </div>
+
+            <PreviewFrame
+              document={state.document}
+              viewport={viewport}
+              fit={fit}
+              renderOverlay={({ frameRef, scale }) => (
+                <CanvasSelectionLayer
+                  frameRef={frameRef}
+                  scale={scale}
+                  changeKey={`${state.document.revision}:${viewport}:${String(fit)}`}
+                  rows={rows}
+                  selection={selection}
+                />
+              )}
+            />
           </div>
         </main>
 
-        {/* The docks overlay the right edge; the layer itself is inert so the
-            canvas keeps taking pointer input everywhere a dock is not. */}
+        {/* The dock overlays the right edge; the layer itself is inert so the
+            canvas keeps taking pointer input everywhere the dock is not. All
+            three panels stay mounted and the switcher only reveals one, so
+            moving between them cannot discard an unapplied code draft, the
+            inspector's pending error, or the layers tree's focus position. */}
         <div
           className="pointer-events-none absolute inset-y-0 end-0 z-20 flex max-w-full
             items-stretch gap-2 p-2 max-[900px]:inset-0 max-[900px]:flex-col max-[900px]:p-0"
         >
           <EditorDock
-            id="design-panel"
-            labelledBy="inspector-heading"
-            title="Design panel"
-            open={designOpen}
-            onClose={closeDesign}
+            id={PANEL_DOCK_IDS.design}
+            labelledBy={PANEL_HEADING_IDS.design}
+            title={PANEL_TITLES.design}
+            open={panel === "design"}
           >
             <InspectorPanel
               resolved={resolved}
               targets={targets}
               scope={editScope}
               revision={state.document.revision}
-              onCommit={(input) => commit({ source: 'canvas', ...input })}
+              onCommit={(input) => commit({ source: "canvas", ...input })}
             />
           </EditorDock>
 
           <EditorDock
-            id="layers-panel"
-            labelledBy="layers-heading"
-            title="Layers panel"
-            open={layersOpen}
-            onClose={closeLayers}
+            id={PANEL_DOCK_IDS.code}
+            labelledBy={PANEL_HEADING_IDS.code}
+            title={PANEL_TITLES.code}
+            open={panel === "code"}
+            wide
+          >
+            <CodePanel
+              targets={targets}
+              scope={editScope}
+              revision={state.document.revision}
+              draft={
+                codeDraft?.key === codeDraftKey ? codeDraft.draft : undefined
+              }
+              onDraftChange={(draft) => {
+                setCodeDraft(
+                  draft === undefined
+                    ? undefined
+                    : { key: codeDraftKey, draft },
+                );
+              }}
+              onApply={(input) => commit({ source: "code", ...input })}
+            />
+          </EditorDock>
+
+          <EditorDock
+            id={PANEL_DOCK_IDS.layers}
+            labelledBy={PANEL_HEADING_IDS.layers}
+            title={PANEL_TITLES.layers}
+            open={panel === "layers"}
           >
             <LayersPanel rows={rows} selection={selection} />
           </EditorDock>
@@ -615,10 +546,10 @@ export function EditorShell(props: {
         <ResetProjectDialog
           onConfirm={resetProject}
           onCancel={() => {
-            setResetPending(false)
+            setResetPending(false);
           }}
         />
       ) : null}
     </div>
-  )
+  );
 }

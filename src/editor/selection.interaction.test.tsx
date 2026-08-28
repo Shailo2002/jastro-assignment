@@ -47,10 +47,10 @@ function canvas(): HTMLElement {
   return screen.getByRole('listbox', { name: 'Selectable template elements' })
 }
 
-/** The layers tree, opening its dock first if it is still closed. */
+/** The layers tree, docking its panel first if another one is showing. */
 async function layers(user: User): Promise<HTMLElement> {
-  const toggle = screen.getByRole('button', { name: 'Layers' })
-  if (toggle.getAttribute('aria-expanded') === 'false') await user.click(toggle)
+  const button = screen.getByRole('button', { name: 'Layers panel' })
+  if (button.getAttribute('aria-pressed') !== 'true') await user.click(button)
   return screen.getByRole('tree', { name: 'Template layers' })
 }
 

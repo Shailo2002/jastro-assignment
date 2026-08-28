@@ -1,5 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { setViewport, viewportControl } from './controls'
+
 /**
  * The single reviewer journey, end to end in a real browser.
  *
@@ -14,10 +16,6 @@ const STORAGE_KEY = 'scoped-ai-template-editor.project'
 
 test.use({ viewport: { width: 1280, height: 720 } })
 
-function viewportButton(page: Page, name: RegExp): Locator {
-  return page.getByRole('group', { name: 'Preview viewport' }).getByRole('button', { name })
-}
-
 function scopeButton(page: Page, name: RegExp): Locator {
   return page.getByRole('group', { name: 'Edit scope' }).getByRole('button', { name })
 }
@@ -26,15 +24,11 @@ function layer(page: Page, id: string): Locator {
   return page.getByRole('tree', { name: 'Template layers' }).locator(`[data-target-id="${id}"]`)
 }
 
-/** The Layers dock is opened from the toolbar; it starts closed. */
-async function openLayers(page: Page): Promise<void> {
-  const toggle = page.getByRole('button', { name: /^Layers/ })
-  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click()
-}
-
-async function showSurface(page: Page, name: 'Preview' | 'Code'): Promise<void> {
-  await page.getByRole('tab', { name }).click()
-  await expect(page.getByRole('tab', { name })).toHaveAttribute('aria-selected', 'true')
+/** Docks one panel; exactly one of the three is ever showing. */
+async function showPanel(page: Page, name: 'Design' | 'Code' | 'Layers'): Promise<void> {
+  const button = page.getByRole('button', { name: `${name} panel` })
+  if ((await button.getAttribute('aria-pressed')) !== 'true') await button.click()
+  await expect(button).toHaveAttribute('aria-pressed', 'true')
 }
 
 function headingSize(page: Page): Promise<string> {
@@ -58,17 +52,17 @@ test('the whole reviewer journey holds together', async ({ page }) => {
 
   /* 2. Switch among the three previews. */
   for (const [name, width] of [
-    [/^Tablet/, 768],
-    [/^Mobile/, 375],
-    [/^Desktop/, 1440],
+    ['Tablet', 768],
+    ['Mobile', 375],
+    ['Desktop', 1440],
   ] as const) {
-    await viewportButton(page, name).click()
-    await expect(viewportButton(page, name)).toHaveAttribute('aria-pressed', 'true')
+    await setViewport(page, name)
+    await expect(viewportControl(page)).toHaveAccessibleName(new RegExp(`${name} ${width}px`))
     await expect(page.locator('.preview__frame')).toHaveCSS('width', `${width}px`)
   }
 
   /* 3. Select the heading, then add the CTA to the selection, then narrow back. */
-  await openLayers(page)
+  await showPanel(page, 'Layers')
   await layer(page, 'hero.heading').click()
   await expect(page.getByRole('region', { name: 'Scope Lock' })).toContainText('1 selected')
   await layer(page, 'hero.cta.primary').click({ modifiers: ['Shift'] })
@@ -78,19 +72,20 @@ test('the whole reviewer journey holds together', async ({ page }) => {
 
   /* 4. A mobile-only manual edit. */
   await scopeButton(page, /Mobile only/).click()
+  await showPanel(page, 'Design')
   const fontSize = page.getByLabel(/Font size/)
   await fontSize.fill('26')
   await fontSize.press('Enter')
-  await viewportButton(page, /^Mobile/).click()
+  await setViewport(page, 'Mobile')
   await expect.poll(() => headingSize(page)).toBe('26px')
 
   /* 5. Desktop is provably untouched by it. */
-  await viewportButton(page, /^Desktop/).click()
+  await setViewport(page, 'Desktop')
   await expect.poll(() => headingSize(page)).toBe('56px')
 
   /* 6a. A valid structured code edit, applied under the All views scope. */
   await scopeButton(page, /All views/).click()
-  await showSurface(page, 'Code')
+  await showPanel(page, 'Code')
   const editor = page.getByLabel('Element properties (JSON)')
   const draft = JSON.parse(await editor.inputValue()) as Record<
     string,
@@ -101,23 +96,19 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   heading.typography['fontSize'] = 50
   await editor.fill(JSON.stringify(draft))
   await page.getByRole('button', { name: 'Apply' }).click()
-  // The code surface replaces the preview in the centre, so the rendered result
-  // is read back on the preview surface.
-  await showSurface(page, 'Preview')
+  // The canvas is never replaced by a panel, so the rendered result is read
+  // back without switching anything.
   await expect.poll(() => headingSize(page)).toBe('50px')
 
   /* 6b. An invalid one is refused, and the last valid state survives. */
-  await showSurface(page, 'Code')
   await editor.fill('{ "hero.heading": { "typography": { "fontSize": 12 "fontWeight": 700 } } }')
   await expect(page.getByRole('button', { name: 'Apply' })).toBeDisabled()
   await expect(page.getByText(/not valid JSON/)).toBeVisible()
-  await showSurface(page, 'Preview')
   expect(await headingSize(page)).toBe('50px')
-  await showSurface(page, 'Code')
   await page.getByRole('button', { name: 'Revert' }).click()
-  await showSurface(page, 'Preview')
 
   /* 7. A deterministic multi-element proposal over the current selection. */
+  await showPanel(page, 'Layers')
   await layer(page, 'hero.heading').click()
   await layer(page, 'hero.subheading').click({ modifiers: ['Shift'] })
   const instruction = page.getByLabel('Instruction')
@@ -147,7 +138,7 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   const revisionCount = await page.locator('.revision-card').count()
   await page.reload()
   await expect(page.getByRole('main', { name: 'Template preview' })).toBeVisible()
-  await openLayers(page)
+  await showPanel(page, 'Layers')
   await layer(page, 'hero.heading').click()
   expect(await headingSize(page)).toBe(beforeReload)
   await expect(page.locator('.revision-card')).toHaveCount(revisionCount)

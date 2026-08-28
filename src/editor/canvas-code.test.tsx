@@ -100,19 +100,19 @@ async function openCode(
     await user.click(canvasTarget(id))
     await user.keyboard('{/Shift}')
   }
-  await user.click(screen.getByRole('tab', { name: 'Code' }))
+  await user.click(screen.getByRole('button', { name: 'Code panel' }))
 }
 
 /**
  * Selection from the Layers dock.
  *
- * The canvas overlay only exists on the preview surface, so this is how a
- * selection changes while the code surface is showing - which is exactly what
- * the Layers dock is for.
+ * The canvas is always on screen, so this is not the only way to change the
+ * selection while the code panel is docked - but it is the one that leaves the
+ * canvas alone, and it must reach the identical targets.
  */
 async function selectFromLayers(user: User, id: string): Promise<void> {
-  const toggle = screen.getByRole('button', { name: 'Layers' })
-  if (toggle.getAttribute('aria-expanded') === 'false') await user.click(toggle)
+  const button = screen.getByRole('button', { name: 'Layers panel' })
+  if (button.getAttribute('aria-pressed') !== 'true') await user.click(button)
   const node = screen
     .getByRole('tree', { name: 'Template layers' })
     .querySelector<HTMLElement>(`[data-target-id="${id}"]`)
@@ -147,7 +147,7 @@ describe('canvas and code share canonical state', () => {
     await user.type(input, '44')
     await user.tab()
 
-    await user.click(screen.getByRole('tab', { name: 'Code' }))
+    await user.click(screen.getByRole('button', { name: 'Code panel' }))
     expect(draft()[HEADING]?.typography?.fontSize).toBe(44)
   })
 
@@ -207,7 +207,7 @@ describe('canvas and code share canonical state', () => {
     render(<EditorShell store={store} />)
     await user.click(canvasTarget('hero.heading'))
     await user.click(scopeButton(/Mobile only/))
-    await user.click(screen.getByRole('tab', { name: 'Code' }))
+    await user.click(screen.getByRole('button', { name: 'Code panel' }))
 
     const before = store.getState().document.elements[HEADING]
 
@@ -347,7 +347,7 @@ describe('a stale draft cannot overwrite a later edit', () => {
 })
 
 describe('draft lifetime', () => {
-  it('keeps an unapplied draft across a surface switch', async () => {
+  it('keeps an unapplied draft across a panel switch', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await openCode(user, 'hero.heading')
@@ -359,8 +359,8 @@ describe('draft lifetime', () => {
       }
     })
 
-    await user.click(screen.getByRole('tab', { name: 'Preview' }))
-    await user.click(screen.getByRole('tab', { name: 'Code' }))
+    await user.click(screen.getByRole('button', { name: 'Design panel' }))
+    await user.click(screen.getByRole('button', { name: 'Code panel' }))
 
     expect(draft()[HEADING]?.content?.text).toBe('Still being written')
     expect(store.getState().document.revision).toBe(0)
@@ -442,17 +442,16 @@ describe('keyboard behaviour', () => {
     expect(editor()).not.toHaveFocus()
   })
 
-  it('switches surfaces from the keyboard', async () => {
+  it('docks the code panel from the keyboard', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await user.click(canvasTarget('hero.heading'))
 
-    screen.getByRole('tab', { name: 'Preview' }).focus()
-    await user.keyboard('{ArrowRight}')
-    expect(screen.getByRole('tab', { name: 'Code' })).toHaveFocus()
-
+    const code = screen.getByRole('button', { name: 'Code panel' })
+    code.focus()
     await user.keyboard('{Enter}')
-    expect(screen.getByRole('tab', { name: 'Code' })).toHaveAttribute('aria-selected', 'true')
+
+    expect(code).toHaveAttribute('aria-pressed', 'true')
     expect(editor()).toBeInTheDocument()
   })
 })

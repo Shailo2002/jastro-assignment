@@ -27,7 +27,7 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeInTheDocument()
     expect(screen.getByRole('main', { name: 'Template preview' })).toBeInTheDocument()
-    expect(screen.getByRole('group', { name: 'Preview viewport' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Preview viewport/ })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Back to templates' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeInTheDocument()

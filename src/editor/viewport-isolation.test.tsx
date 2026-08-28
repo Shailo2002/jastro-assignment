@@ -66,10 +66,19 @@ function canvasTarget(id: string): HTMLElement {
   return node
 }
 
-async function previewViewport(user: User, name: RegExp): Promise<void> {
-  await user.click(
-    within(screen.getByRole('group', { name: 'Preview viewport' })).getByRole('button', { name }),
-  )
+/**
+ * The preview viewport is one cycling button, so a named viewport is reached by
+ * pressing until the control reports it.
+ */
+async function previewViewport(user: User, name: string): Promise<void> {
+  const control = (): HTMLElement => screen.getByRole('button', { name: /^Preview viewport/ })
+  for (let press = 0; press < 3; press += 1) {
+    if (new RegExp(`^Preview viewport: ${name}`, 'i').test(control().getAttribute('aria-label') ?? '')) {
+      return
+    }
+    await user.click(control())
+  }
+  throw new Error(`The viewport control never reached "${name}".`)
 }
 
 async function editScope(user: User, name: RegExp): Promise<void> {
@@ -107,7 +116,7 @@ describe('the previews resolve one document', () => {
     expect(ids.length).toBeGreaterThan(0)
 
     for (const viewport of VIEWPORTS) {
-      await previewViewport(user, new RegExp(`^${viewport}`, 'i'))
+      await previewViewport(user, viewport)
       const rendered = screen
         .getByRole('main', { name: 'Template preview' })
         .querySelectorAll('[data-element-id]')
@@ -122,9 +131,9 @@ describe('the previews resolve one document', () => {
     render(<EditorShell store={store} />)
     const before = store.getState().document
 
-    await previewViewport(user, /^Tablet/i)
-    await previewViewport(user, /^Mobile/i)
-    await previewViewport(user, /^Desktop/i)
+    await previewViewport(user, 'Tablet')
+    await previewViewport(user, 'Mobile')
+    await previewViewport(user, 'Desktop')
 
     // Identity, not equality: no viewport switch produced a new document.
     expect(store.getState().document).toBe(before)
@@ -155,9 +164,9 @@ describe('a single-viewport edit', () => {
     await user.click(canvasTarget('hero.heading'))
 
     const desktopBefore = projectedMarkup()
-    await previewViewport(user, /^Tablet/i)
+    await previewViewport(user, 'Tablet')
     const tabletBefore = projectedMarkup()
-    await previewViewport(user, /^Mobile/i)
+    await previewViewport(user, 'Mobile')
     const mobileBefore = projectedMarkup()
 
     // Edit mobile while previewing mobile, so the change is visible at once.
@@ -165,9 +174,9 @@ describe('a single-viewport edit', () => {
     await editFontSize(user, '28')
     expect(projectedMarkup()).not.toBe(mobileBefore)
 
-    await previewViewport(user, /^Desktop/i)
+    await previewViewport(user, 'Desktop')
     expect(projectedMarkup()).toBe(desktopBefore)
-    await previewViewport(user, /^Tablet/i)
+    await previewViewport(user, 'Tablet')
     expect(projectedMarkup()).toBe(tabletBefore)
   })
 

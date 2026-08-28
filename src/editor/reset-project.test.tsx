@@ -222,7 +222,7 @@ describe('confirming', () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
     await user.click(canvasTarget('hero.heading'))
-    await user.click(screen.getByRole('tab', { name: 'Code' }))
+    await user.click(screen.getByRole('button', { name: 'Code panel' }))
 
     fireEvent.change(codeEditor(), {
       target: { value: JSON.stringify({ [HEADING]: { typography: { fontSize: 44 } } }, null, 2) },
@@ -232,11 +232,14 @@ describe('confirming', () => {
     await openReset(user)
     await confirmReset(user)
 
-    // The centre returns to the preview, and reopening Code shows the fixture
-    // again rather than a draft written against the discarded document.
-    expect(screen.getByRole('tab', { name: 'Preview' })).toHaveAttribute('aria-selected', 'true')
+    // The dock returns to Design, and reopening Code shows the fixture again
+    // rather than a draft written against the discarded document.
+    expect(screen.getByRole('button', { name: 'Design panel' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
     await user.click(canvasTarget('hero.heading'))
-    await user.click(screen.getByRole('tab', { name: 'Code' }))
+    await user.click(screen.getByRole('button', { name: 'Code panel' }))
     expect(codeEditor().value).toContain('56')
     expect(codeEditor().value).not.toContain('44')
   })
