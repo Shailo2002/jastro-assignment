@@ -9,6 +9,13 @@ import type { IconName } from './Icon'
  */
 export type EditorPanel = 'design' | 'code' | 'layers'
 
+/**
+ * What the dock currently holds. `none` is a real resting state: every panel
+ * can be dismissed from its own corner, and then the canvas has the full width
+ * of the workspace to itself.
+ */
+export type DockedPanel = EditorPanel | 'none'
+
 export const EDITOR_PANELS: readonly EditorPanel[] = ['design', 'code', 'layers']
 
 export const PANEL_LABELS: Readonly<Record<EditorPanel, string>> = {

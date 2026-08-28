@@ -22,6 +22,25 @@ export function scopeButton(page: Page, name: RegExp): Locator {
   return page.getByRole('group', { name: 'Edit scope' }).getByRole('button', { name })
 }
 
+/**
+ * One control of the panel switcher. Scoped to the switcher because each dock
+ * also carries a "Close <name> panel" button, which a loose name would match.
+ */
+export function panelButton(page: Page, name: PanelName): Locator {
+  return page
+    .getByRole('group', { name: 'Editor panel' })
+    .getByRole('button', { name: `${name} panel` })
+}
+
+export type PanelName = 'Design' | 'Code' | 'Layers'
+
+/** Docks one panel; at most one of the three is ever showing. */
+export async function showPanel(page: Page, name: PanelName): Promise<void> {
+  const button = panelButton(page, name)
+  if ((await button.getAttribute('aria-pressed')) !== 'true') await button.click()
+  await expect(button).toHaveAttribute('aria-pressed', 'true')
+}
+
 async function reports(page: Page, name: ViewportName): Promise<boolean> {
   const label = await viewportControl(page).getAttribute('aria-label')
   return new RegExp(`^Preview viewport: ${name}`).test(label ?? '')

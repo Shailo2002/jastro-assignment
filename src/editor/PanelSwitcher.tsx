@@ -7,6 +7,7 @@ import {
   PANEL_ICONS,
   PANEL_LABELS,
   PANEL_TITLES,
+  type DockedPanel,
   type EditorPanel,
 } from './editor-panels'
 
@@ -20,13 +21,16 @@ import {
  *
  * Only the chosen panel spells its name; the other two rest as glyphs. That
  * keeps the capsule short in a bar that is chrome around the work, and it means
- * the selection is legible from shape alone, before any colour is read.
+ * the selection is legible from shape alone, before any colour is read. When the
+ * dock has been closed no item is pressed, which is the honest report: nothing
+ * is docked.
  *
  * It changes nothing but which panel is visible - not the document, not the
  * selection, not the edit scope.
  */
 export function PanelSwitcher(props: {
-  value: EditorPanel
+  /** `none` when every dock has been dismissed; then nothing is pressed. */
+  value: DockedPanel
   onChange: (panel: EditorPanel) => void
 }): JSX.Element {
   const { value, onChange } = props

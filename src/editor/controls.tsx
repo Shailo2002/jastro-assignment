@@ -247,6 +247,7 @@ export function SegmentedItem({
   label,
   meta,
   metaHidden = false,
+  metaClassName = '',
   labelOnlyWhenPressed = false,
   icon,
   className = '',
@@ -256,6 +257,11 @@ export function SegmentedItem({
   meta?: string
   /** Keeps `meta` in the accessible name but out of the picture. */
   metaHidden?: boolean
+  /**
+   * Extra classes for the hint, so a caller can drop it at a width of its own
+   * choosing. `sr-only` there keeps it in the accessible name.
+   */
+  metaClassName?: string
   /**
    * Shows the label only on the pressed item, leaving the rest as glyphs. The
    * text stays in the DOM either way, and it means the selected item differs
@@ -293,7 +299,7 @@ export function SegmentedItem({
                 ? 'sr-only'
                 : /* Never a translucent tint: on the pressed fill it has to be
                      a solid ink that still clears AA. */
-                  'text-xs text-muted group-aria-pressed/chip:text-on-accent'
+                  `text-xs text-muted group-aria-pressed/chip:text-on-accent ${metaClassName}`
             }
           >
             {meta}

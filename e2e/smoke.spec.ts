@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { scopeButton, setViewport, viewportControl } from './controls'
+import { panelButton, scopeButton, setViewport, viewportControl } from './controls'
 
 /** MANUAL_QA "Editor shell" is written for 1280 x 720. */
 test.use({ viewport: { width: 1280, height: 720 } })
@@ -108,7 +108,7 @@ test('canvas selection overlay lines up with the rendered element and agrees wit
 
   await overlayTarget.click()
   await expect(overlayTarget).toHaveAttribute('aria-selected', 'true')
-  await page.getByRole('button', { name: 'Layers panel' }).click()
+  await panelButton(page, 'Layers').click()
   await expect(
     page.getByRole('tree', { name: 'Template layers' }).locator('[data-target-id="hero.heading"]'),
   ).toHaveAttribute('aria-selected', 'true')
@@ -138,11 +138,11 @@ test('a scoped inspector edit changes one viewport and protects the others', asy
     return value
   }
 
-  await page.getByRole('button', { name: 'Layers panel' }).click()
+  await panelButton(page, 'Layers').click()
   await page.getByRole('tree', { name: 'Template layers' }).locator('[data-target-id="hero.heading"]').click()
   await scopeButton(page, /Desktop only/).click()
   // One dock at a time, so the inspector is docked back for the edit itself.
-  await page.getByRole('button', { name: 'Design panel' }).click()
+  await panelButton(page, 'Design').click()
 
   await expect(page.getByRole('region', { name: 'Scope Lock' })).toContainText('1 selected')
   await expect(page.getByRole('region', { name: 'Scope Lock' })).toContainText(

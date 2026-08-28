@@ -35,7 +35,7 @@ import {
   PANEL_DOCK_IDS,
   PANEL_HEADING_IDS,
   PANEL_TITLES,
-  type EditorPanel,
+  type DockedPanel,
 } from "./editor-panels";
 import { ViewportSwitcher } from "./ViewportSwitcher";
 import {
@@ -109,9 +109,14 @@ export function EditorShell(props: {
   const [fit, setFit] = useState(true);
   /**
    * Which panel the right dock holds. Design is the resting choice: it is the
-   * panel an edit starts from, and the one a fresh selection wants.
+   * panel an edit starts from, and the one a fresh selection wants. `none` is
+   * reached by dismissing a dock from its own corner, and gives the canvas the
+   * whole workspace.
    */
-  const [panel, setPanel] = useState<EditorPanel>("design");
+  const [panel, setPanel] = useState<DockedPanel>("design");
+  const closeDock = (): void => {
+    setPanel("none");
+  };
   /**
    * The unapplied code draft. It lives here rather than inside the code panel
    * so that leaving the code surface does not silently throw away typed work,
@@ -252,15 +257,15 @@ export function EditorShell(props: {
       className="flex h-[100dvh] flex-col overflow-hidden bg-surface-canvas text-sm
         max-[900px]:h-auto max-[900px]:min-h-[100dvh] max-[900px]:overflow-visible"
     >
+      {/* ONE bar. Identity, the Scope Lock statement, the two controls that
+          decide where an edit lands, and the shell's only destructive action -
+          in that reading order. A second strip under it would have said the
+          same things twice and stolen a row from the thing under review. */}
       <header
-        className="flex min-h-[52px] flex-none flex-nowrap items-center justify-between gap-3
-          border-b border-default bg-surface-shell/88 px-3 py-1 backdrop-blur-[18px]
-          max-[900px]:flex-wrap"
+        className="flex min-h-[52px] flex-none flex-wrap items-center gap-x-3 gap-y-2
+          border-b border-default bg-surface-shell/88 px-3 py-1 backdrop-blur-[18px]"
       >
-        <div
-          className="flex min-w-0 flex-1 basis-0 flex-nowrap items-center gap-2
-          max-[900px]:flex-auto"
-        >
+        <div className="flex min-w-0 flex-none flex-nowrap items-center gap-2">
           {props.onBackToTemplates === undefined ? null : (
             <IconButton
               type="button"
@@ -281,24 +286,20 @@ export function EditorShell(props: {
                 {props.templateName ?? "Aster Labs"}
               </span>
             </h1>
-            <span className="text-[11px] text-muted max-[1180px]:hidden">
+            <span className="text-[11px] text-muted max-[1240px]:hidden">
               main
             </span>
           </div>
         </div>
 
-        <div
-          className="flex min-w-0 flex-none flex-nowrap items-center justify-center gap-2
-          max-[900px]:order-3 max-[900px]:w-full max-[900px]:justify-start
-          max-[900px]:overflow-x-auto"
-        >
-          <ViewportSwitcher value={viewport} onChange={setViewport} />
-        </div>
+        {/* The statement and the control that sets it, adjacent: what an edit
+            will touch, then where it will be written. */}
+        <ScopeLock scope={editScope} targetNames={selectedNames} />
+        <ScopeSwitcher value={editScope} onChange={setEditScope} />
 
-        <div
-          className="flex min-w-0 flex-1 basis-0 flex-nowrap items-center justify-end gap-2
-          max-[900px]:flex-auto"
-        >
+        <div className="ms-auto flex min-w-0 flex-none flex-nowrap items-center gap-2">
+          <ViewportSwitcher value={viewport} onChange={setViewport} />
+
           {/* One switcher, not three toggles: the dock holds one panel, so the
               control that chooses it reports exactly one pressed item. */}
           <PanelSwitcher value={panel} onChange={setPanel} />
@@ -324,41 +325,6 @@ export function EditorShell(props: {
           }}
         />
       ) : null}
-
-      {/* Scope Lock is above every surface rather than inside one panel: what an
-          edit will touch is the same statement whether the edit comes from the
-          inspector, the code view, an AI proposal, or a restore. */}
-      <div
-        className="flex min-h-[46px] flex-none flex-wrap items-center justify-between gap-2
-          border-b border-default bg-surface-shell px-3 py-1 max-[620px]:items-stretch"
-      >
-        <ScopeLock scope={editScope} targetNames={selectedNames} />
-
-        {/* Stays on the right even when Scope Lock has taken the whole row. */}
-        <div
-          className="flex min-w-0 flex-[0_1_auto] flex-wrap items-center gap-3 ms-auto
-          max-[620px]:m-0 max-[620px]:w-full max-[620px]:overflow-x-auto"
-        >
-          <p
-            className="group/persist m-0 inline-flex min-h-8 items-center gap-2 rounded-pill
-              border border-default px-2 py-1 text-xs whitespace-nowrap text-secondary
-              data-[tone=warning]:border-status-warning data-[tone=warning]:text-primary"
-            data-tone={persistence.tone}
-          >
-            {/* The dot repeats the tone; the label beside it always states it
-                in words, so the status never rests on colour. */}
-            <span
-              className="size-2 rounded-pill bg-muted
-                group-data-[tone=saved]/persist:bg-status-success
-                group-data-[tone=warning]/persist:bg-status-warning"
-              aria-hidden="true"
-            />
-            {persistence.label}
-            <span className="sr-only">. {persistence.detail}</span>
-          </p>
-          <ScopeSwitcher value={editScope} onChange={setEditScope} />
-        </div>
-      </div>
 
       {/* The main track is min-width 0 so a 1440px preview cannot push the
           rail - or the page - into horizontal overflow. */}
@@ -429,13 +395,16 @@ export function EditorShell(props: {
         {/* The workspace carries the same ambient field as the gallery, so the
             two surfaces read as one product; the preview frame paints its own
             opaque background on top, so nothing under review is tinted. */}
-        {/* Above 1100px the dock insets this surface instead of covering it,
-            so a panel never hides the part of the canvas being edited; the code
-            panel is wider, so the inset widens with it. Below that it overlays
-            - the only honest answer when there is no room for both. */}
+        {/* Above 1100px the dock insets this surface instead of covering it, so
+            a panel never hides the part of the canvas being edited. Every dock
+            is the same width, so the inset is one value; with the dock closed
+            there is no inset at all. Below 1100px it overlays - the only honest
+            answer when there is no room for both. */}
         <main
           className="flex min-h-0 min-w-0 bg-ambient transition-[margin] duration-fast
-            min-[1101px]:me-82 min-[1101px]:group-data-[panel=code]/body:me-114"
+            min-[1101px]:group-data-[panel=design]/body:me-92
+            min-[1101px]:group-data-[panel=code]/body:me-92
+            min-[1101px]:group-data-[panel=layers]/body:me-92"
           aria-label="Template preview"
         >
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-6">
@@ -443,10 +412,32 @@ export function EditorShell(props: {
               className="flex min-w-0 flex-none flex-wrap items-center justify-between
               gap-x-4 gap-y-2 px-1"
             >
-              <p className="m-0 text-[13px] text-secondary">
-                Previewing {viewport} at {VIEWPORT_WIDTHS[viewport]}px &middot;
-                revision {state.document.revision}
-              </p>
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                <p className="m-0 text-[13px] text-secondary">
+                  Previewing {viewport} at {VIEWPORT_WIDTHS[viewport]}px &middot;
+                  revision {state.document.revision}
+                </p>
+                {/* Persistence sits with the revision counter rather than in the
+                    top bar: both are facts about the document on screen, not
+                    controls, and the bar is for controls. */}
+                <p
+                  className="group/persist m-0 inline-flex min-h-7 items-center gap-2 rounded-pill
+                    border border-default px-2 py-0.5 text-xs whitespace-nowrap text-secondary
+                    data-[tone=warning]:border-status-warning data-[tone=warning]:text-primary"
+                  data-tone={persistence.tone}
+                >
+                  {/* The dot repeats the tone; the label beside it always states
+                      it in words, so the status never rests on colour. */}
+                  <span
+                    className="size-2 rounded-pill bg-muted
+                      group-data-[tone=saved]/persist:bg-status-success
+                      group-data-[tone=warning]/persist:bg-status-warning"
+                    aria-hidden="true"
+                  />
+                  {persistence.label}
+                  <span className="sr-only">. {persistence.detail}</span>
+                </p>
+              </div>
               <div className="flex min-w-0 flex-wrap items-center gap-3">
                 <SelectionSummary
                   rows={rows}
@@ -496,6 +487,7 @@ export function EditorShell(props: {
             labelledBy={PANEL_HEADING_IDS.design}
             title={PANEL_TITLES.design}
             open={panel === "design"}
+            onClose={closeDock}
           >
             <InspectorPanel
               resolved={resolved}
@@ -511,7 +503,7 @@ export function EditorShell(props: {
             labelledBy={PANEL_HEADING_IDS.code}
             title={PANEL_TITLES.code}
             open={panel === "code"}
-            wide
+            onClose={closeDock}
           >
             <CodePanel
               targets={targets}
@@ -536,6 +528,7 @@ export function EditorShell(props: {
             labelledBy={PANEL_HEADING_IDS.layers}
             title={PANEL_TITLES.layers}
             open={panel === "layers"}
+            onClose={closeDock}
           >
             <LayersPanel rows={rows} selection={selection} />
           </EditorDock>

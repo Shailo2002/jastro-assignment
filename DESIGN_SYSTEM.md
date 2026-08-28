@@ -161,14 +161,17 @@ Recommended typography:
 At 1280 px, the editor must remain usable:
 
 ```text
-top toolbar: 54px - project | viewport + page | Design/Code/Layers + reset
-scope bar:   compact Scope Lock statement | edit scope
+top toolbar: 52px - project | Scope Lock statement + edit scope | viewport,
+                    Design/Code/Layers, reset
 left rail:   320px - AI task flow first, compact element history below
 main:        minmax(0, 1fr) - the preview canvas, always
-right dock:  320px (440px for Code) - one panel at a time, Design by default
+right dock:  360px, the same for every panel - one at a time, Design by default,
+             dismissable from its own corner
 ```
 
-Scope Lock is chrome, not panel furniture: it sits above every surface, because the same statement governs an inspector edit, a code apply, an accepted proposal, and a restore.
+Scope Lock is chrome, not panel furniture: it sits above every surface, because the same statement governs an inspector edit, a code apply, an accepted proposal, and a restore. It shares the one toolbar with the scope switcher that sets it - a second strip would have repeated the same subject and spent a row of the thing under review. Only the short statement is drawn; the protected views and the affected element names live in the region's accessible name and its tooltip, complete rather than truncated across the chrome. The persistence status is not a control, so it sits with the revision counter above the canvas.
+
+Every dock is the same width whatever it holds, so the canvas beside it never resizes as the reviewer moves between panels. Each one can be dismissed from a close control in its top corner, which returns focus to the switch that opened it and gives the canvas the whole workspace; nothing about the document, the selection, or an unapplied draft changes when it does.
 
 The dock is a region of the shell, not a modal. The canvas underneath stays selectable, and focus is not stolen when a panel is docked. Above 1100 px the dock insets the main surface rather than covering it; below that it overlays, which is the only honest answer when there is no room for both. At narrower editor widths the rail stacks above the main surface instead of shrinking the canvas to unusable dimensions. The preview itself must be zoomable/fit-to-canvas so a 1440 px virtual viewport can be inspected within the workspace.
 
@@ -221,7 +224,7 @@ Every interactive component must define default, hover, focus-visible, active, d
 ### Scope Lock indicator
 
 - Must state target count and edit scope in text, for example “2 selected · Mobile only.”
-- Must list or reveal affected IDs/names and protected views.
+- Must carry the affected element names and the protected views - reading them may cost a hover or a screen reader, but they are never abbreviated away.
 - Must update immediately when selection or scope changes.
 - Must not use color alone; pair icon, text, and border treatment.
 - AI proposal review must repeat the scope snapshot captured at generation.

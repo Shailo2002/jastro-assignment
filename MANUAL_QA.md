@@ -82,13 +82,20 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 - [ ] Fields are only offered when every selected element supports them.
 - [ ] The inspector shows the value of the edit scope, not of the preview viewport.
 
+## Right dock
+
+- [ ] Design, Code, and Layers are all the same width; the canvas does not resize between them.
+- [ ] Each panel closes from the cross in its top corner, and focus lands back on its switch.
+- [ ] With the dock closed no switch is pressed and the canvas takes the full workspace.
+- [ ] Reopening a panel finds it as it was left, including an unapplied code draft.
+
 ## Scope Lock
 
-- [ ] Target count and scope are both readable as text.
-- [ ] The protected views are named for a viewport-scoped edit.
-- [ ] Affected element names can be revealed.
+- [ ] Target count and scope are both readable as text in the toolbar.
+- [ ] The protected views are named for a viewport-scoped edit (hover the indicator, or read it with a screen reader).
+- [ ] Affected element names are reachable the same way.
 - [ ] It updates immediately when the selection or the scope changes.
-- [ ] Preview viewport and edit scope are visibly different controls.
+- [ ] Preview viewport and edit scope are visibly different controls: the viewport is one cycling device button, the scope a row of named chips.
 
 ## Viewport isolation
 

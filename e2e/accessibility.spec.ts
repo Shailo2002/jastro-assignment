@@ -1,7 +1,13 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-import { pressToViewport, viewportControl } from './controls'
+import {
+  panelButton,
+  pressToViewport,
+  showPanel,
+  viewportControl,
+  type PanelName,
+} from './controls'
 
 /**
  * Accessibility acceptance, in a real browser.
@@ -35,8 +41,8 @@ async function tabTo(page: Page, target: Locator, limit = 200): Promise<void> {
  * Docks one panel the way a keyboard user must: the switcher is a group of
  * ordinary buttons, so each one is its own tab stop and Enter activates it.
  */
-async function activatePanel(page: Page, name: 'Design' | 'Code' | 'Layers'): Promise<void> {
-  const button = page.getByRole('button', { name: `${name} panel` })
+async function activatePanel(page: Page, name: PanelName): Promise<void> {
+  const button = panelButton(page, name)
   await tabTo(page, button)
   await page.keyboard.press('Enter')
   await expect(button).toHaveAttribute('aria-pressed', 'true')
@@ -57,13 +63,6 @@ function scopeButton(page: Page, name: RegExp): Locator {
 
 function layer(page: Page, id: string): Locator {
   return page.getByRole('tree', { name: 'Template layers' }).locator(`[data-target-id="${id}"]`)
-}
-
-/** Docks one panel; exactly one of the three is ever showing. */
-async function showPanel(page: Page, name: 'Design' | 'Code' | 'Layers'): Promise<void> {
-  const button = page.getByRole('button', { name: `${name} panel` })
-  if ((await button.getAttribute('aria-pressed')) !== 'true') await button.click()
-  await expect(button).toHaveAttribute('aria-pressed', 'true')
 }
 
 /** The selection summary, which is one of two named live regions on the page. */

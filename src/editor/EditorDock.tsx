@@ -5,8 +5,10 @@ import { IconButton } from './controls'
 /**
  * A right-hand dock.
  *
- * One dock is shown at a time, chosen by the toolbar's panel switcher, so the
- * preview keeps one predictable width. A dock is a disclosure, not a modal: the
+ * One dock is shown at a time, chosen by the toolbar's panel switcher. Every
+ * dock is the SAME width, whatever it holds, so the canvas beside it never
+ * changes size as the reviewer moves between panels - a preview that resized
+ * under them would make two panels hard to compare. A dock is a disclosure, not a modal: the
  * canvas underneath stays selectable while it is open, and focus is never
  * stolen when one opens.
  *
@@ -32,16 +34,25 @@ export function EditorDock(props: {
   open: boolean
   /** Omitted when the dock is always present and only its contents change. */
   onClose?: () => void
-  /** Wider dock for a panel that holds code rather than controls. */
-  wide?: boolean
   children: ReactNode
 }): JSX.Element {
-  const width = props.wide
-    ? 'w-[min(440px,calc(100vw-var(--space-4)))]'
-    : 'w-[min(320px,calc(100vw-var(--space-4)))]'
+  /**
+   * Closing hides this element, so the focus it holds would be stranded on a
+   * hidden node. Focus goes back to the toolbar control that points at this
+   * dock, found by that `aria-controls` rather than by a shared ref, so the
+   * dock needs to know nothing about the switcher that owns it.
+   */
+  const close = (): void => {
+    const { id, onClose } = props
+    if (onClose === undefined) return
+    onClose()
+    const owner = window.document.querySelector(`[aria-controls="${id}"]`)
+    if (owner instanceof HTMLElement) owner.focus()
+  }
+
   return (
     <aside
-      className={`pointer-events-auto relative flex ${width}
+      className={`pointer-events-auto relative flex w-[min(360px,calc(100vw-var(--space-4)))]
         min-h-0 flex-col overflow-hidden rounded-panel border border-default bg-surface-shell
         shadow-raised max-[900px]:w-full max-[900px]:rounded-none`}
       id={props.id}
@@ -49,22 +60,24 @@ export function EditorDock(props: {
       hidden={!props.open}
       onKeyDown={(event) => {
         // `defaultPrevented` means the panel inside already answered Escape.
-        const { onClose } = props
-        if (onClose === undefined || event.key !== 'Escape' || event.defaultPrevented) return
+        if (props.onClose === undefined || event.key !== 'Escape' || event.defaultPrevented) {
+          return
+        }
         event.preventDefault()
-        onClose()
+        close()
       }}
     >
       {/* The close control floats over the corner rather than taking a row of
           its own, so the panel's own heading stays the first thing in the dock. */}
       {props.onClose === undefined ? null : (
-        <div className="absolute end-2 top-2 z-[1]">
+        <div className="absolute end-1 top-1 z-[1]">
           <IconButton
             type="button"
+            variant="chrome"
             icon="close"
             aria-label={`Close ${props.title}`}
             title={`Close ${props.title}`}
-            onClick={props.onClose}
+            onClick={close}
           />
         </div>
       )}

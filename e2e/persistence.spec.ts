@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
+import { showPanel } from './controls'
+
 /**
  * Persistence and reset in a real browser.
  *
@@ -15,13 +17,6 @@ test.use({ viewport: { width: 1280, height: 720 } })
 
 function layer(page: Page, id: string) {
   return page.getByRole('tree', { name: 'Template layers' }).locator(`[data-target-id="${id}"]`)
-}
-
-/** Docks one panel; exactly one of the three is ever showing. */
-async function showPanel(page: Page, name: 'Design' | 'Code' | 'Layers'): Promise<void> {
-  const button = page.getByRole('button', { name: `${name} panel` })
-  if ((await button.getAttribute('aria-pressed')) !== 'true') await button.click()
-  await expect(button).toHaveAttribute('aria-pressed', 'true')
 }
 
 function resetButton(page: Page) {

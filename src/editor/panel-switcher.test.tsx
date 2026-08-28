@@ -10,9 +10,10 @@ import { EditorShell } from './EditorShell'
 /**
  * The right-hand dock, and the switcher that chooses what it holds.
  *
- * Design, Code, and Layers are mutually exclusive: exactly one is docked, and
- * the switcher reports exactly one pressed control, so no two panels can ever
- * claim the right edge at once. Design is the resting choice. Moving between
+ * Design, Code, and Layers are mutually exclusive: at most one is docked, and
+ * the switcher reports at most one pressed control, so no two panels can ever
+ * claim the right edge at once. Design is the resting choice, and any dock can
+ * be dismissed from its own corner, which leaves none pressed. Moving between
  * panels must cost nothing - MANUAL_QA requires the selection, an unapplied
  * code draft, and the layers tree's focus position to survive - which is why a
  * dock is hidden rather than unmounted, and it is what these tests hold in
@@ -247,9 +248,62 @@ describe('a docked panel owns its own keys', () => {
     expect(screen.getByRole('region', { name: 'Scope Lock' })).toHaveTextContent(
       /Nothing selected/i,
     )
-    // The dock is a region of the shell, not a disclosure: Escape cannot
-    // dismiss it, so the tree the user is working in stays where it is.
+    // Escape inside the tree belongs to the tree: it clears the selection and
+    // must not also dismiss the dock the user is working in.
     expect(panelButton('Layers')).toHaveAttribute('aria-pressed', 'true')
     expect(dock('layers-panel')).not.toHaveAttribute('hidden')
+  })
+})
+
+/** One dock's close control, named for the panel it dismisses. */
+function closeButton(name: 'Design' | 'Code' | 'Layers'): HTMLElement {
+  return screen.getByRole('button', { name: `Close ${name} panel` })
+}
+
+describe('dismissing the dock', () => {
+  it('closes the panel, leaves none pressed, and gives focus back to its switch', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    expect(dock('design-panel')).not.toHaveAttribute('hidden')
+
+    await user.click(closeButton('Design'))
+
+    expect(dock('design-panel')).toHaveAttribute('hidden')
+    for (const name of ['Design', 'Code', 'Layers'] as const) {
+      expect(panelButton(name)).toHaveAttribute('aria-pressed', 'false')
+    }
+    // Focus must not be stranded on the hidden dock.
+    expect(panelButton('Design')).toHaveFocus()
+  })
+
+  it('offers a close control on every panel', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    for (const name of ['Code', 'Layers'] as const) {
+      await user.click(panelButton(name))
+      expect(closeButton(name)).toBeInTheDocument()
+      await user.click(closeButton(name))
+      expect(panelButton(name)).toHaveAttribute('aria-pressed', 'false')
+    }
+  })
+
+  it('keeps an unapplied code draft while the dock is closed', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await selectHeading(user)
+    await user.click(panelButton('Code'))
+
+    const editor = screen.getByRole('textbox', { name: /Element properties/ })
+    const draft = JSON.stringify({ 'hero.heading': { typography: { fontSize: 41 } } }, null, 2)
+    fireEvent.change(editor, { target: { value: draft } })
+
+    await user.click(closeButton('Code'))
+    await user.click(panelButton('Code'))
+
+    expect(screen.getByRole('textbox', { name: /Element properties/ })).toHaveValue(draft)
+    // Nothing was committed by opening or closing a dock.
+    expect(store.getState().document.revision).toBe(0)
   })
 })

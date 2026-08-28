@@ -99,13 +99,13 @@ Canvas and code do not synchronize directly. Both read the same canonical docume
 
 ### Editor layout
 
-One toolbar, one scope bar, and three regions below them:
+One toolbar and three regions below it:
 
 - **Left rail** - the AI task flow is primary, with compact per-element history below it. Both stay available because they answer the two immediate questions: what should change next, and what already happened to this element.
 - **Main surface** - the rendered template, always. It is what is under review, so no editor surface ever takes its place.
-- **Right dock** - one panel at a time: Design (the default), Code, or Layers, chosen by a segmented switcher the same shape as the viewport control, so exactly one is ever pressed. The canvas stays selectable beside it, and above 1100 px the dock insets the main surface instead of covering it. Panels are hidden rather than unmounted, so switching cannot discard the layers tree's focus position, the inspector's pending error, or an unapplied code draft.
+- **Right dock** - one panel at a time: Design (the default), Code, or Layers, chosen by a segmented switcher, so at most one is ever pressed. Every dock is the same width, so the canvas never resizes as you move between panels, and each can be dismissed from its own corner - which hands focus back to the switch that opened it. The canvas stays selectable beside it, and above 1100 px the dock insets the main surface instead of covering it. Panels are hidden rather than unmounted, so switching cannot discard the layers tree's focus position, the inspector's pending error, or an unapplied code draft.
 
-Scope Lock sits in the chrome above every surface rather than inside one panel, because the same statement governs an inspector edit, a code apply, an accepted proposal, and a restore.
+Scope Lock sits in the toolbar above every surface rather than inside one panel, because the same statement governs an inspector edit, a code apply, an accepted proposal, and a restore. It shares that bar with the scope switcher that sets it; the toolbar draws the short statement ("2 selected · Mobile only") and carries the protected views and affected names in its accessible name and tooltip.
 
 ### Commit boundary
 
@@ -198,7 +198,7 @@ The complete working checklist is in [REQUIREMENTS_CHECKLIST.md](./REQUIREMENTS_
 
 - The canonical document is saved to `localStorage` under a versioned envelope (`scoped-ai-template-editor.project`) after every successful commit, restore, and reset. Nothing is written unless it re-validates, and nothing is hydrated without validation.
 - Transient editor state is deliberately **not** persisted: selection, preview viewport, edit scope, which panel is docked, unapplied code drafts, and pending AI proposals. A proposal generated against an older document must not come back to life after a refresh.
-- The scope bar states the persistence status ("Original template", "Saved locally", "Recovered", "Not saved") in words, not colour alone.
+- The canvas status line, beside the revision counter, states the persistence status ("Original template", "Saved locally", "Recovered", "Not saved") in words, not colour alone.
 - If stored data is unreadable, from another storage/schema version, or unwritable, the editor loads the original template, keeps the untrusted copy under a quarantine key, and shows a recovery notice with the one action that clears it. The editor stays fully usable in every one of those cases.
 - **Reset Project** is the only destructive action. It opens a confirmation that names what will be lost; Cancel, Escape, and clicking outside all leave everything untouched. Confirming clears the stored project and the quarantined copy, reloads the original template, and discards the pending code draft, pending AI run, and selection that belonged to the discarded document.
 - Deployment needs no server rewrite rule: routing is `HashRouter`, so a refresh on `/#/editor/aster-labs` is served by the same static `index.html`.
