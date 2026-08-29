@@ -1,4 +1,4 @@
-import { useId, type JSX } from 'react'
+import { useEffect, useId, useRef, type JSX } from 'react'
 
 import { scenarioExamples } from '../engine/scenario-catalog'
 import type { EditScope } from '../model/viewport'
@@ -16,7 +16,10 @@ import { ScopeLock } from './ScopeLock'
  * pointer and no second tab stop.
  *
  * The layout is one box: the Scope Lock statement on top once there is a
- * selection to lock, then the field, then the control that starts the run. Scope Lock lives here rather than in the top
+ * selection to lock, then the field, then the control that starts the run. The
+ * box draws the field's focus itself - one ring around the whole composer
+ * rather than a second one around the text inside it, which is one boundary too
+ * many for a control that fills its container edge to edge. Scope Lock lives here rather than in the top
  * bar because this is where an instruction is written, and what it would touch
  * - and provably would not - is half of what that instruction means. It governs
  * every surface, so it is drawn once, on the one that never scrolls away. The supported instructions
@@ -44,6 +47,23 @@ export function AiComposer(props: {
   onRun: (instruction: string) => void
 }): JSX.Element {
   const fieldId = useId()
+  const hintId = `${fieldId}-hint`
+
+  /**
+   * The field grows with what is typed instead of scrolling a single line out
+   * of sight: an instruction is a sentence, and a reviewer editing one should
+   * be able to read all of it. It stops at five lines and scrolls after that,
+   * so a long paste can never push the composer over the transcript. The height
+   * is derived from the value the shell holds, so it is correct after an
+   * external change - a chip run, a reset - and not only after a keystroke.
+   */
+  const fieldRef = useRef<HTMLTextAreaElement | null>(null)
+  useEffect(() => {
+    const node = fieldRef.current
+    if (node === null) return
+    node.style.height = 'auto'
+    node.style.height = `${Math.min(node.scrollHeight, 132)}px`
+  }, [props.instruction])
 
   return (
     <div
@@ -118,27 +138,46 @@ export function AiComposer(props: {
         <label className="sr-only" htmlFor={fieldId}>
           Instruction
         </label>
-        <input
-          className="min-h-8 w-full min-w-0 rounded-input border border-transparent
-            bg-transparent px-2 font-[inherit] text-[13px] text-primary
-            focus-visible:outline-2 focus-visible:outline-offset-1
-            focus-visible:outline-focus-ring"
+        {/* A textarea, not a single line: instructions wrap. Enter still runs,
+            because that is the shortcut the whole loop is built on, so the
+            newline moves to Shift+Enter, stated in the field's description
+            rather than printed under it. Escape hands focus back to the editor
+            instead of trapping it here; the shell's own Escape then clears the
+            selection, so leaving and deselecting are the same key twice. */}
+        <textarea
+          className="max-h-[132px] min-h-8 w-full min-w-0 resize-none bg-transparent px-2
+            py-1 font-[inherit] text-[13px] leading-normal text-primary
+            placeholder:text-muted focus-ring-container"
           id={fieldId}
-          type="text"
+          ref={fieldRef}
+          rows={1}
           autoComplete="off"
+          aria-describedby={hintId}
           placeholder="Describe the change…"
           value={props.instruction}
           onChange={(event) => {
             props.onInstructionChange(event.target.value)
           }}
           onKeyDown={(event) => {
-            if (event.key !== 'Enter') return
+            if (event.key === 'Escape') {
+              event.currentTarget.blur()
+              return
+            }
+            if (event.key !== 'Enter' || event.shiftKey) return
             event.preventDefault()
             props.onRun(props.instruction)
           }}
         />
 
         <div className="flex min-w-0 items-center gap-2">
+          {/* The shortcuts are not printed under the field: a line of standing
+              instruction sits there for every reading of the composer, and the
+              behaviour is the one a chat composer already has. It stays in the
+              field's description, where anyone who cannot infer it is told. */}
+          <p className="sr-only" id={hintId}>
+            Enter runs the instruction. Shift and Enter adds a line.
+          </p>
+
           {/* The send control is a glyph, as it is in a chat composer, and it
               keeps the full 44px target with its accessible name spelled out. */}
           <IconButton

@@ -277,10 +277,12 @@ Every interactive component must define default, hover, focus-visible, active, d
 ### AI edit and proposal cards
 
 - The run appears as the last turn of the rail's transcript: the submitted instruction is shown as the reviewer's own message, and the proposals answer it below. The instruction shown is the one the run was generated from, not whatever the composer holds now.
-- The composer is docked at the foot of the rail and never scrolls away; Enter runs the instruction and the send control keeps a full 44px target with a spelled-out name. It is one box - Scope Lock on top once there is a selection to lock, then the field, then the control that starts the run - under a single scrolling row of example chips. That row hides its scrollbar and each chip paints a 30px pill inside a 44px target, so the composer reads light without any control shrinking under a finger.
+- The composer is docked at the foot of the rail and never scrolls away; Enter runs the instruction, Shift+Enter adds a line, and the send control keeps a full 44px target with a spelled-out name. The shortcuts live in the field's accessible description, not as standing prose under it - the composer states what it is for, not how to type. It is one box - Scope Lock on top once there is a selection to lock, then the field, then the control that starts the run - under a single scrolling row of example chips. That row hides its scrollbar and each chip paints a 30px pill inside a 44px target, so the composer reads light without any control shrinking under a finger.
 - The chip at the head of the box is Scope Lock itself, not a summary of it, so there is one statement of what an edit would touch and no way for two of them to disagree.
 - Show example prompts as buttons or copyable choices, in the open rather than behind a disclosure: a deterministic engine answers to a fixed set of instructions, so that set is the product's vocabulary and hiding it hides the product.
 - The composer carries no standing paragraph of prose at all, and nothing at all is drawn over an empty selection: with nothing selected there is no Scope Lock chip, because a lock has nothing to promise there, the canvas states `Nothing selected` once above the thing being selected, and every control that would run is visibly disabled.
+- The instruction field is a textarea that grows with what is typed, to a five-line cap, then scrolls: an instruction is a sentence and should be readable in full, but the composer may never climb over the transcript.
+- One focus ring per control. The composer box draws the field's focus itself; the text inside it paints no second boundary, because a field that fills its container edge to edge does not need one.
 - The seam between the transcript and the composer is a fade, not a rule. A line drawn across the rail cut one continuous surface into two panels; the transcript now runs out under the composer instead.
 - Run action is disabled without selection and explains why.
 - Each proposal card shows element name/ID, scope, before, after, validation status, Accept, and Reject.
@@ -348,6 +350,8 @@ Avoid:
 
 - Every editor action can be completed using keyboard only.
 - Focus is visible and not fully covered by fixed UI.
+- Escape clears the selection from anywhere in the editor, not only from a canvas or Layers target: deselecting must never cost a click back into the canvas first. It defers to any nearer handler that has already claimed the key - a dock closing, the code editor stepping out, the confirm dialog - and a text field keeps Escape for itself, so leaving a field and clearing the selection are two deliberate presses.
+- Pressing empty workspace deselects, as it does in every canvas tool. Controls and overlay targets are excluded because they are real buttons, not because of where they sit.
 - Selection, scope, proposal status, and validation status have text/semantic equivalents.
 - Every form input has an accessible name and error association.
 - Color contrast passes WCAG 2.2 AA.

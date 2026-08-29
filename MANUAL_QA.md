@@ -60,7 +60,10 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 - [ ] Tab/arrow navigation reaches selectable elements/layers.
 - [ ] Enter/Space selection works.
 - [ ] Shift/Ctrl/Cmd + Enter adds and removes from the keyboard.
-- [ ] Escape clears the selection from either surface (documented escape shortcut).
+- [ ] Escape clears the selection from either surface, and from anywhere else in the editor - the top bar, the rail, an open dock - without clicking into the canvas first.
+- [ ] Escape inside the instruction field leaves the field and keeps both the typed text and the selection; a second Escape clears the selection.
+- [ ] Pressing empty workspace - the matting around the frame, or the frame's own background - clears the selection.
+- [ ] The instruction field grows as an instruction wraps, Shift+Enter adds a line, Enter runs, no shortcut prose is printed under it, and focusing it lights exactly one ring.
 - [ ] Selection and keyboard focus look different (solid selection border vs dashed focus ring).
 - [ ] The toolbar reports the selected count and readable names as text.
 - [ ] The most recently added target is marked as the active/primary one.

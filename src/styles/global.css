@@ -29,6 +29,15 @@ body {
   outline-offset: 2px;
 }
 
+/* The one exemption from the rule above, and it removes no indicator: a field
+   that fills a boxed container edge to edge - the AI composer's instruction
+   field - lets that container light up instead, so focus is drawn once rather
+   than as two nested rectangles. The container must carry a `focus-within`
+   ring of its own; nothing else may use this class. */
+:focus-visible.focus-ring-container {
+  outline: none;
+}
+
 /* `hidden` must win over a component's own display rule. Collapsed editor
    panels rely on this: they stay mounted, keep their state, and are removed
    from both the layout and the accessibility tree. */

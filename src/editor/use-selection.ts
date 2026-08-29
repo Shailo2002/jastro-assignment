@@ -23,7 +23,8 @@ export interface SelectionApi {
   isSelected(id: ElementId): boolean
   /** The one transition used by both pointer and keyboard activation. */
   select(id: ElementId, additive: boolean): void
-  clear(): void
+  /** A property, not a method: the shell hands it to an event listener. */
+  readonly clear: () => void
 }
 
 export function useSelection(knownIds: ReadonlySet<ElementId>): SelectionApi {

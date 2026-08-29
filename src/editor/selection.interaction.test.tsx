@@ -208,6 +208,48 @@ describe('keyboard selection', () => {
     expect(selectedIds(canvas())).toEqual([])
   })
 
+  it('clears the selection with Escape from outside the canvas', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    await user.click(target(canvas(), 'hero.heading'))
+    // Focus is parked on a control that knows nothing about selection, the way
+    // it is after any trip through the chrome.
+    screen.getByRole('button', { name: 'Reset project…' }).focus()
+    await user.keyboard('{Escape}')
+
+    expect(selectedIds(canvas())).toEqual([])
+  })
+
+  it('keeps Escape for a text field so a typed instruction is not lost', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    await user.click(target(canvas(), 'hero.heading'))
+    const instruction = screen.getByLabelText('Instruction')
+    await user.type(instruction, 'Centre it')
+    await user.keyboard('{Escape}')
+
+    expect(selectedIds(canvas())).toEqual(['hero.heading'])
+    expect(instruction).toHaveValue('Centre it')
+    // The field steps out rather than clearing, so a second press deselects.
+    expect(document.activeElement).not.toBe(instruction)
+    await user.keyboard('{Escape}')
+    expect(selectedIds(canvas())).toEqual([])
+  })
+
+  it('clears the selection when empty workspace is pressed', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    await user.click(target(canvas(), 'hero.heading'))
+    const frame = document.querySelector<HTMLElement>('.preview__frame')
+    if (frame === null) throw new Error('No preview frame on screen.')
+    await user.click(frame)
+
+    expect(selectedIds(canvas())).toEqual([])
+  })
+
   it('keeps exactly one tabbable target so focus is never trapped', () => {
     render(<EditorShell store={store} />)
 

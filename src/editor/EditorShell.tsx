@@ -1,4 +1,4 @@
-import { useMemo, useState, type JSX, type RefObject } from "react";
+import { useEffect, useMemo, useState, type JSX, type RefObject } from "react";
 
 import {
   resolveDocument,
@@ -226,6 +226,44 @@ export function EditorShell(props: {
     return result.ok ? [] : result.errors.map((error) => error.message);
   };
 
+  /**
+   * Escape clears the selection from anywhere in the editor.
+   *
+   * The canvas and Layers already answered Escape on their own targets, which
+   * meant deselecting cost a click back into the canvas first - a pointer trip
+   * to undo a pointer action. This listens on the window instead, so the key
+   * works from the rail, the dock, the top bar, or nowhere in particular.
+   *
+   * It defers rather than competes. `defaultPrevented` means a nearer handler
+   * has already claimed the key - a dock closing, a canvas target clearing, the
+   * code editor stepping out - and a text field keeps Escape for itself, so
+   * leaving a field and clearing the selection stay two deliberate presses. The
+   * confirm dialog owns the key outright while it is open.
+   */
+  const clearSelection = selection.clear;
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape" || event.defaultPrevented || resetPending) {
+        return;
+      }
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest(
+          'input, textarea, select, [contenteditable="true"], [role="dialog"]',
+        ) !== null
+      ) {
+        return;
+      }
+      clearSelection();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [clearSelection, resetPending]);
+
   const persistence = describePersistenceStatus(state);
 
   /**
@@ -364,7 +402,25 @@ export function EditorShell(props: {
             min-[1101px]:group-data-[panel=layers]/body:me-92"
           aria-label="Template preview"
         >
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-6">
+          {/* Empty space in the workspace deselects, the way it does in every
+              canvas tool: pressing on anything here that is not a control - the
+              matting around the frame, the frame's own background - clears the
+              selection. Overlay targets and the controls above the frame are
+              real buttons, so they are excluded by the same test rather than by
+              a list of coordinates. */}
+          <div
+            className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-6"
+            onMouseDown={(event) => {
+              const target = event.target;
+              if (!(target instanceof HTMLElement)) return;
+              if (
+                target.closest("button, a, input, select, textarea") !== null
+              ) {
+                return;
+              }
+              clearSelection();
+            }}
+          >
             <div
               className="flex min-w-0 flex-none flex-wrap items-center justify-between
               gap-x-4 gap-y-2 px-1"
