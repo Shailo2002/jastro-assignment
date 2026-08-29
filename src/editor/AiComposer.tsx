@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, type JSX } from 'react'
 
 import { scenarioExamples } from '../engine/scenario-catalog'
 import type { EditScope } from '../model/viewport'
-import { IconButton } from './controls'
+import { CHIP_FOCUS_SKIN, CHIP_FOCUS_TARGET, IconButton } from './controls'
 import { ScopeLock } from './ScopeLock'
 
 /**
@@ -92,11 +92,10 @@ export function AiComposer(props: {
                 shrinking below the size a finger needs. */}
             <button
               type="button"
-              className="group/chip flex min-h-touch cursor-pointer items-center rounded-pill
+              className={`group/chip flex min-h-touch cursor-pointer items-center rounded-pill
                 px-0 text-secondary transition-colors duration-instant
-                hover:not-disabled:text-primary focus-visible:outline-2
-                focus-visible:outline-offset-2 focus-visible:outline-focus-ring
-                disabled:cursor-not-allowed disabled:text-muted"
+                hover:not-disabled:text-primary disabled:cursor-not-allowed
+                disabled:text-muted ${CHIP_FOCUS_TARGET}`}
               disabled={!props.canRun}
               onClick={() => {
                 props.onRun(example)
@@ -105,7 +104,7 @@ export function AiComposer(props: {
               <span
                 className={`flex min-h-[30px] items-center rounded-pill border border-default
                   bg-surface-panel px-3 text-xs whitespace-nowrap transition-colors
-                  duration-instant ${
+                  duration-instant ${CHIP_FOCUS_SKIN} ${
                     props.canRun
                       ? 'group-hover/chip:bg-surface-elevated'
                       : 'border-dashed'

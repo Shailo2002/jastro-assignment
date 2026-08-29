@@ -38,6 +38,17 @@ body {
   outline: none;
 }
 
+/* The second exemption, and like the first it removes no indicator, it moves
+   one: a toolbar chip separates its 44px target from the 32px pill that is
+   seen, so the ring belongs on the pill. Left on the target it traced a shape
+   nobody can see - an oval standing clear of the chip on every side, clipped by
+   the strip around it - which is what a ring drawn around an invisible box
+   looks like. The skin must carry a `group-focus-visible/chip` ring of its own;
+   nothing else may use this class. */
+:focus-visible.focus-ring-chip {
+  outline: none;
+}
+
 /* `hidden` must win over a component's own display rule. Collapsed editor
    panels rely on this: they stay mounted, keep their state, and are removed
    from both the layout and the accessibility tree. */

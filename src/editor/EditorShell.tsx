@@ -105,12 +105,13 @@ export function EditorShell(props: {
   const [editScope, setEditScope] = useState<EditScope>("all");
   const [fit, setFit] = useState(true);
   /**
-   * Which panel the right dock holds. Design is the resting choice: it is the
-   * panel an edit starts from, and the one a fresh selection wants. `none` is
-   * reached by dismissing a dock from its own corner, and gives the canvas the
-   * whole workspace.
+   * Which panel the right dock holds. `none` is the resting state, and the one
+   * the editor opens in: with nothing selected there is no element for Design
+   * or Code to describe, so the canvas has the whole workspace. Selecting
+   * something docks Design - the panel an edit starts from - and deselecting
+   * puts it away again; see `syncPanelToSelection` below.
    */
-  const [panel, setPanel] = useState<DockedPanel>("design");
+  const [panel, setPanel] = useState<DockedPanel>("none");
   const closeDock = (): void => {
     setPanel("none");
   };
@@ -143,6 +144,36 @@ export function EditorShell(props: {
   const rows = useMemo(() => flattenResolvedDocument(resolved), [resolved]);
   const knownIds = useMemo(() => collectElementIds(rows), [rows]);
   const selection = useSelection(knownIds);
+
+  /**
+   * The dock follows the selection.
+   *
+   * Design and Code describe one element, so they have nothing to say until
+   * there is one: picking an element on the canvas or in Layers docks Design -
+   * the panel an edit starts from - and clearing the selection puts that panel
+   * away rather than leaving an empty dock holding a quarter of the window.
+   *
+   * Two carve-outs keep this from taking control away from the user. It only
+   * opens Design when the dock is CLOSED, so choosing a panel first and then an
+   * element is not overridden; and it never closes Layers, which reads the whole
+   * tree and is one of the two ways to reach a selection in the first place -
+   * clearing the selection from the tree must not pull the tree out from under
+   * the pointer.
+   *
+   * It is derived during render from a remembered edge rather than in an
+   * effect, so the dock and the selection are committed in the same paint and
+   * no frame shows an empty Design panel.
+   */
+  const hasSelection = selection.selectedIds.length > 0;
+  const [selectionWasOpen, setSelectionWasOpen] = useState(hasSelection);
+  if (selectionWasOpen !== hasSelection) {
+    setSelectionWasOpen(hasSelection);
+    if (hasSelection) {
+      if (panel === "none") setPanel("design");
+    } else if (panel === "design" || panel === "code") {
+      setPanel("none");
+    }
+  }
 
   const selectedNames = selection.selectedIds.flatMap((id) => {
     const row = rows.find((candidate) => candidate.id === id);
@@ -273,8 +304,10 @@ export function EditorShell(props: {
    * pending AI run whose proposals were generated from it. Leaving any of those
    * alive would let work from the old project be applied to the fresh one.
    *
-   * Which docks are open is deliberately left alone: it is chrome, it holds
-   * nothing from the discarded document, and moving it would be a surprise.
+   * The dock is not touched here: it is chrome, it holds nothing from the
+   * discarded document, and clearing the selection already puts Design or Code
+   * away through the rule above - so reset lands on the same empty-selection
+   * state a fresh editor opens in, by the same path.
    */
   const resetProject = (): void => {
     store.reset();
@@ -283,7 +316,6 @@ export function EditorShell(props: {
     setAiState(EMPTY_AI_PANEL_STATE);
     setViewport("desktop");
     setEditScope("all");
-    setPanel("design");
     setResetPending(false);
   };
 

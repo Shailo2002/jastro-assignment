@@ -38,10 +38,27 @@ const DISABLED =
 const DISABLED_TARGET =
   'disabled:cursor-not-allowed disabled:text-muted disabled:transform-none'
 
+/**
+ * A chip's focus ring, in two halves.
+ *
+ * The ring goes on the SKIN, because the skin is what a reviewer can see: drawn
+ * on the 44px target instead it traced an oval standing clear of the pill on
+ * every side, and one that the strip around it then clipped. The target carries
+ * `focus-ring-chip`, the documented exemption in `global.css` that suppresses
+ * the page-wide outline for exactly this case; the skin carries the same 2px
+ * ring at the same offset, so nothing about the indicator changes but where it
+ * is painted. The two are always used together - a target that opts out without
+ * a skin that opts in would have no focus indicator at all.
+ */
+export const CHIP_FOCUS_TARGET = 'focus-ring-chip'
+export const CHIP_FOCUS_SKIN =
+  'group-focus-visible/chip:outline-2 group-focus-visible/chip:outline-offset-2' +
+  ' group-focus-visible/chip:outline-focus-ring'
+
 /** The inner pill every toolbar chip wears: 32px tall, fully rounded. */
 const CHIP =
   'inline-flex min-h-8 min-w-0 items-center justify-center gap-1.5 rounded-pill border' +
-  ' border-transparent px-3 transition-colors duration-instant'
+  ` border-transparent px-3 transition-colors duration-instant ${CHIP_FOCUS_SKIN}`
 
 /**
  * The pressed skin for a chip that is one CHOICE among peers - which panel is
@@ -90,7 +107,7 @@ export function ToolbarButton({
         className={`group/chip inline-flex min-h-touch cursor-pointer items-center justify-center
           rounded-pill px-0.5 text-xs font-medium text-secondary transition-colors
           duration-instant hover:text-primary active:translate-y-px
-          ${DISABLED_TARGET} ${className}`}
+          ${CHIP_FOCUS_TARGET} ${DISABLED_TARGET} ${className}`}
         {...rest}
       >
         <span
@@ -174,12 +191,12 @@ export function IconButton({
       <button
         className={`group/chip inline-flex size-touch cursor-pointer items-center justify-center
           rounded-pill p-0 text-secondary transition-colors duration-instant
-          hover:text-primary ${DISABLED_TARGET} ${className}`}
+          hover:text-primary ${CHIP_FOCUS_TARGET} ${DISABLED_TARGET} ${className}`}
         {...rest}
       >
         <span
           className={`grid size-8 place-items-center rounded-pill border
-            transition-colors duration-instant ${well}`}
+            transition-colors duration-instant ${CHIP_FOCUS_SKIN} ${well}`}
         >
           <Icon name={icon} className="size-[18px]" />
         </span>
@@ -304,7 +321,8 @@ export function SegmentedItem({
     <button
       className={`group/chip relative flex min-w-0 cursor-pointer items-center justify-center
         rounded-pill px-0.5 text-secondary transition-colors duration-instant
-        hover:text-primary active:translate-y-px ${DISABLED_TARGET} ${className}`}
+        hover:text-primary active:translate-y-px ${CHIP_FOCUS_TARGET} ${DISABLED_TARGET}
+        ${className}`}
       {...rest}
     >
       <span

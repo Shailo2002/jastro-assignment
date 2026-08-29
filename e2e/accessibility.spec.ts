@@ -246,17 +246,35 @@ test('a dialog returns focus to the control that opened it', async ({ page }) =>
   await expect(reset).toBeFocused()
 })
 
+/**
+ * A toolbar chip is a 44px target wearing a smaller pill, and the ring is drawn
+ * on the pill - so this measures the ring where it is painted, and checks it is
+ * painted around the shape a reviewer can actually see rather than around the
+ * invisible target.
+ */
 test('focus is visible and is not covered by the toolbar', async ({ page }) => {
   await page.goto('/#/editor/aster-labs')
   const button = viewportControl(page)
   await button.focus()
 
-  const outline = await button.evaluate((node) => {
-    const style = window.getComputedStyle(node)
-    return { width: style.outlineWidth, style: style.outlineStyle }
+  const ring = await button.evaluate((node) => {
+    const skin = node.querySelector('span') ?? node
+    const style = window.getComputedStyle(skin)
+    return {
+      width: style.outlineWidth,
+      style: style.outlineStyle,
+      offset: style.outlineOffset,
+      skinHeight: skin.getBoundingClientRect().height,
+      targetHeight: node.getBoundingClientRect().height,
+    }
   })
-  expect(outline.style).not.toBe('none')
-  expect(Number.parseFloat(outline.width)).toBeGreaterThanOrEqual(2)
+  expect(ring.style).not.toBe('none')
+  expect(Number.parseFloat(ring.width)).toBeGreaterThanOrEqual(2)
+
+  // The ring hugs the pill: with its offset it stays inside the 44px target,
+  // so it can neither read as an oval around nothing nor be clipped by the bar.
+  const drawn = ring.skinHeight + 2 * Number.parseFloat(ring.offset)
+  expect(drawn).toBeLessThanOrEqual(ring.targetHeight)
 
   // The focused control is fully inside the viewport, not clipped by chrome.
   const box = await button.boundingBox()

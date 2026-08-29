@@ -88,8 +88,22 @@ describe('the panel switcher', () => {
     }
   })
 
-  it('docks Design by default and marks exactly one control pressed', () => {
+  it('opens with nothing docked, because nothing is selected yet', () => {
     render(<EditorShell store={store} />)
+
+    for (const name of ['Design', 'Code', 'Layers'] as const) {
+      expect(panelButton(name)).toHaveAttribute('aria-pressed', 'false')
+    }
+    expect(dock('design-panel')).toHaveAttribute('hidden')
+    expect(dock('code-panel')).toHaveAttribute('hidden')
+    expect(dock('layers-panel')).toHaveAttribute('hidden')
+  })
+
+  it('docks Design on the first selection, and marks exactly one control pressed', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    await selectHeading(user)
 
     expect(panelButton('Design')).toHaveAttribute('aria-pressed', 'true')
     expect(panelButton('Code')).toHaveAttribute('aria-pressed', 'false')
@@ -270,6 +284,72 @@ describe('switching panels loses no state', () => {
   })
 })
 
+/**
+ * The dock follows the selection. Design and Code describe one element, so
+ * they arrive with one and leave with it; Layers reads the whole tree and is
+ * one of the two ways to reach a selection, so it is never taken away.
+ */
+describe('the dock follows the selection', () => {
+  it('closes Design again when the selection is cleared', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await selectHeading(user)
+    expect(dock('design-panel')).not.toHaveAttribute('hidden')
+
+    await user.keyboard('{Escape}')
+
+    expect(screen.getByRole('status', { name: 'Selection' })).toHaveTextContent(
+      'Nothing selected',
+    )
+    expect(dock('design-panel')).toHaveAttribute('hidden')
+    expect(panelButton('Design')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('closes Code too, since it also describes one element', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await selectHeading(user)
+    await user.click(panelButton('Code'))
+    expect(dock('code-panel')).not.toHaveAttribute('hidden')
+
+    await user.keyboard('{Escape}')
+
+    expect(dock('code-panel')).toHaveAttribute('hidden')
+    expect(panelButton('Code')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('leaves Layers docked with nothing selected, so the tree stays reachable', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await user.click(panelButton('Layers'))
+    await selectHeading(user)
+
+    // Choosing an element must not swap the panel the user is working in.
+    expect(dock('layers-panel')).not.toHaveAttribute('hidden')
+    expect(dock('design-panel')).toHaveAttribute('hidden')
+
+    await user.keyboard('{Escape}')
+
+    expect(screen.getByRole('status', { name: 'Selection' })).toHaveTextContent(
+      'Nothing selected',
+    )
+    expect(dock('layers-panel')).not.toHaveAttribute('hidden')
+    expect(panelButton('Layers')).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('leaves a dock dismissed by hand closed while the selection moves', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await selectHeading(user)
+    await user.click(closeButton('Design'))
+
+    await user.click(canvasTarget('hero.subheading'))
+
+    expect(screen.getByRole('region', { name: 'Scope Lock' })).toHaveTextContent('1 selected')
+    expect(dock('design-panel')).toHaveAttribute('hidden')
+  })
+})
+
 describe('a docked panel owns its own keys', () => {
   it('lets the layers tree clear the selection on Escape, and stays docked', async () => {
     const user = userEvent.setup()
@@ -307,6 +387,7 @@ describe('dismissing the dock', () => {
   it('closes the panel, leaves none pressed, and gives focus back to its switch', async () => {
     const user = userEvent.setup()
     render(<EditorShell store={store} />)
+    await selectHeading(user)
 
     expect(dock('design-panel')).not.toHaveAttribute('hidden')
 

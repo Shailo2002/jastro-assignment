@@ -36,8 +36,9 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 
 - [ ] Opens without console errors.
 - [ ] Usable at 1280 x 720.
-- [ ] Initial editor view shows the canvas with the Design panel docked, and only that panel.
-- [ ] The panel switcher marks exactly one of Design, Code, and Layers as pressed.
+- [ ] Initial editor view shows the canvas with no panel docked, because nothing is selected yet.
+- [ ] Selecting an element docks the Design panel, and only that panel; the switcher marks exactly one of Design, Code, and Layers as pressed.
+- [ ] Clearing the selection closes a docked Design or Code panel; a docked Layers panel stays, so the tree is still reachable with nothing selected.
 - [ ] The left rail and the right dock do not cover essential toolbar actions in either bar.
 - [ ] The rail, the workspace, and the dock read as three cards on one field: each rounded and bordered, with an even gutter around and between them, and no full-height rule dividing the rail from the canvas.
 - [ ] The top bar draws no panel, border, or blur of its own; only its chips and buttons paint, and the field runs unbroken behind it.
@@ -170,6 +171,7 @@ Without using a pointer:
 ## Visual and accessibility
 
 - [ ] Visible focus on all controls.
+- [ ] Every focus ring hugs the shape it belongs to: clicking a toolbar chip, a panel switch, or a scope chip and then pressing Escape lights a ring around the pill itself, not an oval around the invisible 44px target, and nothing clips it.
 - [ ] Focus is not fully hidden behind sticky panels/toolbars.
 - [ ] Text and control contrast passes WCAG 2.2 AA.
 - [ ] Status is not color-only.

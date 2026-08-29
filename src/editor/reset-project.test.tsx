@@ -232,11 +232,12 @@ describe('confirming', () => {
     await openReset(user)
     await confirmReset(user)
 
-    // The dock returns to Design, and reopening Code shows the fixture again
-    // rather than a draft written against the discarded document.
-    expect(screen.getByRole('button', { name: 'Design panel' })).toHaveAttribute(
+    // Reset clears the selection, so the dock closes with it; selecting again
+    // and reopening Code shows the fixture rather than a draft written against
+    // the discarded document.
+    expect(screen.getByRole('button', { name: 'Code panel' })).toHaveAttribute(
       'aria-pressed',
-      'true',
+      'false',
     )
     await user.click(canvasTarget('hero.heading'))
     await user.click(screen.getByRole('button', { name: 'Code panel' }))
