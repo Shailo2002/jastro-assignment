@@ -23,7 +23,9 @@ import type { ElementTreeRow } from './element-tree'
  * and it sits inside the dock's inset, so an open panel never covers it.
  *
  * The reading order runs left to right from the way out (open the template on
- * its own page) through the decision (scope) to the subject (selection).
+ * its own page) through the subject (what is selected) to the decision (which
+ * views an edit is written to), which sits at the trailing edge beside the
+ * composer that acts on it - the last thing read before an edit is made.
  *
  * `canvas-toolbar` is a query hook for the accessibility suite, which measures
  * the touch target of every control in the editor's chrome.
@@ -64,44 +66,48 @@ export function CanvasToolbar(props: {
             href={props.previewHref}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Open preview in a new tab"
             title="Open the template as a full page in a new tab"
           >
-            {/* The label is what names the control; it steps back to assistive
-                technology only where the strip runs out of room, and the glyph
-                and tooltip carry it there. */}
-            <span className="max-[1100px]:sr-only">Open preview</span>
+            {/* One word on screen, because the glyph already says "leaves this
+                page" and the strip has a selection to fit. The verb stays in
+                the accessible name and the tooltip, where a control that
+                navigates has to say so. Below the wide breakpoint even the
+                word steps back and the glyph stands alone. */}
+            <span className="max-[1100px]:sr-only">Preview</span>
           </ToolbarLink>
         )}
       </div>
 
-      <ScopeSwitcher value={props.scope} onChange={props.onScopeChange} />
-
-      {/* One row, and it stays one row until it truly cannot: the name of the
-          selected element truncates first, then drops (the count still states
-          the selection, and the inspector names it in full), and only after
-          that does the toolbar take a second line rather than overflow. */}
-      <div className="ms-auto flex flex-nowrap items-center gap-x-2">
-        {/* Ranked degradation, so the strip stays one line as long as it can:
-            the element's name truncates, then the whole summary steps back to
-            text for assistive technology only - the composer's Scope Lock is
-            still stating the selection on screen - and only then does the
-            toolbar take a second row rather than overflow. */}
-        <div className="min-w-0 max-[1400px]:sr-only">
-          <SelectionSummary
-            rows={props.rows}
-            selectedIds={props.selectedIds}
-            namesClassName="max-w-[12ch]"
-          />
-        </div>
-
-        {/* The facts about the view, spelled out for anyone reading by ear and
-            left to the controls on screen: a toolbar states them, it does not
-            narrate them. */}
-        <p className="sr-only">
-          Previewing {props.viewport} at {VIEWPORT_WIDTHS[props.viewport]}px, revision{' '}
-          {props.revision}.
-        </p>
+      {/* Ranked degradation, so the strip stays one line as long as it can:
+          the element's name truncates first, then the whole summary steps back
+          to text for assistive technology only - the composer's Scope Lock is
+          still stating the selection on screen - and only then does the
+          toolbar take a second row rather than overflow. It is the one part of
+          the strip allowed to shrink; the two controls either side of it keep
+          their full size. */}
+      <div className="min-w-0 flex-1 max-[1400px]:sr-only">
+        <SelectionSummary
+          rows={props.rows}
+          selectedIds={props.selectedIds}
+          namesClassName="max-w-[12ch]"
+        />
       </div>
+
+      {/* `ms-auto` rather than the flex-1 above alone, so the control still
+          sits hard against the trailing edge at the widths where the summary
+          has stepped back to assistive technology. */}
+      <div className="ms-auto flex flex-none items-center">
+        <ScopeSwitcher value={props.scope} onChange={props.onScopeChange} />
+      </div>
+
+      {/* The facts about the view, spelled out for anyone reading by ear and
+          left to the controls on screen: a toolbar states them, it does not
+          narrate them. */}
+      <p className="sr-only">
+        Previewing {props.viewport} at {VIEWPORT_WIDTHS[props.viewport]}px, revision{' '}
+        {props.revision}.
+      </p>
     </div>
   )
 }
