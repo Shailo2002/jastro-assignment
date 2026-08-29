@@ -118,10 +118,36 @@ describe('template gallery', () => {
     render(<TemplateGallery savedTemplateIds={new Set()} onSelectTemplate={vi.fn()} />)
 
     const rail = screen.getByRole('complementary', { name: 'Template library' })
-    expect(within(rail).getByText('shailesh')).toBeInTheDocument()
-    expect(within(rail).getByText('onlymovies3635@gmail.com')).toBeInTheDocument()
+    expect(within(rail).getByText('user')).toBeInTheDocument()
+    expect(within(rail).getByText('user@gmail.com')).toBeInTheDocument()
     // The identity is a statement, so it adds no control to the tab order.
-    expect(within(rail).queryByRole('button', { name: /shailesh/i })).toBeNull()
+    expect(within(rail).queryByRole('button', { name: /user@gmail\.com/i })).toBeNull()
+  })
+
+  it('keeps the signed-in avatar and drops recent work when the rail collapses', async () => {
+    const user = userEvent.setup()
+    render(
+      <TemplateGallery savedTemplateIds={new Set(['luma-studio'])} onSelectTemplate={vi.fn()} />,
+    )
+
+    const rail = screen.getByRole('complementary', { name: 'Template library' })
+    expect(within(rail).getByText('U')).toBeInTheDocument()
+    expect(within(rail).getByText('Recent work')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
+
+    // Who the rail belongs to survives the collapse; the list of project names
+    // does not, because names cannot be read at icon width - and it leaves the
+    // tab order with them rather than lingering as an unreadable row.
+    expect(within(rail).getByText('U')).toBeInTheDocument()
+    expect(within(rail).queryByText('Recent work')).toBeNull()
+    expect(within(rail).queryByRole('button', { name: 'Luma Studio' })).toBeNull()
+
+    // The project itself is still one click away, on its own card.
+    expect(screen.getByRole('button', { name: /Continue editing/ })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Expand sidebar' }))
+    expect(within(rail).getByRole('button', { name: 'Luma Studio' })).toBeInTheDocument()
   })
 
   it('labels only the persisted template as a continuing project', () => {

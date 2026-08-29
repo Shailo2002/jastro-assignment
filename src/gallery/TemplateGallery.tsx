@@ -73,9 +73,16 @@ const RAIL_SECTION_LABEL = `${RAIL_FADE} whitespace-nowrap`;
 /**
  * The signed-in name and address keep the width they have in the open rail
  * (224px of content minus the avatar column), so they never rewrap
- * mid-animation and the avatar beside them holds its place.
+ * mid-animation. Collapsing takes that width to zero rather than only fading
+ * it: a 168px box left standing in a 52px rail would push the avatar out
+ * through the rail's own overflow, which is the one part of this row that has
+ * to stay visible at icon width.
  */
-const RAIL_USER_TEXT = `${RAIL_FADE} w-[168px] shrink-0`;
+const RAIL_USER_TEXT =
+  "flex w-[168px] min-w-0 shrink-0 flex-col gap-[1px] overflow-hidden" +
+  " whitespace-nowrap transition-[width,opacity] duration-normal" +
+  " motion-reduce:transition-none group-data-[collapsed=true]/rail:w-0" +
+  " group-data-[collapsed=true]/rail:opacity-0";
 
 /**
  * The rail names a local user, not an account service: this build has no
@@ -335,53 +342,66 @@ export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
           )}
         </nav>
 
-        <div className="mb-5 flex flex-col gap-[2px] max-[820px]:hidden">
-          <p
-            className={`${RAIL_SECTION_LABEL} mb-2 px-2 text-xs font-medium tracking-[0.01em] text-muted`}
-          >
-            Recent work
-          </p>
-          {savedTemplates.length === 0 ? (
+        {/* The one section the collapsed rail drops rather than reduces to
+            icons: recent work is a list of names, and a stack of identical
+            clocks names nothing. It unmounts instead of hiding, so a row the
+            reader cannot read is not left in the tab order either; every
+            project in it stays one click away on its own card, under
+            Continue editing. */}
+        {railCollapsed ? null : (
+          <div className="mb-5 flex flex-col gap-[2px] max-[820px]:hidden">
             <p
-              className={`${RAIL_LABEL} w-[200px] shrink-0 px-2 text-xs leading-relaxed text-muted`}
+              className={`${RAIL_SECTION_LABEL} mb-2 px-2 text-xs font-medium tracking-[0.01em] text-muted`}
             >
-              No saved projects yet. Open a template to start one.
+              Recent work
             </p>
-          ) : (
-            <ul className="m-0 flex list-none flex-col gap-[2px] p-0">
-              {savedTemplates.map((template) => (
-                <li key={template.id}>
-                  {/* The row is the route back into that project's editor -
-                      the same destination the card's Continue editing opens. */}
-                  <button
-                    type="button"
-                    className={`${RAIL_ROW} w-full text-secondary`}
-                    title={`Continue ${template.name}`}
-                    onClick={() => {
-                      props.onSelectTemplate(template.id);
-                    }}
-                  >
-                    <GalleryIcon
-                      name="clock"
-                      className="size-4 text-muted group-hover/row:text-secondary"
-                    />
-                    <span className={`${RAIL_LABEL} min-w-0 truncate`}>
-                      {template.name}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+            {savedTemplates.length === 0 ? (
+              <p
+                className={`${RAIL_LABEL} w-[200px] shrink-0 px-2 text-xs leading-relaxed text-muted`}
+              >
+                No saved projects yet. Open a template to start one.
+              </p>
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-[2px] p-0">
+                {savedTemplates.map((template) => (
+                  <li key={template.id}>
+                    {/* The row is the route back into that project's editor -
+                        the same destination the card's Continue editing opens. */}
+                    <button
+                      type="button"
+                      className={`${RAIL_ROW} w-full text-secondary`}
+                      title={`Continue ${template.name}`}
+                      onClick={() => {
+                        props.onSelectTemplate(template.id);
+                      }}
+                    >
+                      <GalleryIcon
+                        name="clock"
+                        className="size-4 text-muted group-hover/row:text-secondary"
+                      />
+                      <span className={`${RAIL_LABEL} min-w-0 truncate`}>
+                        {template.name}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         {/* A statement, not a control: hairline rule, no panel, no menu. The
-            avatar never unmounts, so the collapsed rail keeps this row's
-            height and nothing above it moves. */}
+            avatar never unmounts and never moves: it stands in the same column
+            as the filter icons above it, at both rail widths, so collapsing
+            reads as the words leaving rather than the identity relocating.
+            The inset is that column's arithmetic - a rail row sets its 20px
+            glyph 13px in from the row edge (12px of padding over a 1px
+            transparent border), putting the column centre at 23px, and a 36px
+            avatar hangs 18px either side of that centre. */}
         <div
-          className="mt-auto flex items-center gap-3 border-t border-default px-2 pt-4
-            transition-[padding] duration-normal motion-reduce:transition-none
-            group-data-[collapsed=true]/rail:justify-center group-data-[collapsed=true]/rail:px-0
+          className="mt-auto flex items-center gap-3 border-t border-default ps-[5px] pe-2 pt-4
+            transition-[column-gap] duration-normal motion-reduce:transition-none
+            group-data-[collapsed=true]/rail:gap-0
             max-[820px]:hidden"
         >
           <span
@@ -391,7 +411,7 @@ export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
           >
             {CURRENT_USER.initial}
           </span>
-          <span className={`${RAIL_USER_TEXT} flex min-w-0 flex-col gap-[1px]`}>
+          <span className={RAIL_USER_TEXT}>
             <span className="truncate text-sm font-semibold text-primary">
               {CURRENT_USER.name}
             </span>
