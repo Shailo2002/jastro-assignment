@@ -82,12 +82,6 @@ export function outcomeFor(state: ProposalReviewState, proposalId: string): Prop
 export interface AiPanelState {
   /** What is in the composer right now, which the reviewer keeps editing. */
   readonly instruction: string
-  /**
-   * The instruction the current run was started from, kept separately so the
-   * transcript reports the words that produced these proposals even after the
-   * composer has been retyped. Absent until the first run.
-   */
-  readonly submittedInstruction: string | undefined
   readonly review: ProposalReviewState | undefined
   readonly failure: ProposalRunFailure | undefined
   /** Errors from the shared pipeline when an acceptance was rejected. */
@@ -96,10 +90,53 @@ export interface AiPanelState {
 
 export const EMPTY_AI_PANEL_STATE: AiPanelState = {
   instruction: '',
-  submittedInstruction: undefined,
   review: undefined,
   failure: undefined,
   commitErrors: [],
+}
+
+/* -------------------------------------------------------------------------- */
+/* Run failures                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One short line for a run that produced nothing.
+ *
+ * The engine's own messages explain themselves to a developer reading a test:
+ * they name the scenario, the element, the type it turned out to be, and why
+ * the two do not meet. In the rail that is three lines of red prose plus a
+ * bulleted panel for what is, to the person who typed it, a single fact - this
+ * did not apply. So the code is translated here into one sentence, in the
+ * second person, and nothing else is drawn.
+ *
+ * The mapping is exhaustive over the failure codes, so a new code cannot reach
+ * the UI as a raw engine sentence.
+ */
+export function describeRunFailure(failure: ProposalRunFailure): string {
+  switch (failure.code) {
+    case 'empty-instruction':
+      return 'Type an instruction first.'
+    case 'no-selection':
+      return 'Select an element first.'
+    case 'unknown-target':
+      return 'That selection is out of date. Select again and retry.'
+    case 'unsupported-instruction':
+      return 'That is not one of the supported instructions. Try an example below.'
+    case 'scope-not-allowed':
+      return 'That instruction changes one view. Switch the scope to Desktop, Tablet, or Mobile.'
+    case 'not-enough-targets':
+      return 'That instruction needs more than one element selected.'
+    case 'no-applicable-target':
+      return 'That instruction does not apply to what is selected.'
+    case 'invalid-proposal':
+      return 'That change could not be prepared, so nothing was changed.'
+  }
+}
+
+/** The one line naming what a run deliberately left alone, if anything. */
+export function describeSkipped(skipped: readonly ProposalSkip[]): string | undefined {
+  if (skipped.length === 0) return undefined
+  return `Left alone: ${skipped.map((skip) => skip.elementId).join(', ')}.`
 }
 
 /* -------------------------------------------------------------------------- */
@@ -225,7 +262,7 @@ function statusTextFor(input: {
     case 'invalid':
       return `Cannot be applied. ${input.errors.map((error) => error.message).join(' ')}`
     case 'pending':
-      return 'Pending review. Nothing has changed yet.'
+      return 'Pending review. Shown on the canvas; nothing is committed yet.'
   }
 }
 

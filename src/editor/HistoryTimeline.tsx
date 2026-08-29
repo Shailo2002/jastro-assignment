@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type JSX } from 'react'
+import { useEffect, useRef, useState, type JSX, type ReactNode } from 'react'
 
 import type { TemplateDocument } from '../model/document'
 import type { EditSource } from '../model/history'
@@ -124,6 +124,14 @@ export function HistoryTimeline(props: {
   onSelectElement: (elementId: ElementId) => void
   /** Restores one element/scope; returns pipeline errors, empty when applied. */
   onRestore: (request: RestoreRequest) => readonly string[]
+  /**
+   * The change that has not happened yet, drawn as the last card of the list.
+   * A proposal is the next entry the transcript would have, so it belongs at
+   * the end of the transcript rather than in a review surface beside it. It is
+   * outside the ordered list of committed entries, and the count in the header
+   * still counts only what has actually been committed.
+   */
+  pending?: ReactNode
 }): JSX.Element {
   const view = describeHistoryTimeline({
     document: props.document,
@@ -328,8 +336,11 @@ export function HistoryTimeline(props: {
                 Restore this revision?
               </p>
 
+              {/* One line: what moves and where. The element is named on the
+                  card this is inside, and every value that would change is in
+                  the table below, so the confirmation states neither twice. */}
               <p className="m-0 text-xs leading-normal text-secondary">
-                <strong>{entryView.restoreText}</strong> {entryView.protectionText}
+                {entryView.restoreText}
               </p>
 
               <PreviewTable
@@ -454,18 +465,24 @@ export function HistoryTimeline(props: {
       {view.entries.length === 0 ? (
         /* An empty timeline says one short thing, centred under its glyph:
            the panel is already titled History, so the copy does not have to
-           re-explain what a history is. */
-        <div className="flex flex-col items-center gap-2.5 px-4 py-10 text-center">
-          <Icon name="clock" className="size-6 text-muted" />
-          <p className="m-0 text-sm leading-normal font-medium text-secondary">
-            {view.emptyText}
-          </p>
-        </div>
+           re-explain what a history is. It gives way to a proposal: with an
+           offer on screen the list is not empty in any way a reader cares
+           about. */
+        props.pending === undefined && (
+          <div className="flex flex-col items-center gap-2.5 px-4 py-10 text-center">
+            <Icon name="clock" className="size-6 text-muted" />
+            <p className="m-0 text-sm leading-normal font-medium text-secondary">
+              {view.emptyText}
+            </p>
+          </div>
+        )
       ) : (
         <ol className="m-0 flex list-none flex-col gap-3 p-0">
           {view.entries.map(renderEntry)}
         </ol>
       )}
+
+      {props.pending}
     </section>
   )
 }

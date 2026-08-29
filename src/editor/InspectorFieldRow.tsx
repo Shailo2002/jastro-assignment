@@ -52,6 +52,7 @@ export function InspectorFieldRow(props: {
   const amountRef = useRef<HTMLInputElement>(null)
   const unitRef = useRef<HTMLSelectElement>(null)
   const rowRef = useRef<HTMLDivElement>(null)
+  const colorRef = useRef<HTMLInputElement>(null)
   /** True while an Enter keypress is driving the blur that commits. */
   const committingWithEnter = useRef(false)
 
@@ -94,6 +95,23 @@ export function InspectorFieldRow(props: {
     props.onCommit(parsed.value, { keepFocus: committingWithEnter.current })
   }
 
+  useEffect(() => {
+    // A colour swatch has no blur to commit on: the picker closes and focus
+    // stays put. `change` is the one event that fires once per chosen colour,
+    // so dragging through a gradient is a single history entry, not hundreds.
+    const input = colorRef.current
+    if (input === null) return undefined
+    const onChange = (): void => {
+      committingWithEnter.current = true
+      commitRaw(input.value)
+      committingWithEnter.current = false
+    }
+    input.addEventListener('change', onChange)
+    return () => {
+      input.removeEventListener('change', onChange)
+    }
+  })
+
   const commitDimension = (rawAmount: string, unit: DimensionUnit): void => {
     const parsed = parseFieldInput(field, rawAmount)
     if (!parsed.ok) {
@@ -106,13 +124,16 @@ export function InspectorFieldRow(props: {
     props.onCommit(value, { keepFocus: committingWithEnter.current })
   }
 
+  const controlClassName =
+    'field__control min-h-9 rounded-input border border-default bg-surface-canvas p-2 font-[inherit] text-[13px] text-primary hover:border-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus-ring aria-invalid:border-status-danger data-[mixed=true]:placeholder:text-muted data-[mixed=true]:placeholder:italic'
+
   const shared = {
     id: field.id,
     'aria-describedby': describedBy.length === 0 ? undefined : describedBy.join(' '),
     'aria-invalid': error === undefined ? undefined : true,
     // `field__control` is a query hook for the focus helper above, not a
     // style: everything visual is in the utilities beside it.
-    className: 'field__control w-full min-w-0 min-h-9 rounded-input border border-default bg-surface-canvas p-2 font-[inherit] text-[13px] text-primary hover:border-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus-ring aria-invalid:border-status-danger data-[mixed=true]:placeholder:text-muted data-[mixed=true]:placeholder:italic',
+    className: `w-full min-w-0 ${controlClassName}`,
     'data-mixed': mixed,
   } as const
 
@@ -156,6 +177,27 @@ export function InspectorFieldRow(props: {
             commitRaw(event.target.value)
           }}
         />
+      )
+    }
+
+    if (field.kind === 'color') {
+      return (
+        <span className="flex min-w-0 items-center gap-2 rounded-input border border-default bg-surface-canvas p-1 pr-2.5 hover:border-strong has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-1 has-[input:focus-visible]:outline-focus-ring">
+          {/* The native swatch is stripped of its own chrome so the colour
+              fills the tile instead of floating inside a second border. */}
+          <input
+            {...shared}
+            ref={colorRef}
+            type="color"
+            className="field__control h-7 w-9 shrink-0 cursor-pointer appearance-none rounded-control border-0 bg-transparent p-0 outline-none [&::-moz-color-swatch]:rounded-control [&::-moz-color-swatch]:border [&::-moz-color-swatch]:border-default [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-control [&::-webkit-color-swatch]:border [&::-webkit-color-swatch]:border-default"
+            defaultValue={swatchHex(mixed ? undefined : stringValue)}
+          />
+          {/* The swatch cannot show `transparent` or a token, so the stored
+              value stays readable beside it. */}
+          <span className="min-w-0 truncate text-[12px] text-secondary">
+            {mixed ? 'Mixed' : stringValue === '' ? 'Not set' : stringValue}
+          </span>
+        </span>
       )
     }
 
@@ -276,4 +318,23 @@ export function InspectorFieldRow(props: {
       )}
     </div>
   )
+}
+
+/**
+ * The nearest six-digit hex a native colour input can display.
+ *
+ * `transparent` and design tokens have no hex form, so they fall back to black
+ * in the swatch; the value itself is shown as text beside it and is only
+ * replaced when the user actually picks a colour.
+ */
+function swatchHex(value: string | undefined): string {
+  if (value === undefined) return '#000000'
+  const trimmed = value.trim()
+  if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed.toLowerCase()
+  if (/^#[0-9a-f]{8}$/i.test(trimmed)) return trimmed.slice(0, 7).toLowerCase()
+  if (/^#[0-9a-f]{3}$/i.test(trimmed)) {
+    const [r, g, b] = [trimmed[1], trimmed[2], trimmed[3]]
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase()
+  }
+  return '#000000'
 }

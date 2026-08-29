@@ -243,9 +243,12 @@ describe('restore', () => {
     await user.click(within(card).getByRole('button', { name: /^Restore/ }))
 
     const confirm = within(card).getByRole('group', { name: 'Restore this revision?' })
-    expect(confirm).toHaveTextContent('Mobile only')
-    expect(confirm).toHaveTextContent('Ship a landing page')
-    expect(confirm).toHaveTextContent('Desktop and Tablet keep their current values.')
+    // One line above the table: how much moves, in which scope, and which
+    // views provably keep their values. The element is named on the card.
+    expect(confirm).toHaveTextContent(
+      'Restores 1 field in Mobile only. Desktop and Tablet keep their current values.',
+    )
+    expect(within(card).getByText(/Ship a landing page/)).toBeInTheDocument()
 
     const row = within(confirm).getByRole('row', { name: /typography\.fontSize/ })
     expect(row).toHaveTextContent('44')

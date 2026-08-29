@@ -68,11 +68,22 @@ function card(id: string): HTMLElement {
   return node
 }
 
-/** The card's status line: the one place a card states what happened. */
+/** A card's status line. Only a card that cannot be applied has one. */
 function status(id: string): HTMLElement {
   const node = card(id).querySelector<HTMLElement>('.proposal-card__status')
   if (node === null) throw new Error(`No status line for "${id}".`)
   return node
+}
+
+/** The card's own title, which is where focus lands. */
+function cardTitle(id: string): HTMLElement {
+  const node = card(id).querySelector<HTMLElement>('h3')
+  if (node === null) throw new Error(`No title for "${id}".`)
+  return node
+}
+
+function queryCard(id: string): HTMLElement | null {
+  return document.querySelector<HTMLElement>(`.proposal-card[data-target-id="${id}"]`)
 }
 
 function cards(): readonly HTMLElement[] {
@@ -145,14 +156,43 @@ describe('running an instruction', () => {
     await select(user, 'hero.heading')
     await runInstruction(user, 'Make the heading bolder')
 
+    // The card names its target and scope the way a committed history entry
+    // does, and sits at the end of the same list.
     const only = card(HEADING)
-    expect(within(only).getByText(HEADING)).toBeInTheDocument()
+    expect(within(only).getByRole('heading', { name: 'Proposed AI edit' })).toBeInTheDocument()
+    expect(within(only).getByText(/^Heading:/)).toBeInTheDocument()
     expect(within(only).getByText('All views')).toBeInTheDocument()
 
     const row = within(only).getByRole('row', { name: /typography.fontWeight/ })
     expect(within(row).getByText('700')).toBeInTheDocument()
     expect(within(row).getByText('800')).toBeInTheDocument()
-    expect(status(HEADING)).toHaveTextContent(/^Pending/)
+
+    // An undecided card explains itself with its two buttons; there is no
+    // status line until it is one that cannot be applied.
+    expect(only.querySelector('.proposal-card__status')).toBeNull()
+  })
+
+  it('puts the undecided card at the foot of the history, after the last entry', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+    await select(user, 'hero.heading')
+
+    // One committed change first, so there is a transcript to sit at the end of.
+    const size = screen.getByLabelText(/Font size/)
+    await user.clear(size)
+    await user.type(size, '64')
+    await user.tab()
+
+    await runInstruction(user, 'Make the heading bolder')
+
+    const history = screen.getByRole('region', { name: 'History' })
+    const pending = card(HEADING)
+    expect(history).toContainElement(pending)
+
+    // Document order: every committed entry, then the offer.
+    const inRail = [...history.querySelectorAll('.revision-card, .proposal-card')]
+    expect(inRail.at(-1)).toBe(pending)
+    expect(inRail).toHaveLength(2)
   })
 
   it('fails safely on an unsupported instruction', async () => {
@@ -161,7 +201,10 @@ describe('running an instruction', () => {
     await select(user, 'hero.heading')
     await runInstruction(user, 'Add a pricing table with three plans')
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/only implements a fixed set/)
+    // One short sentence, not the engine's account of itself.
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'That is not one of the supported instructions. Try an example below.',
+    )
     expect(cards()).toHaveLength(0)
     expect(store.getState().document.revision).toBe(0)
   })
@@ -173,7 +216,7 @@ describe('running an instruction', () => {
     await runInstruction(user, 'Make the heading bolder')
 
     expect(cards()).toHaveLength(1)
-    expect(screen.getByText(/"hero.section" is a section/)).toBeInTheDocument()
+    expect(screen.getByText('Left alone: hero.section.')).toBeInTheDocument()
   })
 })
 
@@ -198,8 +241,12 @@ describe('independent outcomes', () => {
     expect(entries[0]?.scope).toBe('all')
     expect(state.history[FEATURES_HEADING]).toBeUndefined()
 
-    expect(status(HEADING)).toHaveTextContent(/^Accepted/)
-    expect(within(card(HEADING)).getByRole('button', { name: /^Accept/ })).toBeDisabled()
+    // The accepted card leaves: the change it offered is now the last entry of
+    // the history above it, and the sibling proposal is still on offer.
+    expect(queryCard(HEADING)).toBeNull()
+    expect(card(FEATURES_HEADING)).toBeInTheDocument()
+    const committed = [...document.querySelectorAll('.revision-card')]
+    expect(committed.at(-1)).toHaveAttribute('data-target-id', HEADING)
   })
 
   it('rejects one card without touching the document', async () => {
@@ -214,7 +261,11 @@ describe('independent outcomes', () => {
     expect(state.revision).toBe(0)
     expect(state.elements[FEATURES_HEADING]?.base.typography?.textAlign).toBeUndefined()
     expect(state.history[FEATURES_HEADING]).toBeUndefined()
-    expect(status(FEATURES_HEADING)).toHaveTextContent(/^Rejected/)
+
+    // A rejected change never happened, so nothing records it: the card is
+    // simply gone, and the other one is untouched.
+    expect(queryCard(FEATURES_HEADING)).toBeNull()
+    expect(card(HEADING)).toBeInTheDocument()
   })
 
   it('accepts one and rejects the other from the same run', async () => {
@@ -230,7 +281,11 @@ describe('independent outcomes', () => {
     expect(state.revision).toBe(1)
     expect(state.elements[HEADING]?.base.typography?.textAlign).toBe('center')
     expect(state.elements[FEATURES_HEADING]?.base.typography?.textAlign).toBeUndefined()
-    expect(screen.getByText(/1 accepted, 1 rejected/)).toBeInTheDocument()
+
+    // Nothing is left to decide, so the run is finished and the rail is the
+    // change log again - holding exactly the one change that was accepted.
+    expect(cards()).toHaveLength(0)
+    expect(document.querySelectorAll('.revision-card')).toHaveLength(1)
   })
 
   it('accepts both cards of one run as two independent commands', async () => {
@@ -318,21 +373,19 @@ describe('keyboard and announcements', () => {
     await user.keyboard(CENTER)
     await user.keyboard('{Enter}')
 
-    // Generation moves focus to the results heading, so the next Tab lands
-    // inside the results rather than back at the top of the panel.
-    expect(document.activeElement).toBe(
-      screen.getByRole('heading', { name: 'Centre the selection' }),
-    )
+    // Generation moves focus to the first proposal, so the next Tab lands on
+    // its own controls rather than back at the top of the rail.
+    expect(document.activeElement).toBe(cardTitle(HEADING))
     expect(cards()).toHaveLength(2)
 
     const accept = within(card(HEADING)).getByRole('button', { name: /^Accept/ })
     accept.focus()
     await user.keyboard('{Enter}')
 
-    // The button it used has just been disabled, so focus moves to the card's
-    // own status line instead of being lost to the document body.
-    expect(document.activeElement).toBe(status(HEADING))
-    expect(status(HEADING)).toHaveTextContent(/^Accepted/)
+    // The card it used has just left, so focus moves to the next one still
+    // awaiting a decision instead of being lost to the document body.
+    expect(queryCard(HEADING)).toBeNull()
+    expect(document.activeElement).toBe(cardTitle(FEATURES_HEADING))
     expect(store.getState().document.elements[HEADING]?.base.typography?.textAlign).toBe(
       'center',
     )
@@ -340,7 +393,11 @@ describe('keyboard and announcements', () => {
     const reject = within(card(FEATURES_HEADING)).getByRole('button', { name: /^Reject/ })
     reject.focus()
     await user.keyboard(' ')
-    expect(status(FEATURES_HEADING)).toHaveTextContent(/^Rejected/)
+
+    // Nothing is left to decide, so focus returns to where the next
+    // instruction is written.
+    expect(cards()).toHaveLength(0)
+    expect(document.activeElement).toBe(screen.getByLabelText('Instruction'))
   })
 
   it('announces the outcome of the run politely', async () => {

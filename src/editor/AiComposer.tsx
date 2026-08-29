@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type JSX } from 'react'
+import { useEffect, useId, useRef, type JSX, type RefObject } from 'react'
 
 import { scenarioExamples } from '../engine/scenario-catalog'
 import type { EditScope } from '../model/viewport'
@@ -33,6 +33,8 @@ import { ScopeLock } from './ScopeLock'
  * and running is the caller's decision, not this component's.
  */
 export function AiComposer(props: {
+  /** Focus returns here when a run is finished; the composer keeps its own. */
+  fieldRef?: RefObject<HTMLTextAreaElement | null>
   instruction: string
   scope: EditScope
   /** Readable names of what an instruction would target; empty blocks the run. */
@@ -57,13 +59,14 @@ export function AiComposer(props: {
    * is derived from the value the shell holds, so it is correct after an
    * external change - a chip run, a reset - and not only after a keystroke.
    */
-  const fieldRef = useRef<HTMLTextAreaElement | null>(null)
+  const ownFieldRef = useRef<HTMLTextAreaElement | null>(null)
+  const fieldRef = props.fieldRef ?? ownFieldRef
   useEffect(() => {
     const node = fieldRef.current
     if (node === null) return
     node.style.height = 'auto'
     node.style.height = `${Math.min(node.scrollHeight, 132)}px`
-  }, [props.instruction])
+  }, [props.instruction, fieldRef])
 
   return (
     <div

@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest'
 import type { TemplateDocument } from '../model/document'
 import { applyEditCommand } from '../engine/apply-edit-command'
 import { createEditCommand } from '../engine/edit-command'
-import { generateProposals, type ProposalRun } from '../engine/generate-proposals'
+import {
+  generateProposals,
+  PROPOSAL_RUN_FAILURE_CODES,
+  type ProposalRun,
+} from '../engine/generate-proposals'
 import { commandId, elementId } from '../model/ids'
 import { createInitialTemplateDocument } from '../model/initial-template'
 import type { EditablePropertyPatch } from '../model/properties'
@@ -11,6 +15,8 @@ import type { EditScope } from '../model/viewport'
 import {
   describeProposalChanges,
   describeProposalReview,
+  describeRunFailure,
+  describeSkipped,
   formatPropertyValue,
   outcomeFor,
   setProposalOutcome,
@@ -278,5 +284,43 @@ describe('acceptance draft', () => {
     for (const proposal of run.proposals) {
       expect(toAiEditDraft(proposal, { revision: 0 }).targetIds).toHaveLength(1)
     }
+  })
+})
+
+describe('what a failed run says', () => {
+  it('answers every failure code with one short sentence', () => {
+    for (const code of PROPOSAL_RUN_FAILURE_CODES) {
+      const line = describeRunFailure({ code, message: 'engine prose' })
+
+      expect(line.length).toBeLessThanOrEqual(90)
+      expect(line.split('. ').length).toBeLessThanOrEqual(2)
+      // Never the engine's own wording, which names scenarios and types.
+      expect(line).not.toContain('engine prose')
+    }
+  })
+
+  it('tells the reviewer what they can do about an unsupported instruction', () => {
+    const document = createInitialTemplateDocument()
+    const result = generateProposals({
+      document,
+      instruction: 'Add a pricing table with three plans',
+      selectedIds: [HEADING],
+      scope: 'all',
+    })
+    if (result.ok) throw new Error('expected a failure')
+
+    expect(describeRunFailure(result.failure)).toBe(
+      'That is not one of the supported instructions. Try an example below.',
+    )
+  })
+
+  it('names what a run left alone in one line, and says nothing when it left nothing', () => {
+    expect(describeSkipped([])).toBeUndefined()
+    expect(
+      describeSkipped([
+        { elementId: elementId('hero.section'), reason: 'incompatible-type', message: 'x' },
+        { elementId: elementId('hero.image'), reason: 'incompatible-type', message: 'y' },
+      ]),
+    ).toBe('Left alone: hero.section, hero.image.')
   })
 })

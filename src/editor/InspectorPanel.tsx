@@ -107,6 +107,9 @@ export function InspectorPanel(props: {
     return result === undefined || result.ok ? undefined : result.reason
   }
 
+  /** The one line shown under the buttons when a move is unavailable. */
+  const orderBlockedReason = orderReason('up') ?? orderReason('down')
+
   if (targets.length === 0) {
     return (
       <div className="flex min-w-0 flex-col gap-3">
@@ -162,10 +165,6 @@ export function InspectorPanel(props: {
         <legend className="px-2 text-xs font-semibold text-secondary">
           {INSPECTOR_SECTION_LABELS.order}
         </legend>
-        <PanelHint>
-          Moves the element among its siblings for the current scope. The template tree is
-          not restructured.
-        </PanelHint>
         <div className="flex flex-wrap gap-2">
           {(['up', 'down'] as const).map((direction) => {
             const reason = orderReason(direction)
@@ -174,7 +173,7 @@ export function InspectorPanel(props: {
                 key={direction}
                 type="button"
                 disabled={reason !== undefined}
-                aria-describedby={reason === undefined ? undefined : `order-${direction}-reason`}
+                aria-describedby={reason === undefined ? undefined : 'order-reason'}
                 onClick={() => {
                   move(direction)
                 }}
@@ -184,18 +183,12 @@ export function InspectorPanel(props: {
             )
           })}
         </div>
-        {(['up', 'down'] as const).map((direction) => {
-          const reason = orderReason(direction)
-          return reason === undefined ? null : (
-            <p
-              className="m-0 text-[11px] leading-[1.45] text-muted"
-              key={direction}
-              id={`order-${direction}-reason`}
-            >
-              Move {direction}: {reason}
-            </p>
-          )
-        })}
+        {/* Both buttons usually fail for the same reason, so it is said once. */}
+        {orderBlockedReason !== undefined && (
+          <p className="m-0 text-[11px] leading-[1.45] text-muted" id="order-reason">
+            {orderBlockedReason}
+          </p>
+        )}
         {error?.fieldId === 'order' && (
           <p
             className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']"

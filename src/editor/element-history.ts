@@ -108,7 +108,12 @@ export interface RevisionEntryView {
   readonly changes: readonly RestorePreviewRow[]
   /** What restoring this entry would change, from current values. */
   readonly preview: readonly RestorePreviewRow[]
-  /** One sentence naming the exact element and scope a restore would touch. */
+  /**
+   * The one line above the confirmation's table: how much a restore moves and
+   * which scope it moves it in, plus which views provably keep their values
+   * when the scope is a single viewport. The element itself is named on the
+   * card this sits inside, so it is not named twice.
+   */
   readonly restoreText: string
   /** e.g. `Desktop and Tablet keep their current values.` */
   readonly protectionText: string
@@ -133,6 +138,27 @@ export interface ElementHistoryView {
   readonly totalEntries: number
   /** One sentence for the panel, e.g. `3 revisions across 2 scopes.` */
   readonly summary: string
+}
+
+/**
+ * How a restore is announced in one line.
+ *
+ * A viewport restore adds the views it provably leaves alone, because that is
+ * the fact a reviewer is deciding on. The shared scope does not: "writes the
+ * shared value, unless a view overrides that field" is a paragraph about how
+ * resolution works, and the confirmation is not the place to teach it - the
+ * table underneath already shows every value that would move.
+ */
+function restoreLineFor(
+  scope: EditScope,
+  scopeText: string,
+  fieldCount: number,
+  elementName: string,
+): string {
+  const fields = `${fieldCount} field${fieldCount === 1 ? '' : 's'}`
+  if (scope === 'all') return `Restores ${fields} in ${scopeText}.`
+  const protection = describeScopeLock({ scope, targetNames: [elementName] }).protectionText
+  return `Restores ${fields} in ${scopeText}. ${protection}`
 }
 
 function describeEntry(
@@ -160,7 +186,7 @@ function describeEntry(
       restored: change.after,
     })),
     preview,
-    restoreText: `Restores ${elementName} in ${scopeText}, and nothing else.`,
+    restoreText: restoreLineFor(entry.scope, scopeText, preview.length, elementName),
     protectionText: describeScopeLock({ scope: entry.scope, targetNames: [elementName] })
       .protectionText,
     canRestore,

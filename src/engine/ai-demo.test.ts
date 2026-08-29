@@ -208,6 +208,68 @@ describe('resize and reorder scenarios', () => {
   })
 })
 
+describe('shrink scenario', () => {
+  it('scales the current font size down for a text element', () => {
+    const result = run({ instruction: 'Decrease the font size', selectedIds: [HEADING] })
+
+    expect(result.scenarioId).toBe('size-shrink')
+    expect(result.proposals[0]?.before).toEqual({ typography: { fontSize: 56 } })
+    expect(result.proposals[0]?.after).toEqual({ typography: { fontSize: 45 } })
+  })
+
+  it('scales the current fixed width down for a box element', () => {
+    const result = run({ instruction: 'Make this smaller', selectedIds: [IMAGE] })
+
+    expect(result.proposals[0]?.after).toEqual({ size: { width: { value: 80, unit: '%' } } })
+  })
+})
+
+describe('colour scenarios', () => {
+  it('sets the background to the colour named in the instruction', () => {
+    const result = run({
+      instruction: 'Change the background to green',
+      selectedIds: [SECTION],
+    })
+
+    expect(result.scenarioId).toBe('color-background')
+    expect(result.proposals[0]?.after).toEqual({ surface: { background: '#22c55e' } })
+    expect(result.proposals[0]?.changedPaths).toEqual(['surface.background'])
+  })
+
+  it('sets the text colour without touching the background', () => {
+    const result = run({ instruction: 'Make the text blue', selectedIds: [HEADING] })
+
+    expect(result.scenarioId).toBe('color-text')
+    expect(result.proposals[0]?.after).toEqual({ typography: { color: '#3b82f6' } })
+  })
+
+  it('skips an element the colour does not apply to', () => {
+    const result = run({
+      instruction: 'Change the background to white',
+      selectedIds: [SECTION, HEADING],
+    })
+
+    expect(result.proposals.map((proposal) => proposal.elementId)).toEqual([SECTION])
+    expect(result.skipped).toEqual([
+      {
+        elementId: HEADING,
+        reason: 'incompatible-type',
+        message:
+          'A background applies to boxes, badges, and buttons; "hero.heading" is a heading.',
+      },
+    ])
+  })
+
+  it('needs a colour it knows, not just the word background', () => {
+    const failure = expectFailure({
+      instruction: 'Change the background to chartreuse',
+      selectedIds: [SECTION],
+    })
+
+    expect(failure.code).toBe('unsupported-instruction')
+  })
+})
+
 describe('single-viewport scenario', () => {
   it('reads the chosen viewport and proposes only for that scope', () => {
     const result = run({

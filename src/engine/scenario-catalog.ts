@@ -22,17 +22,26 @@ import type { EditScope } from '../model/viewport'
  * and no function here receives a setter or mutation callback. Every builder is
  * a pure `(target, context) -> outcome`.
  *
- * Matching is first-match-wins over `SCENARIOS` in declaration order. The order
- * is deliberate: the responsive scenario is checked before the generic ones so
- * that "make the mobile spacing tighter" cannot be swallowed by the content
- * rewrite, which also owns the word "tighter".
+ * Matching is first-match-wins over `SCENARIOS` in declaration order, and that
+ * order is also the order the composer offers its example chips - so the
+ * scenarios worth demonstrating first are declared first.
+ *
+ * Two precedences are load-bearing rather than cosmetic. The responsive
+ * scenario stays ahead of the size and content scenarios, so "reduce the mobile
+ * padding" is a viewport edit rather than a resize; and it stays ahead of the
+ * content rewrite, which also owns the word "tighter". The colour scenarios lead
+ * because they additionally require a palette colour by name, which no other
+ * scenario looks at, so nothing else can be swallowed by them.
  */
 
 export const SCENARIO_IDS = [
+  'color-background',
+  'color-text',
   'viewport-compact',
+  'size-grow',
+  'size-shrink',
   'content-tighten',
   'order-front',
-  'size-grow',
   'multi-center',
   'style-emphasis',
 ] as const
@@ -57,6 +66,11 @@ export interface ScenarioTarget {
 export interface ScenarioContext {
   readonly scope: EditScope
   readonly targetCount: number
+  /**
+   * The normalised instruction. Only the colour scenarios read it: the colour
+   * they set is named in the instruction itself, not fixed by the scenario.
+   */
+  readonly instruction: NormalizedInstruction
 }
 
 export type ScenarioOutcome =
@@ -151,6 +165,9 @@ const COPY_NOUNS = [
 const MOVE_VERBS = ['move', 'bring', 'put', 'reorder', 'promote'] as const
 const FRONT_WORDS = ['front', 'first', 'ahead', 'order', 'earlier'] as const
 const GROW_WORDS = ['bigger', 'larger', 'grow', 'enlarge', 'increase', 'scale'] as const
+const SHRINK_WORDS = ['smaller', 'shrink', 'decrease', 'reduce', 'downsize'] as const
+const BACKGROUND_WORDS = ['background', 'backdrop', 'bg', 'fill'] as const
+const TEXT_COLOR_WORDS = ['text', 'font', 'type', 'letters', 'words', 'foreground'] as const
 const CENTER_WORDS = ['center', 'centre', 'centered', 'centred', 'align', 'consistent'] as const
 const EMPHASIS_WORDS = [
   'bold',
@@ -163,6 +180,43 @@ const EMPHASIS_WORDS = [
   'heavier',
   'stand',
 ] as const
+
+/**
+ * The colours the demo understands, by name.
+ *
+ * A fixed palette rather than free-form input: every value here already
+ * satisfies the colour schema, so a named colour can never produce a proposal
+ * that fails validation.
+ */
+const NAMED_COLORS: Readonly<Record<string, string>> = {
+  green: '#22c55e',
+  red: '#ef4444',
+  blue: '#3b82f6',
+  yellow: '#eab308',
+  orange: '#f97316',
+  purple: '#a855f7',
+  pink: '#ec4899',
+  teal: '#14b8a6',
+  black: '#000000',
+  white: '#ffffff',
+  grey: '#6b7280',
+  gray: '#6b7280',
+  transparent: 'transparent',
+}
+
+interface NamedColor {
+  readonly name: string
+  readonly value: string
+}
+
+/** The first palette colour named in the instruction, in the order typed. */
+function namedColorIn(instruction: NormalizedInstruction): NamedColor | undefined {
+  for (const word of instruction.words) {
+    const value = NAMED_COLORS[word]
+    if (value !== undefined) return { name: word, value }
+  }
+  return undefined
+}
 
 /* -------------------------------------------------------------------------- */
 /* Shared helpers                                                              */
@@ -365,6 +419,104 @@ function buildSizeGrow(target: ScenarioTarget): ScenarioOutcome {
   return skip('incompatible-type', `"${target.id}" has no size this scenario can scale.`)
 }
 
+const SHRINK_FACTOR = 0.8
+
+function buildSizeShrink(target: ScenarioTarget): ScenarioOutcome {
+  if (isTextType(target.type)) {
+    const fontSize = target.current.typography?.fontSize
+    if (fontSize === undefined) {
+      return skip(
+        'no-change',
+        `"${target.id}" has no explicit font size to scale. Set one first, then run this again.`,
+      )
+    }
+    const next = clamp(Math.round(fontSize * SHRINK_FACTOR), 8, 200)
+    if (next === fontSize) {
+      return skip('no-change', `"${target.id}" is already at the smallest supported size.`)
+    }
+    return {
+      ok: true,
+      patch: { typography: { fontSize: next } },
+      summary: `Shrinks font size from ${fontSize} to ${next}.`,
+    }
+  }
+
+  if (BOX_TYPES.includes(target.type)) {
+    const width = target.current.size?.width
+    const next = scaleDimension(width, SHRINK_FACTOR)
+    if (width === undefined || width === 'auto' || next === undefined || next === 'auto') {
+      return skip(
+        'no-change',
+        `"${target.id}" has no fixed width to scale, so shrinking it would not be a definite change.`,
+      )
+    }
+    return {
+      ok: true,
+      patch: { size: { width: next } },
+      summary: `Shrinks width from ${width.value}${width.unit} to ${next.value}${next.unit}.`,
+    }
+  }
+
+  return skip('incompatible-type', `"${target.id}" has no size this scenario can scale.`)
+}
+
+/* -------------------------------------------------------------------------- */
+/* Colour                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const BACKGROUND_TYPES: readonly ElementType[] = [
+  'section',
+  'container',
+  'card',
+  'badge',
+  'button',
+]
+
+function buildBackgroundColor(
+  target: ScenarioTarget,
+  context: ScenarioContext,
+): ScenarioOutcome {
+  const chosen = namedColorIn(context.instruction)
+  if (chosen === undefined) {
+    return skip('no-change', 'Name one of the demo colours, such as green, blue, or white.')
+  }
+  if (!BACKGROUND_TYPES.includes(target.type)) {
+    return skip(
+      'incompatible-type',
+      `A background applies to boxes, badges, and buttons; "${target.id}" is a ${target.type}.`,
+    )
+  }
+  if (target.current.surface?.background === chosen.value) {
+    return skip('no-change', `"${target.id}" already has a ${chosen.name} background.`)
+  }
+  return {
+    ok: true,
+    patch: { surface: { background: chosen.value } },
+    summary: `Sets the background to ${chosen.name} (${chosen.value}).`,
+  }
+}
+
+function buildTextColor(target: ScenarioTarget, context: ScenarioContext): ScenarioOutcome {
+  const chosen = namedColorIn(context.instruction)
+  if (chosen === undefined) {
+    return skip('no-change', 'Name one of the demo colours, such as green, blue, or white.')
+  }
+  if (!isTextType(target.type)) {
+    return skip(
+      'incompatible-type',
+      `Text colour applies to text elements; "${target.id}" is a ${target.type}.`,
+    )
+  }
+  if (target.current.typography?.color === chosen.value) {
+    return skip('no-change', `"${target.id}" is already ${chosen.name}.`)
+  }
+  return {
+    ok: true,
+    patch: { typography: { color: chosen.value } },
+    summary: `Sets the text colour to ${chosen.name} (${chosen.value}).`,
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* Reorder                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -468,6 +620,27 @@ function buildMultiCenter(target: ScenarioTarget): ScenarioOutcome {
 
 export const SCENARIOS: readonly ScenarioDefinition[] = [
   {
+    id: 'color-background',
+    title: 'Recolour the background',
+    example: 'Change the background to green',
+    description:
+      'Sets `surface.background` to the demo colour named in the instruction: green, red, blue, yellow, orange, purple, pink, teal, black, white, grey, or transparent.',
+    requirements: {},
+    matches: (instruction) =>
+      hasAny(instruction, BACKGROUND_WORDS) && namedColorIn(instruction) !== undefined,
+    build: buildBackgroundColor,
+  },
+  {
+    id: 'color-text',
+    title: 'Recolour the text',
+    example: 'Make the text blue',
+    description: 'Sets `typography.color` to the demo colour named in the instruction.',
+    requirements: {},
+    matches: (instruction) =>
+      hasAny(instruction, TEXT_COLOR_WORDS) && namedColorIn(instruction) !== undefined,
+    build: buildTextColor,
+  },
+  {
     id: 'viewport-compact',
     title: 'Compact spacing for one view',
     example: 'Make the mobile spacing more compact',
@@ -477,6 +650,26 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     matches: (instruction) =>
       hasAny(instruction, VIEWPORT_WORDS) && hasAny(instruction, COMPACT_WORDS),
     build: buildViewportCompact,
+  },
+  {
+    id: 'size-grow',
+    title: 'Make it bigger',
+    example: 'Increase the font size',
+    description:
+      'Scales the current font size by 1.25 for text elements, or the current fixed width for boxes.',
+    requirements: {},
+    matches: (instruction) => hasAny(instruction, GROW_WORDS),
+    build: (target) => buildSizeGrow(target),
+  },
+  {
+    id: 'size-shrink',
+    title: 'Make it smaller',
+    example: 'Decrease the font size',
+    description:
+      'Scales the current font size by 0.8 for text elements, or the current fixed width for boxes.',
+    requirements: {},
+    matches: (instruction) => hasAny(instruction, SHRINK_WORDS),
+    build: (target) => buildSizeShrink(target),
   },
   {
     id: 'content-tighten',
@@ -499,16 +692,6 @@ export const SCENARIOS: readonly ScenarioDefinition[] = [
     matches: (instruction) =>
       hasAny(instruction, MOVE_VERBS) && hasAny(instruction, FRONT_WORDS),
     build: (target) => buildOrderFront(target),
-  },
-  {
-    id: 'size-grow',
-    title: 'Make it bigger',
-    example: 'Make this bigger',
-    description:
-      'Scales the current font size by 1.25 for text elements, or the current fixed width for boxes.',
-    requirements: {},
-    matches: (instruction) => hasAny(instruction, GROW_WORDS),
-    build: (target) => buildSizeGrow(target),
   },
   {
     id: 'multi-center',

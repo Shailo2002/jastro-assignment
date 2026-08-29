@@ -45,6 +45,10 @@ import {
   toAiEditDraft,
   type AiPanelState,
 } from "./proposal-review";
+import {
+  describeProposalPreview,
+  previewPendingProposals,
+} from "./proposal-preview";
 import { useDocumentStore } from "./use-document-store";
 import { useElementRects } from "./use-element-rects";
 import type { SelectionApi } from "./use-selection";
@@ -170,6 +174,27 @@ export function EditorShell(props: {
   const rows = useMemo(() => flattenResolvedDocument(resolved), [resolved]);
   const knownIds = useMemo(() => collectElementIds(rows), [rows]);
   const selection = useSelection(knownIds);
+
+  /**
+   * What the canvas RENDERS: the committed document with every pending
+   * proposal applied on top, so a suggestion can be judged as a picture rather
+   * than as a pair of hex values. It is a projection and nothing else - the
+   * store never sees it, and every other surface (inspector, code, history,
+   * the version chip) keeps reading `state.document`, which is still exactly
+   * what has been committed. Accepting re-runs the same pipeline for real;
+   * rejecting drops the proposal from this list and the canvas returns.
+   */
+  const proposalPreview = useMemo(
+    () =>
+      previewPendingProposals({
+        document: state.document,
+        state: aiState.review,
+        selectedIds: selection.selectedIds,
+      }),
+    [state.document, aiState.review, selection.selectedIds],
+  );
+  const previewNote = describeProposalPreview(proposalPreview);
+
 
   /**
    * The dock follows the selection.
@@ -544,20 +569,40 @@ export function EditorShell(props: {
                 }}
               >
                 <PreviewFrame
-                  document={state.document}
+                  document={proposalPreview.document}
                   viewport={viewport}
                   fit={fit}
                   renderOverlay={({ frameRef, scale }) => (
                     <CanvasSelectionLayer
                       frameRef={frameRef}
                       scale={scale}
-                      changeKey={`${state.document.revision}:${viewport}:${String(fit)}`}
+                      changeKey={`${proposalPreview.document.revision}:${viewport}:${String(fit)}`}
                       rows={rows}
                       selection={selection}
                     />
                   )}
                 />
               </div>
+
+              {/* Said once, on the surface that is lying: the canvas is
+                  showing values that are not committed yet. It rides the
+                  opposite corner from the version chip, which keeps naming the
+                  committed revision. */}
+              {previewNote !== undefined && (
+                <p
+                  className="pointer-events-none absolute start-3 bottom-3 z-10 m-0 inline-flex
+                    items-center gap-1.5 rounded-pill border border-selection bg-surface-shell/80
+                    px-2 py-0.5 text-[11px] whitespace-nowrap text-primary shadow-hairline
+                    backdrop-blur-[18px]"
+                  role="status"
+                >
+                  <span
+                    className="size-1.5 rounded-pill bg-action-primary"
+                    aria-hidden="true"
+                  />
+                  {previewNote}
+                </p>
+              )}
 
               {/* Where the work stands, worn by the document it describes. */}
               <PersistenceChip

@@ -117,10 +117,13 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   expect(await headingSize(page)).toBe('50px')
 
   /* 8. Accept one, reject the other; each is its own decision. */
-  await cards.nth(0).getByRole('button', { name: /^Accept change for/ }).click()
-  await expect(cards.nth(0)).toContainText(/Accepted/i)
-  await cards.nth(1).getByRole('button', { name: /^Reject change for/ }).click()
-  await expect(cards.nth(1)).toContainText(/Rejected/i)
+  await cards.first().getByRole('button', { name: /^Accept change for/ }).click()
+  // A decided card leaves the rail. What was accepted is the newest history
+  // entry; what is rejected never happened, so nothing records it.
+  await expect(cards).toHaveCount(1)
+  await expect(page.locator('.revision-card').last()).toHaveAttribute('data-source', 'ai')
+  await cards.first().getByRole('button', { name: /^Reject change for/ }).click()
+  await expect(cards).toHaveCount(0)
 
   /* 9. Restore one element in one scope, from the history in the rail. The
         transcript runs oldest first, so the newest entry is the last one. */

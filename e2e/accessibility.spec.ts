@@ -208,7 +208,10 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   const acceptButton = page.locator('.proposal-card').first().getByRole('button', { name: 'Accept' })
   await tabTo(page, acceptButton)
   await page.keyboard.press('Enter')
-  await expect(page.locator('.proposal-card').first()).toContainText(/Accepted/i)
+  // An accepted card leaves the rail: its change is now the newest entry of
+  // the history it was sitting at the end of.
+  await expect(page.locator('.proposal-card')).toHaveCount(0)
+  await expect(page.locator('.revision-card').last()).toHaveAttribute('data-source', 'ai')
 
   // 8. Restore one revision for one element and scope, and return focus. The
   //    history is in the rail, above the composer, so nothing is switched; the

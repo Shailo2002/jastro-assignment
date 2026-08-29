@@ -1,25 +1,36 @@
-import type { JSX, RefObject } from 'react'
+import type { JSX } from 'react'
 
 import type { ProposalRunFailure } from '../engine/generate-proposals'
 import { Icon } from './Icon'
-import { PanelHeading, ToolbarButton } from './controls'
-import type { ProposalCardView, ProposalReviewView } from './proposal-review'
+import { ToolbarButton } from './controls'
+import {
+  describeRunFailure,
+  describeSkipped,
+  type ProposalCardView,
+  type ProposalReviewView,
+} from './proposal-review'
 
 /**
- * One AI turn, read as a conversation.
+ * The undecided end of the transcript.
  *
- * The instruction that was run is shown as the reviewer's own message, and the
- * generated run answers it below - so the rail states what was asked before it
- * states what came back, and a run whose instruction has since been retyped in
- * the composer still reports the words it was actually generated from.
+ * A proposal is the change that has not happened yet, so it is drawn as the
+ * LAST card of the history: the same card shape as a committed entry, in the
+ * same column, one row further down, holding Accept and Reject where a
+ * committed entry holds Restore. Read top to bottom the rail is then one list -
+ * what was changed, then what is being offered - rather than a change log with
+ * a second, differently shaped review surface bolted under it.
  *
- * Nothing here changes the document. Running an instruction produces proposals
- * and leaves the canvas, the revision, and the history untouched; acceptance
- * commits exactly one card through the same validated pipeline the inspector
- * and the code surface use. Per-element outcomes are independent by
- * construction: one card, one command. There is no "accept all", because that
- * would be a single multi-target command and a reviewer could no longer decline
- * one element of it.
+ * A decided card leaves. Accepting commits it, and the commit arrives in the
+ * history immediately above as an ordinary AI edit, so keeping a duplicate
+ * "Accepted" card would state the same change twice; rejecting means it never
+ * happened, and a transcript of things that did not happen is not a history.
+ * The outcome is announced instead, which is what a screen reader needs and
+ * what a repeated card was standing in for.
+ *
+ * Nothing here changes the document. Acceptance commits exactly one card
+ * through the same validated pipeline the inspector and the code surface use;
+ * per-element outcomes stay independent by construction - one card, one
+ * command - which is why there is no "accept all".
  *
  * This component is presentation only: the run, the decisions, and the focus
  * targets all belong to the rail that owns them.
@@ -57,18 +68,13 @@ function ChangeTable(props: { card: ProposalCardView }): JSX.Element {
   )
 }
 
-/** The reviewer's own message: the instruction exactly as it was submitted. */
-function InstructionBubble(props: { instruction: string }): JSX.Element {
-  return (
-    <p
-      className="m-0 ms-auto max-w-[85%] rounded-card rounded-ee-xs border border-default
-        bg-surface-elevated px-3 py-2 text-[13px] leading-normal text-primary
-        [overflow-wrap:anywhere]"
-    >
-      <span className="sr-only">Instruction run: </span>
-      {props.instruction}
-    </p>
-  )
+/** The word a card wears where a committed entry wears its source. */
+const STATUS_LABELS: Readonly<Record<ProposalCardView['status'], string>> = {
+  pending: 'Proposed',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+  stale: 'Stale',
+  invalid: 'Not applicable',
 }
 
 export function ProposalThread(props: {
@@ -77,181 +83,148 @@ export function ProposalThread(props: {
   failure: ProposalRunFailure | undefined
   /** Errors from the shared pipeline when an acceptance was rejected. */
   commitErrors: readonly string[]
-  /** The instruction as typed when the run was started, not as typed now. */
-  submittedInstruction: string | undefined
-  /** Focus lands here after a run, so the next Tab is inside the results. */
-  resultsRef: RefObject<HTMLHeadingElement | null>
-  /** Focus lands on a card's status line after that card is decided. */
-  registerStatusRef: (proposalId: string, node: HTMLParagraphElement | null) => void
+  /** What the last decision did, announced once and then left alone. */
+  decisionNote: string | undefined
+  /** Focus lands on a card's title after a run, and after the card above it goes. */
+  registerCardRef: (proposalId: string, node: HTMLHeadingElement | null) => void
   onDecide: (card: ProposalCardView, outcome: 'accepted' | 'rejected') => void
 }): JSX.Element {
   const { view, failure } = props
 
+  // Decided cards are gone from the list, so the run itself is only whatever is
+  // still open: proposals awaiting a decision, and ones that cannot be applied
+  // and say why.
+  const cards = view?.cards.filter((card) => card.status !== 'accepted' && card.status !== 'rejected') ?? []
+  const skippedText = view === undefined ? undefined : describeSkipped(view.skipped)
+
   return (
-    <section className="flex min-w-0 flex-col gap-3" aria-labelledby="ai-heading">
-      <div className="flex min-w-0 items-center gap-2">
-        <span
-          className="grid size-6 flex-none place-items-center rounded-pill bg-accent-brand
-            text-primary"
-          aria-hidden="true"
+    <section className="flex min-w-0 flex-col gap-3" aria-label="Proposed changes">
+      {/* The run's own tally and the outcome of the last decision. Both are
+          read aloud and neither is drawn: the cards below already say what is
+          on offer, and a decided card has left rather than restating itself. */}
+      <p className="sr-only" role="status">
+        {props.decisionNote ?? view?.summary ?? ''}
+      </p>
+
+      {/* A run that produced nothing is one sentence, not a report: the
+          reviewer typed something that did not apply, and the next thing they
+          will do is type again. The engine's fuller account is still on the
+          failure object for anyone debugging. */}
+      {failure !== undefined && (
+        <p
+          className="m-0 text-xs leading-[1.45] text-status-danger before:content-['\26A0__']"
+          role="alert"
         >
-          <Icon name="sparkle" className="size-[14px]" />
-        </span>
-        <PanelHeading id="ai-heading" className="text-primary">
-          AI edits
-        </PanelHeading>
-      </div>
+          {describeRunFailure(failure)}
+        </p>
+      )}
 
-      {props.submittedInstruction !== undefined &&
-        props.submittedInstruction.trim() !== '' && (
-          <InstructionBubble instruction={props.submittedInstruction} />
-        )}
+      {view !== undefined && skippedText !== undefined && (
+        <p className="m-0 text-[11px] leading-[1.45] text-muted">{skippedText}</p>
+      )}
 
-      {/* The reply. It keeps the rail's full width rather than sitting in an
-          avatar gutter: the cards inside it carry before/after tables, and 36px
-          is a column of one of them. */}
-      <div className="flex min-w-0 flex-col gap-3">
-        {failure !== undefined && (
-          <div role="alert">
-            <p className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']">
-              {failure.message}
-            </p>
-            {failure.skipped !== undefined && failure.skipped.length > 0 && (
-              <ul className="m-0 mt-2 flex list-disc flex-col gap-1 rounded-control border-l-[3px] border-strong bg-surface-panel py-3 pe-3 ps-6 text-xs leading-[1.45] text-secondary">
-                {failure.skipped.map((skip) => (
-                  <li key={skip.elementId}>{skip.message}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+      {props.commitErrors.length > 0 && (
+        <div role="alert">
+          <p className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']">
+            The change was rejected and nothing was applied. {props.commitErrors.join(' ')}
+          </p>
+        </div>
+      )}
 
-        {view !== undefined && (
-          <>
-            <h3
-              className="m-0 text-sm font-semibold text-primary focus-visible:outline-2
-                focus-visible:outline-offset-4 focus-visible:outline-focus-ring"
-              ref={props.resultsRef}
-              tabIndex={-1}
-            >
-              {view.scenarioTitle}
-            </h3>
-
-            {/* The Scope Lock statement is repeated here so the reviewer reads
-                what an acceptance will touch at the moment of accepting it. */}
-            <p className="m-0 text-xs leading-normal text-secondary [&_strong]:text-primary">
-              <strong>{view.scopeText}</strong> &middot; {view.scopeLock.protectionText}
-            </p>
-
-            <p className="m-0 text-xs leading-normal text-secondary" role="status">
-              {view.summary}
-            </p>
-
-            {view.skipped.length > 0 && (
-              <ul className="m-0 flex list-disc flex-col gap-1 rounded-control border-l-[3px] border-strong bg-surface-panel py-3 pe-3 ps-6 text-xs leading-[1.45] text-secondary">
-                {view.skipped.map((skip) => (
-                  <li key={skip.elementId}>{skip.message}</li>
-                ))}
-              </ul>
-            )}
-
-            {props.commitErrors.length > 0 && (
-              <div role="alert">
-                <p className="m-0 text-[11px] leading-[1.45] text-status-danger before:content-['\26A0__']">
-                  The change was rejected and nothing was applied.{' '}
-                  {props.commitErrors.join(' ')}
-                </p>
-              </div>
-            )}
-
-            <ul className="m-0 flex list-none flex-col gap-3 p-0">
-              {view.cards.map((card) => {
-                const cardId = `proposal-${card.proposal.id}`
-                return (
-                  <li key={card.proposal.id}>
-                    {/* `proposal-card` is a query hook for the tests; status
-                        is carried by the card's text, the edge is a second
-                        cue. */}
-                    <article
-                      className="proposal-card flex flex-col gap-2 rounded-card border border-default
-                        border-l-[3px] bg-surface-panel p-3 shadow-hairline
-                        data-[status=pending]:border-l-action-primary
-                        data-[status=accepted]:border-l-status-success
-                        data-[status=rejected]:border-l-strong
-                        data-[status=stale]:border-l-status-warning
-                        data-[status=invalid]:border-l-status-danger"
-                      aria-labelledby={`${cardId}-title`}
-                      data-status={card.status}
-                      data-target-id={card.proposal.elementId}
+      {cards.length > 0 && (
+        <ul className="m-0 flex list-none flex-col gap-3 p-0">
+          {cards.map((card) => {
+            const cardId = `proposal-${card.proposal.id}`
+            return (
+              <li key={card.proposal.id}>
+                {/* `proposal-card` is a query hook for the tests. It wears the
+                    committed card's shape so the offer reads as the next entry
+                    of the same list; what says it is not one yet is the word
+                    beside the glyph and the two buttons under it. */}
+                <article
+                  className="proposal-card flex min-w-0 flex-col gap-2 rounded-card border
+                    border-strong border-l-[3px] bg-surface-panel p-3 shadow-hairline
+                    data-[status=pending]:border-l-action-primary
+                    data-[status=stale]:border-l-status-warning
+                    data-[status=invalid]:border-l-status-danger"
+                  aria-labelledby={`${cardId}-title`}
+                  data-status={card.status}
+                  data-target-id={card.proposal.elementId}
+                >
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <span
+                      className="grid size-6 flex-none place-items-center rounded-pill border
+                        border-default bg-surface-elevated text-status-warning"
+                      aria-hidden="true"
                     >
-                      <h4
-                        className="m-0 text-[13px] font-semibold text-primary"
-                        id={`${cardId}-title`}
-                      >
-                        {card.targetName}
-                      </h4>
+                      <Icon name="sparkle" className="size-[14px]" />
+                    </span>
+                    <h3
+                      className="m-0 text-[13px] font-semibold text-primary
+                        focus-visible:outline-2 focus-visible:outline-offset-4
+                        focus-visible:outline-focus-ring"
+                      id={`${cardId}-title`}
+                      tabIndex={-1}
+                      ref={(node) => {
+                        props.registerCardRef(card.proposal.id, node)
+                      }}
+                    >
+                      {STATUS_LABELS[card.status]} AI edit
+                    </h3>
+                  </div>
 
-                      <p className="m-0 text-[11px] text-muted">
-                        <code className="font-mono">{card.proposal.elementId}</code>
-                        <span aria-hidden="true"> &middot; </span>
-                        <span>{card.scopeText}</span>
-                      </p>
+                  <p className="m-0 text-[11px] text-muted [overflow-wrap:anywhere]">
+                    <span className="font-semibold text-secondary">{card.targetName}</span>
+                    <span aria-hidden="true"> &middot; </span>
+                    <span>{card.scopeText}</span>
+                  </p>
 
-                      <p className="m-0 text-xs leading-normal text-secondary">
-                        {card.proposal.summary}
-                      </p>
+                  <p className="m-0 text-xs leading-normal text-secondary">
+                    {card.proposal.summary}
+                  </p>
 
-                      <ChangeTable card={card} />
+                  <ChangeTable card={card} />
 
-                      <p
-                        className="proposal-card__status m-0 text-xs leading-[1.45] text-secondary
-                          focus-visible:outline-2 focus-visible:outline-offset-4
-                          focus-visible:outline-focus-ring"
-                        tabIndex={-1}
-                        ref={(node) => {
-                          props.registerStatusRef(card.proposal.id, node)
-                        }}
-                      >
-                        <span className="font-semibold text-primary after:content-[':']">
-                          {card.status === 'pending' ? 'Pending' : null}
-                          {card.status === 'accepted' ? 'Accepted' : null}
-                          {card.status === 'rejected' ? 'Rejected' : null}
-                          {card.status === 'stale' ? 'Stale' : null}
-                          {card.status === 'invalid' ? 'Not applicable' : null}
-                        </span>{' '}
-                        {card.statusText}
-                      </p>
+                  {/* Only said when it is not obvious: a pending card is
+                      explained by the two buttons under it, while one that
+                      cannot be applied has to say why. */}
+                  {card.status !== 'pending' && (
+                    <p className="proposal-card__status m-0 text-xs leading-[1.45] text-secondary">
+                      <span className="font-semibold text-primary after:content-[':']">
+                        {STATUS_LABELS[card.status]}
+                      </span>{' '}
+                      {card.statusText}
+                    </p>
+                  )}
 
-                      <div className="flex flex-wrap gap-2">
-                        <ToolbarButton
-                          type="button"
-                          disabled={!card.canAccept}
-                          aria-label={`Accept change for ${card.targetName}`}
-                          onClick={() => {
-                            props.onDecide(card, 'accepted')
-                          }}
-                        >
-                          Accept
-                        </ToolbarButton>
-                        <ToolbarButton
-                          type="button"
-                          disabled={!card.canReject}
-                          aria-label={`Reject change for ${card.targetName}`}
-                          onClick={() => {
-                            props.onDecide(card, 'rejected')
-                          }}
-                        >
-                          Reject
-                        </ToolbarButton>
-                      </div>
-                    </article>
-                  </li>
-                )
-              })}
-            </ul>
-          </>
-        )}
-      </div>
+                  <div className="flex flex-wrap gap-2">
+                    <ToolbarButton
+                      type="button"
+                      disabled={!card.canAccept}
+                      aria-label={`Accept change for ${card.targetName}`}
+                      onClick={() => {
+                        props.onDecide(card, 'accepted')
+                      }}
+                    >
+                      Accept
+                    </ToolbarButton>
+                    <ToolbarButton
+                      type="button"
+                      disabled={!card.canReject}
+                      aria-label={`Reject change for ${card.targetName}`}
+                      onClick={() => {
+                        props.onDecide(card, 'rejected')
+                      }}
+                    >
+                      Reject
+                    </ToolbarButton>
+                  </div>
+                </article>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </section>
   )
 }

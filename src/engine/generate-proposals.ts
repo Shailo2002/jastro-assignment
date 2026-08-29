@@ -192,7 +192,7 @@ export function generateProposals(request: ProposalRequest): ProposalRunResult {
   const requirementFailure = checkRequirements(scenario, scope, targets.length)
   if (requirementFailure !== undefined) return requirementFailure
 
-  const context: ScenarioContext = { scope, targetCount: targets.length }
+  const context: ScenarioContext = { scope, targetCount: targets.length, instruction }
   const proposals: Proposal[] = []
   const skipped: ProposalSkip[] = []
   const invalid: ProposalError[] = []

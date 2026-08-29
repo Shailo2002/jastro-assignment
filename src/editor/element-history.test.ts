@@ -117,13 +117,24 @@ describe('element history view', () => {
     ).toEqual([3, 2])
   })
 
-  it('states the exact target and the views a restore cannot touch', () => {
+  it('states the scope, how much moves, and the views a restore cannot touch', () => {
     const document = commit(createInitialTemplateDocument(), { scope: 'mobile' }, 1)
     const entry = describeElementHistory(document, HEADING)?.groups[0]?.entries[0]
 
-    expect(entry?.restoreText).toContain('Mobile only')
-    expect(entry?.restoreText).toContain(entry?.elementName ?? 'missing')
+    // One line, and not a second copy of the element name: the card the
+    // confirmation opens inside already carries it.
+    expect(entry?.restoreText).toBe(
+      'Restores 1 field in Mobile only. Desktop and Tablet keep their current values.',
+    )
+    expect(entry?.restoreText).not.toContain(entry?.elementName ?? 'missing')
     expect(entry?.protectionText).toBe('Desktop and Tablet keep their current values.')
+  })
+
+  it('leaves the shared scope unexplained, because the table already shows it', () => {
+    const document = commit(createInitialTemplateDocument(), {}, 1)
+    const entry = describeElementHistory(document, HEADING)?.groups[0]?.entries[0]
+
+    expect(entry?.restoreText).toBe('Restores 1 field in All views.')
   })
 
   it('previews current values against the state the entry would restore', () => {

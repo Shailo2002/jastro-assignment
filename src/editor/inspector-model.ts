@@ -170,7 +170,6 @@ export const INSPECTOR_FIELDS: readonly InspectorField[] = [
     section: 'typography',
     path: ['typography', 'color'],
     appliesTo: TEXTUAL,
-    help: 'Hex value, `transparent`, or a token such as var(--action-primary).',
   },
   {
     id: 'surface.background',
