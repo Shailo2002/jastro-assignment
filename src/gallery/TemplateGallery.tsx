@@ -114,6 +114,131 @@ function searchShortcutLabel(): string {
   return /Mac|iPhone|iPad/.test(platform) ? "⌘K" : "Ctrl K";
 }
 
+/** One column rule for both grids, so the two sections cannot drift apart. */
+const CARD_GRID =
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-x-5 gap-y-8";
+
+/**
+ * One catalog card: the preview, then a single caption line naming it and
+ * offering the one thing to do with it.
+ *
+ * The card does not decide whether it is a project or a starting point - the
+ * section it is rendered into has already made that division, and the card only
+ * dresses for it: a started project gets the filled action, an untouched
+ * template the outlined one.
+ */
+function TemplateCard(props: {
+  template: TemplateCatalogItem;
+  started: boolean;
+  onOpen: () => void;
+}): JSX.Element {
+  const { template, started } = props;
+  const previewDocument = template.createDocument();
+
+  return (
+    <article className="group/card flex min-w-0 flex-col">
+      <div
+        className="relative rounded-card transition duration-fast
+          group-hover/card:-translate-y-0.5 group-hover/card:shadow-soft
+          group-focus-within/card:-translate-y-0.5 group-focus-within/card:shadow-soft
+          motion-reduce:transform-none motion-reduce:transition-none"
+      >
+        <TemplateThumbnail document={previewDocument} />
+        {/* A transparent sheet over the preview, so clicking the template
+            opens the same editor the button below opens. The thumbnail
+            underneath is `inert`, so this sheet - not the render - is the
+            click target. It is a mouse shortcut onto an action that is already
+            reachable, so it stays out of the tab order and out of the
+            accessible tree rather than naming the destination a second time. */}
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          className="absolute inset-0 cursor-pointer rounded-card border-0 bg-transparent p-0"
+          onClick={props.onOpen}
+        />
+      </div>
+
+      {/* The caption is a caption, not a second card: one line of name over one
+          line of description, with the action beside them rather than under
+          them. The description truncates instead of wrapping, so every card in
+          a grid is the same height whatever its wording, and the full sentence
+          stays one hover (or one screen reader) away. */}
+      <div className="flex items-center gap-3 px-0.5 pt-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="m-0 min-w-0 truncate text-sm leading-snug font-semibold tracking-[-0.01em] text-primary">
+            {template.name}
+          </h3>
+          <p
+            className="m-0 truncate text-xs leading-snug text-muted"
+            title={template.description}
+          >
+            {template.description}
+          </p>
+        </div>
+
+        {/* One word on the chip, because the card beside it already says which
+            template this is. "Customize" rather than "Use" so the two states
+            are the same weight of word as well as the same width of chip - a
+            three-letter label in a 106px pill read as a mistake. The verb
+            stays whole in the accessible name, which also names the template:
+            a grid of identically named buttons would name nothing on its
+            own. */}
+        <button
+          type="button"
+          aria-label={
+            started
+              ? `Continue editing ${template.name}`
+              : `Customize ${template.name}`
+          }
+          title={
+            started
+              ? `Continue editing ${template.name}`
+              : `Customize the ${template.name} template`
+          }
+          /* A fixed width rather than the width of its word: the two labels
+             are different lengths, and left to shrink-wrap the chips ended at
+             a different place on every card in a row. The width is the longer
+             label plus its glyph, and the content is centred inside it. */
+          className={`inline-flex h-9 w-[106px] flex-none cursor-pointer items-center
+            justify-center gap-1.5 rounded-pill px-3 text-xs font-semibold
+            transition-colors duration-instant active:translate-y-px ${
+              started
+                ? "border border-transparent bg-action-neutral text-on-neutral hover:bg-action-neutral-hover"
+                : "border border-default bg-surface-elevated/80 text-primary hover:border-strong hover:bg-surface-hover"
+            }`}
+          onClick={props.onOpen}
+        >
+          {started ? "Continue" : "Customize"}
+          <GalleryIcon name="arrow-right" className="size-3.5" />
+        </button>
+      </div>
+    </article>
+  );
+}
+
+/**
+ * A section title over one of the two grids.
+ *
+ * A title, and nothing else - no count, no caption, no rule. The grid under it
+ * is self-evident: the cards say what they are, and their actions say what
+ * they do, so anything added here would only stand between the reader and the
+ * templates. The space above and below it is what separates the two sections.
+ */
+function SectionHeading(props: {
+  elementId: string;
+  title: string;
+}): JSX.Element {
+  return (
+    <h2
+      className="m-0 mb-5 text-lg leading-tight font-semibold tracking-[-0.02em] text-primary"
+      id={props.elementId}
+    >
+      {props.title}
+    </h2>
+  );
+}
+
 export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("All");
@@ -172,6 +297,21 @@ export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
     props.savedTemplateIds.has(template.id),
   );
 
+  /**
+   * The results split by what the reader has already done with them. A
+   * template they have started is no longer a starting point - it is their
+   * work, with a history and a saved copy behind it - so it is listed first,
+   * under its own heading, and the untouched catalog follows. Both halves come
+   * from the same filtered list, so search and the category rail still govern
+   * everything on screen.
+   */
+  const startedTemplates = visibleTemplates.filter((template) =>
+    props.savedTemplateIds.has(template.id),
+  );
+  const freshTemplates = visibleTemplates.filter(
+    (template) => !props.savedTemplateIds.has(template.id),
+  );
+
   /** One filter row, so the four of them cannot drift apart. */
   const filterRow = (
     label: string,
@@ -213,7 +353,21 @@ export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
   };
 
   return (
-    <div className="grid min-h-screen grid-cols-[auto_minmax(0,1fr)] bg-surface-canvas max-[820px]:grid-cols-[minmax(0,1fr)]">
+    /*
+      The gallery owns its own scrolling above 820px: the page itself is exactly
+      one viewport tall and does not scroll, and the results column scrolls
+      inside it. Left to the document, an overscroll at either end rubber-bands
+      the whole grid - rail included - so the sidebar slid away from the edge it
+      is pinned to. `overscroll-contain` stops that bounce chaining back out to
+      the document. Below 820px the rail stacks on top of the results and the
+      page scrolls normally again, which is the only sensible behaviour once
+      the two are in one column.
+    */
+    <div
+      className="grid min-h-screen grid-cols-[auto_minmax(0,1fr)] bg-surface-canvas
+        max-[820px]:grid-cols-[minmax(0,1fr)] min-[821px]:h-screen
+        min-[821px]:overflow-hidden"
+    >
       <a
         className="fixed top-3 left-3 z-20 -translate-y-[160%] rounded-control bg-action-primary
           px-3 py-2 text-on-accent focus:translate-y-0"
@@ -429,7 +583,8 @@ export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
       </motion.aside>
 
       <main
-        className="relative min-w-0 bg-ambient p-8 max-[820px]:px-4 max-[820px]:py-6"
+        className="relative min-w-0 bg-ambient p-8 max-[820px]:px-4 max-[820px]:py-6
+          min-[821px]:h-screen min-[821px]:overflow-y-auto min-[821px]:overscroll-contain"
         id="template-results"
       >
         <div className="mx-auto max-w-[1180px]">
@@ -473,90 +628,59 @@ export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
               </button>
             </section>
           ) : (
-            <section aria-label="Available templates">
-              <p className="m-0 mb-4 text-xs font-medium text-muted">
-                {countLabel(visibleTemplates.length)}
-              </p>
+            <>
+              {startedTemplates.length === 0 ? null : (
+                <section
+                  className="mb-10"
+                  aria-labelledby="gallery-projects-heading"
+                >
+                  <SectionHeading
+                    elementId="gallery-projects-heading"
+                    title="Your projects"
+                  />
+                  <div className={CARD_GRID}>
+                    {startedTemplates.map((template) => (
+                      <TemplateCard
+                        key={template.id}
+                        template={template}
+                        started
+                        onOpen={() => {
+                          props.onSelectTemplate(template.id);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-x-5 gap-y-8">
-                {visibleTemplates.map((template) => {
-                  const previewDocument = template.createDocument();
-                  const hasSavedProject = props.savedTemplateIds.has(
-                    template.id,
-                  );
-                  return (
-                    <article
-                      className="group/card flex min-w-0 flex-col"
-                      key={template.id}
-                    >
-                      <div
-                        className="relative rounded-card transition duration-fast
-                          group-hover/card:-translate-y-0.5 group-hover/card:shadow-soft
-                          group-focus-within/card:-translate-y-0.5 group-focus-within/card:shadow-soft
-                          motion-reduce:transform-none motion-reduce:transition-none"
-                      >
-                        <TemplateThumbnail document={previewDocument} />
-                        {/* A transparent sheet over the preview, so clicking
-                            the template opens the same editor the button below
-                            opens. The thumbnail underneath is `inert`, so this
-                            sheet - not the render - is the click target. It is
-                            a mouse shortcut onto an action that is already
-                            reachable, so it stays out of the tab order and out
-                            of the accessible tree rather than naming the
-                            destination a second time. */}
-                        <button
-                          type="button"
-                          tabIndex={-1}
-                          aria-hidden="true"
-                          className="absolute inset-0 cursor-pointer rounded-card border-0 bg-transparent p-0"
-                          onClick={() => {
-                            props.onSelectTemplate(template.id);
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex flex-1 flex-col gap-1 px-0.5 pt-3.5">
-                        <h2 className="m-0 min-w-0 truncate text-sm leading-snug font-semibold tracking-[-0.01em] text-primary">
-                          {template.name}
-                        </h2>
-
-                        <p className="m-0 line-clamp-2 text-xs leading-relaxed text-muted">
-                          {template.description}
-                        </p>
-
-                        <div className="mt-auto flex pt-3">
-                          <button
-                            type="button"
-                            className={`inline-flex h-9 cursor-pointer items-center gap-1.5
-                              rounded-pill px-3.5 text-xs font-semibold transition-colors
-                              duration-instant active:translate-y-px
-                              max-[540px]:w-full max-[540px]:justify-center ${
-                                hasSavedProject
-                                  ? "border border-transparent bg-action-neutral text-on-neutral hover:bg-action-neutral-hover"
-                                  : "border border-default bg-surface-elevated/80 text-primary hover:border-strong hover:bg-surface-hover"
-                              }`}
-                            onClick={() => {
-                              props.onSelectTemplate(template.id);
-                            }}
-                          >
-                            {hasSavedProject
-                              ? "Continue editing"
-                              : "Use template"}
-                            <GalleryIcon
-                              name="arrow-right"
-                              className="size-3.5"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
+              {freshTemplates.length === 0 ? null : (
+                <section aria-labelledby="gallery-templates-heading">
+                  {/* One word, and the same word whether or not there is a
+                      projects section above it: what is under this heading
+                      does not change, only what sits above it does. */}
+                  <SectionHeading
+                    elementId="gallery-templates-heading"
+                    title="Templates"
+                  />
+                  <div className={CARD_GRID}>
+                    {freshTemplates.map((template) => (
+                      <TemplateCard
+                        key={template.id}
+                        template={template}
+                        started={false}
+                        onOpen={() => {
+                          props.onSelectTemplate(template.id);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </div>
       </main>
+
     </div>
   );
 }

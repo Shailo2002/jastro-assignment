@@ -42,7 +42,7 @@ export function CanvasToolbar(props: {
    * page - the landing page's embedded demo - and the control is then absent
    * rather than dead.
    */
-  previewHref?: string
+  previewHref?: string | undefined
   scope: EditScope
   onScopeChange: (scope: EditScope) => void
   rows: readonly ElementTreeRow[]

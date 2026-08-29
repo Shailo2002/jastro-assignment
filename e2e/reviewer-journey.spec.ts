@@ -43,7 +43,7 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: /Edit templates with/ })).toBeVisible()
   await page.getByRole('banner').getByRole('button', { name: 'Start editing' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeVisible()
-  await page.getByRole('button', { name: /Use template|Continue editing/ }).first().click()
+  await page.getByRole('button', { name: /Customize|Continue editing/ }).first().click()
   await expect(page.getByRole('main', { name: 'Template preview' })).toBeVisible()
 
   /* 2. Switch among the three previews. */

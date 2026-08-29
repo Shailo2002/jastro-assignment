@@ -16,14 +16,16 @@ describe('App', () => {
     render(<App store={createDocumentStore({ storage: null })} />)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 2, name: 'Aster Labs' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'Aster Labs' })).toBeInTheDocument()
   })
 
   it('opens the selected template in the existing editor and returns to the gallery', async () => {
     const user = userEvent.setup()
     render(<App store={createDocumentStore({ storage: null })} />)
 
-    await user.click(screen.getAllByRole('button', { name: 'Use template' })[0]!)
+    // Each card's action names its own template, so the query is a pattern
+    // rather than an exact name.
+    await user.click(screen.getAllByRole('button', { name: /^Customize / })[0]!)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeInTheDocument()
     expect(screen.getByRole('main', { name: 'Template preview' })).toBeInTheDocument()
@@ -37,7 +39,7 @@ describe('App', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    const novaHeading = screen.getByRole('heading', { level: 2, name: 'Nova Portfolio' })
+    const novaHeading = screen.getByRole('heading', { level: 3, name: 'Nova Portfolio' })
     const novaCard = novaHeading.closest('article')
     expect(novaCard).not.toBeNull()
     await user.click((novaCard as HTMLElement).querySelector('button')!)

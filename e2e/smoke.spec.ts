@@ -15,7 +15,7 @@ test('template gallery opens the selected template without console errors', asyn
   await page.goto('/#/templates')
 
   await expect(page.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeVisible()
-  await page.getByRole('button', { name: /Use template|Continue editing/ }).first().click()
+  await page.getByRole('button', { name: /Customize|Continue editing/ }).first().click()
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
   await expect(
     page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' }),
@@ -78,7 +78,7 @@ test('viewport controls are reachable and operable by keyboard', async ({ page }
 
   // The real template thumbnail contains links, but its inert preview must not
   // interrupt the gallery's keyboard route to the one explicit card action.
-  const useTemplate = page.getByRole('button', { name: /Use template|Continue editing/ }).first()
+  const useTemplate = page.getByRole('button', { name: /Customize|Continue editing/ }).first()
   await expect(useTemplate).toBeFocused()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeVisible()

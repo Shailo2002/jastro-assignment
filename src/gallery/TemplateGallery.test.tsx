@@ -17,10 +17,9 @@ describe('template gallery', () => {
       'Kindred Goods',
       'Waypoint Summit',
     ]) {
-      expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 3, name })).toBeInTheDocument()
     }
-    expect(screen.getByText('6 templates')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /Use template/ })).toHaveLength(6)
+    expect(screen.getAllByRole('button', { name: /^Customize / })).toHaveLength(6)
   })
 
   it('filters by searchable template metadata and can recover from an empty result', async () => {
@@ -28,25 +27,30 @@ describe('template gallery', () => {
     render(<TemplateGallery savedTemplateIds={new Set()} onSelectTemplate={vi.fn()} />)
 
     await user.type(screen.getByRole('searchbox', { name: 'Search templates' }), 'portfolio')
-    expect(screen.getByRole('heading', { level: 2, name: 'Nova Portfolio' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { level: 2, name: 'Aster Labs' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'Nova Portfolio' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 3, name: 'Aster Labs' })).not.toBeInTheDocument()
 
     await user.clear(screen.getByRole('searchbox', { name: 'Search templates' }))
     await user.type(screen.getByRole('searchbox', { name: 'Search templates' }), 'restaurant')
     expect(screen.getByRole('heading', { level: 2, name: 'No templates found' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
-    expect(screen.getByRole('heading', { level: 2, name: 'Aster Labs' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 3, name: 'Aster Labs' })).toBeInTheDocument()
   })
 
   it('opens a template with pointer or keyboard activation', async () => {
     const onSelectTemplate = vi.fn()
     const user = userEvent.setup()
-    render(<TemplateGallery savedTemplateIds={new Set()} onSelectTemplate={onSelectTemplate} />)
+    render(
+      <TemplateGallery
+        savedTemplateIds={new Set()}
+        onSelectTemplate={onSelectTemplate}
+      />,
+    )
 
-    const card = screen.getByRole('heading', { level: 2, name: 'Nova Portfolio' }).closest('article')
+    const card = screen.getByRole('heading', { level: 3, name: 'Nova Portfolio' }).closest('article')
     expect(card).not.toBeNull()
-    const action = within(card as HTMLElement).getByRole('button', { name: /Use template/ })
+    const action = within(card as HTMLElement).getByRole('button', { name: /^Customize / })
     action.focus()
     await user.keyboard('{Enter}')
 
@@ -56,9 +60,14 @@ describe('template gallery', () => {
   it('opens a template when its preview is clicked', async () => {
     const onSelectTemplate = vi.fn()
     const user = userEvent.setup()
-    render(<TemplateGallery savedTemplateIds={new Set()} onSelectTemplate={onSelectTemplate} />)
+    render(
+      <TemplateGallery
+        savedTemplateIds={new Set()}
+        onSelectTemplate={onSelectTemplate}
+      />,
+    )
 
-    const card = screen.getByRole('heading', { level: 2, name: 'Nova Portfolio' }).closest('article')
+    const card = screen.getByRole('heading', { level: 3, name: 'Nova Portfolio' }).closest('article')
     expect(card).not.toBeNull()
     const preview = (card as HTMLElement).querySelector('button[aria-hidden="true"]')
     expect(preview).not.toBeNull()
@@ -112,7 +121,7 @@ describe('template gallery', () => {
 
     // The card names the same state in the words of its one action, so the
     // saved state is never carried by the pill's fill alone.
-    const card = screen.getByRole('heading', { level: 2, name: 'Luma Assistant' }).closest('article')
+    const card = screen.getByRole('heading', { level: 3, name: 'Luma Assistant' }).closest('article')
     expect(card).not.toBeNull()
     expect(
       within(card as HTMLElement).getByRole('button', { name: /Continue editing/ }),
@@ -171,6 +180,39 @@ describe('template gallery', () => {
     expect(within(rail).getByRole('button', { name: 'Luma Assistant' })).toBeInTheDocument()
   })
 
+  it('lists started projects above the untouched catalog', () => {
+    render(
+      <TemplateGallery
+        savedTemplateIds={new Set(['orbit-metrics'])}
+        onSelectTemplate={vi.fn()}
+      />,
+    )
+
+    const projects = screen.getByRole('region', { name: 'Your projects' })
+    const catalog = screen.getByRole('region', { name: 'Templates' })
+
+    // The started template is under its own heading, and only there.
+    expect(within(projects).getByRole('heading', { level: 3, name: 'Orbit Metrics' })).toBeInTheDocument()
+    expect(within(catalog).queryByRole('heading', { level: 3, name: 'Orbit Metrics' })).toBeNull()
+    expect(within(catalog).getAllByRole('button', { name: /^Customize / })).toHaveLength(5)
+
+    // Projects come first in the document, so the reading and tab orders match
+    // what is on screen.
+    expect(projects.compareDocumentPosition(catalog)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
+  it('heads the single grid as the whole catalog when nothing has been started', () => {
+    render(
+      <TemplateGallery
+        savedTemplateIds={new Set()}
+        onSelectTemplate={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('region', { name: 'Templates' })).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Your projects' })).toBeNull()
+  })
+
   it('labels only the persisted template as a continuing project', () => {
     render(
       <TemplateGallery
@@ -179,6 +221,6 @@ describe('template gallery', () => {
       />,
     )
     expect(screen.getAllByRole('button', { name: /Continue editing/ })).toHaveLength(1)
-    expect(screen.getAllByRole('button', { name: /Use template/ })).toHaveLength(5)
+    expect(screen.getAllByRole('button', { name: /^Customize / })).toHaveLength(5)
   })
 })

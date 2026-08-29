@@ -125,7 +125,7 @@ test('the required journey can be completed with the keyboard only', async ({ pa
   await page.goto('/#/templates')
 
   // 1. Open the template from the gallery.
-  await tabTo(page, page.getByRole('button', { name: /Use template|Continue editing/ }).first())
+  await tabTo(page, page.getByRole('button', { name: /Customize|Continue editing/ }).first())
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'Scoped AI Template Editor' })).toBeVisible()
 
