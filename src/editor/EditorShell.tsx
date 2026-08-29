@@ -17,6 +17,7 @@ import { EditorDock } from "./EditorDock";
 import { type RestoreRequest } from "./HistoryTimeline";
 import { BrandMark } from "../brand/BrandMark";
 import { IconButton, ToolbarButton } from "./controls";
+import { Icon } from "./Icon";
 import { InspectorPanel } from "./InspectorPanel";
 import { LayersPanel } from "./LayersPanel";
 import { PreviewFrame } from "./PreviewFrame";
@@ -84,8 +85,9 @@ function CanvasSelectionLayer(props: {
  * time - Design, Code, or Layers - chosen from the top bar, which also holds
  * the project itself and the preview viewport: those three are the controls
  * that reframe every region at once. The canvas toolbar at the foot of the
- * workspace keeps what describes the edit about to be made - fit, the scope a
- * commit writes to, and the selection.
+ * workspace keeps what describes the edit about to be made - the scope a
+ * commit writes to and the selection - beside the way out to the template on
+ * its own page.
  *
  * Four pieces of state live here and are deliberately NOT part of the canonical
  * document: the preview viewport (what is on screen), the selection (which
@@ -98,6 +100,12 @@ export function EditorShell(props: {
   store: DocumentStore;
   onBackToTemplates?: () => void;
   templateName?: string;
+  /**
+   * Where this template stands on its own page, with no editor around it. The
+   * canvas toolbar links to it; left undefined - the landing page's embedded
+   * demo - the link is simply absent.
+   */
+  previewHref?: string;
   /**
    * True when the shell is mounted inside another page - the landing page's
    * live demo - rather than standing as the /editor route. Presentation only:
@@ -115,7 +123,13 @@ export function EditorShell(props: {
   const state = useDocumentStore(store);
   const [viewport, setViewport] = useState<Viewport>("desktop");
   const [editScope, setEditScope] = useState<EditScope>("all");
-  const [fit, setFit] = useState(true);
+  /**
+   * The preview is always scaled to the room available. It is not a choice any
+   * more: a 1440px frame at true size pushed the canvas into horizontal
+   * scrolling, and reading the template at its real size is what the
+   * standalone preview page is for.
+   */
+  const fit = true;
   /**
    * Which panel the right dock holds. `none` is the resting state, and the one
    * the editor opens in: with nothing selected there is no element for Design
@@ -346,7 +360,7 @@ export function EditorShell(props: {
           that reframe the whole window: which device the preview stands in for,
           and which panel the dock holds. Both change the shape of every region
           at once, so they belong to the shell rather than to the canvas. What
-          is left describes the EDIT about to be made - fit, the scope a commit
+          is left describes the EDIT about to be made - the scope a commit
           writes to, the selection - and stays on the canvas toolbar at the foot
           of the workspace it describes.
 
@@ -354,9 +368,16 @@ export function EditorShell(props: {
           field, and its chips and buttons are the only things that draw. A
           panel and a rule here would have made a fourth edge competing with
           the three cards below, when the cards are what the eye should count. */}
+      {/* Three zones, so each group sits where its meaning is: the project on
+          the left, the VIEW controls centred over the workspace they change,
+          and the state of the document with the action that discards it on the
+          right. The centre column is `auto` between two equal `1fr` gutters,
+          which keeps the switchers on the header's true centre line however
+          long the template name grows. */}
       <header
-        className="flex min-h-[52px] flex-none flex-wrap items-center gap-x-3 gap-y-2
-          px-3 py-1"
+        className="grid min-h-[52px] flex-none grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]
+          items-center gap-x-3 px-3 py-1 max-[820px]:grid-cols-1 max-[820px]:justify-items-center
+          max-[820px]:gap-y-2 max-[820px]:py-2"
       >
         <div className="flex min-w-0 flex-none flex-nowrap items-center gap-2">
           {props.onBackToTemplates === undefined ? null : (
@@ -372,51 +393,42 @@ export function EditorShell(props: {
           )}
           {/* Product identity, the same mark the gallery rail shows. */}
           <BrandMark className="size-[22px] flex-none" />
-          <div className="flex min-w-0 items-baseline gap-2">
+          <div className="flex min-w-0 items-baseline">
             <Title className="m-0 min-w-0 truncate text-[13px] font-semibold tracking-[-0.01em] text-primary">
               <span className="sr-only">Scoped AI Template Editor</span>
               <span aria-hidden="true">
                 {props.templateName ?? "Aster Labs"}
               </span>
             </Title>
-            <span className="text-[11px] text-muted max-[1240px]:hidden">
-              main
-            </span>
           </div>
         </div>
 
-        <div className="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
-          {/* Where the work stands, beside the action that would discard it. */}
-          <PersistenceChip
-            status={persistence}
-            revision={state.document.revision}
+        {/* What the shell shows: which device the preview stands in for, and
+            which panel the dock holds. Both change the VIEW, never the
+            document, so they share the centre of the bar and stay clear of the
+            destructive action on the right. */}
+        <div className="flex min-w-0 items-center justify-center gap-x-2">
+          <ViewportSwitcher value={viewport} onChange={setViewport} />
+          <span
+            className="mx-1 h-5 w-px flex-none bg-default"
+            aria-hidden="true"
           />
+          <PanelSwitcher value={panel} onChange={setPanel} />
+        </div>
 
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 max-[820px]:justify-center">
           <ToolbarButton
             type="button"
             variant="chrome"
+            tone="danger"
             aria-label="Reset project…"
             onClick={() => {
               setResetPending(true);
             }}
           >
-            Reset&hellip;
+            <Icon name="reset" className="size-[14px]" />
+            Reset
           </ToolbarButton>
-
-          {/* A hairline, not a gap: the project ends here and the view begins,
-              so the destructive action is never mistaken for one of the view
-              controls beside it. */}
-          <span
-            className="mx-1 h-5 w-px flex-none bg-default"
-            aria-hidden="true"
-          />
-
-          {/* What the shell shows: which device the preview stands in for, and
-              which panel the dock holds. The switcher ends the bar at the edge
-              the dock opens from, so the control and the thing it opens stay
-              neighbours. */}
-          <ViewportSwitcher value={viewport} onChange={setViewport} />
-          <PanelSwitcher value={panel} onChange={setPanel} />
         </div>
       </header>
 
@@ -489,32 +501,46 @@ export function EditorShell(props: {
                 clears the selection. Overlay targets and the controls above the
                 frame are real buttons, so they are excluded by the same test
                 rather than by a list of coordinates. */}
-            <div
-              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
-              onMouseDown={(event) => {
-                const target = event.target;
-                if (!(target instanceof HTMLElement)) return;
-                if (
-                  target.closest("button, a, input, select, textarea") !== null
-                ) {
-                  return;
-                }
-                clearSelection();
-              }}
-            >
-              <PreviewFrame
-                document={state.document}
-                viewport={viewport}
-                fit={fit}
-                renderOverlay={({ frameRef, scale }) => (
-                  <CanvasSelectionLayer
-                    frameRef={frameRef}
-                    scale={scale}
-                    changeKey={`${state.document.revision}:${viewport}:${String(fit)}`}
-                    rows={rows}
-                    selection={selection}
-                  />
-                )}
+            {/* The scrolling canvas and the watermark that rides its corner.
+                The chip is pinned to this box rather than to the scrolled
+                content, so it stays in the corner of the VIEW however far a
+                tall template scrolls under it. */}
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+              <div
+                className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
+                onMouseDown={(event) => {
+                  const target = event.target;
+                  if (!(target instanceof HTMLElement)) return;
+                  if (
+                    target.closest("button, a, input, select, textarea") !==
+                    null
+                  ) {
+                    return;
+                  }
+                  clearSelection();
+                }}
+              >
+                <PreviewFrame
+                  document={state.document}
+                  viewport={viewport}
+                  fit={fit}
+                  renderOverlay={({ frameRef, scale }) => (
+                    <CanvasSelectionLayer
+                      frameRef={frameRef}
+                      scale={scale}
+                      changeKey={`${state.document.revision}:${viewport}:${String(fit)}`}
+                      rows={rows}
+                      selection={selection}
+                    />
+                  )}
+                />
+              </div>
+
+              {/* Where the work stands, worn by the document it describes. */}
+              <PersistenceChip
+                status={persistence}
+                revision={state.document.revision}
+                className="absolute end-3 bottom-3 z-10"
               />
             </div>
 
@@ -524,8 +550,7 @@ export function EditorShell(props: {
                 panel never covers it. */}
             <CanvasToolbar
               viewport={viewport}
-              fit={fit}
-              onFitChange={setFit}
+              previewHref={props.previewHref}
               scope={editScope}
               onScopeChange={setEditScope}
               rows={rows}

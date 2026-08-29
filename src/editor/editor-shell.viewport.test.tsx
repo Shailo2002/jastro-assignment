@@ -175,14 +175,19 @@ describe('editor shell', () => {
     expect(headingSize(container)).toBe('32px')
   })
 
-  it('offers a fit control that reports its own state', async () => {
-    const user = userEvent.setup()
+  it('links out to the template on its own page, in a new tab', () => {
+    render(<EditorShell store={store} previewHref="#/preview/aster-labs" />)
+
+    const link = screen.getByRole('link', { name: /Open preview/ })
+    expect(link).toHaveAttribute('href', '#/preview/aster-labs')
+    expect(link).toHaveAttribute('target', '_blank')
+    // A new tab opened from here must not be handed this one's window.
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+  })
+
+  it('omits the link where there is no standalone page to open', () => {
     render(<EditorShell store={store} />)
 
-    const fit = screen.getByRole('button', { name: /Fit to canvas/ })
-    expect(fit).toHaveAttribute('aria-pressed', 'true')
-
-    await user.click(fit)
-    expect(fit).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.queryByRole('link', { name: /Open preview/ })).toBeNull()
   })
 })

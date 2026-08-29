@@ -230,8 +230,7 @@ describe('history timeline', () => {
 
     expect(empty.entries).toHaveLength(0)
     expect(empty.summary).toBe('No changes recorded yet.')
-    expect(empty.emptyText).toContain('Nothing has changed yet.')
-    expect(empty.emptyText).toContain('an accepted AI proposal')
+    expect(empty.emptyText).toBe('No changes made yet')
   })
 
   it('keeps every entry restorable in its own right, whatever is selected', () => {

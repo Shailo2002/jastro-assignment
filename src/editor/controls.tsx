@@ -99,24 +99,29 @@ export function ToolbarButton({
    * instruction. Kept a variant rather than an extra `className` so no caller
    * ends up with two background utilities fighting for the same button.
    */
-  tone?: 'neutral' | 'primary'
+  tone?: 'neutral' | 'primary' | 'danger'
 }): JSX.Element {
   if (variant === 'chrome' && tone !== 'primary') {
+    // `danger` fills the pill with the status colour and near-black ink (7.37:1
+    // on --status-danger), for the one control in the bar that DISCARDS work.
+    // It still opens a confirmation, so the fill is a warning, not a trap.
+    const skin =
+      tone === 'danger'
+        ? 'border-status-danger bg-status-danger text-on-accent' +
+          ' group-hover/chip:brightness-110'
+        : `border-default bg-surface-panel shadow-hairline
+            group-hover/chip:bg-surface-elevated group-disabled/chip:border-dashed
+            ${CHIP_TOGGLED}`
     return (
       <button
         className={`group/chip inline-flex min-h-touch cursor-pointer items-center justify-center
-          rounded-pill px-0.5 text-xs font-medium text-secondary transition-colors
-          duration-instant hover:text-primary active:translate-y-px
+          rounded-pill px-0.5 text-xs font-medium transition-colors duration-instant
+          active:translate-y-px
+          ${tone === 'danger' ? 'text-on-accent' : 'text-secondary hover:text-primary'}
           ${CHIP_FOCUS_TARGET} ${DISABLED_TARGET} ${className}`}
         {...rest}
       >
-        <span
-          className={`${CHIP} border-default bg-surface-panel shadow-hairline
-            group-hover/chip:bg-surface-elevated group-disabled/chip:border-dashed
-            ${CHIP_TOGGLED}`}
-        >
-          {children}
-        </span>
+        <span className={`${CHIP} ${skin}`}>{children}</span>
       </button>
     )
   }
@@ -140,6 +145,40 @@ export function ToolbarButton({
     <button className={`${base} ${skin} ${className}`} {...rest}>
       {children}
     </button>
+  )
+}
+
+/**
+ * A link wearing the toolbar chip.
+ *
+ * Same 44px target and 32px pill as `ToolbarButton`'s `chrome` variant, but a
+ * real anchor, because the one control it exists for - opening the rendered
+ * template on its own page - is a NAVIGATION, not a command: it has to be
+ * middle-clickable, copyable, and openable in a new tab by the browser itself
+ * rather than by script.
+ */
+export function ToolbarLink({
+  icon,
+  className = '',
+  children,
+  ...rest
+}: ComponentProps<'a'> & { icon?: IconName }): JSX.Element {
+  return (
+    <a
+      className={`group/chip inline-flex min-h-touch cursor-pointer items-center justify-center
+        rounded-pill px-0.5 text-xs font-medium text-secondary no-underline
+        transition-colors duration-instant hover:text-primary active:translate-y-px
+        ${CHIP_FOCUS_TARGET} ${className}`}
+      {...rest}
+    >
+      <span
+        className={`${CHIP} border-default bg-surface-panel shadow-hairline
+          group-hover/chip:bg-surface-elevated`}
+      >
+        {icon === undefined ? null : <Icon name={icon} className="size-4" />}
+        {children}
+      </span>
+    </a>
   )
 }
 

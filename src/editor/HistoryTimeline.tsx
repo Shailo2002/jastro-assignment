@@ -452,7 +452,15 @@ export function HistoryTimeline(props: {
       </p>
 
       {view.entries.length === 0 ? (
-        <p className="m-0 text-xs leading-normal text-secondary">{view.emptyText}</p>
+        /* An empty timeline says one short thing, centred under its glyph:
+           the panel is already titled History, so the copy does not have to
+           re-explain what a history is. */
+        <div className="flex flex-col items-center gap-2.5 px-4 py-10 text-center">
+          <Icon name="clock" className="size-6 text-muted" />
+          <p className="m-0 text-sm leading-normal font-medium text-secondary">
+            {view.emptyText}
+          </p>
+        </div>
       ) : (
         <ol className="m-0 flex list-none flex-col gap-3 p-0">
           {view.entries.map(renderEntry)}

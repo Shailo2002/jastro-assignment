@@ -12,6 +12,7 @@ import {
 import { EditorShell } from "./editor/EditorShell";
 import { TemplateGallery } from "./gallery/TemplateGallery";
 import { LandingPage } from "./landing/LandingPage";
+import { PreviewPage } from "./preview/PreviewPage";
 import { getTemplate, TEMPLATE_CATALOG } from "./gallery/template-catalog";
 import {
   createDocumentStore,
@@ -135,10 +136,31 @@ function EditorRoute(props: { getStore: StoreGetter }): JSX.Element {
     <EditorShell
       store={props.getStore(templateId)}
       templateName={template.name}
+      previewHref={`#/preview/${templateId}`}
       onBackToTemplates={() => {
         void navigate("/templates");
       }}
     />
+  );
+}
+
+/**
+ * The template on its own page: no editor chrome, no selection layer, read
+ * only. It is a route rather than a rendered blob handed to a new window so
+ * that the tab it opens in is a real, reloadable URL sharing this origin's
+ * storage - it restores the same saved project the editor tab is editing.
+ */
+function PreviewRoute(props: { getStore: StoreGetter }): JSX.Element {
+  const { templateId } = useParams<{ templateId: string }>();
+  const template =
+    templateId === undefined ? undefined : getTemplate(templateId);
+
+  if (templateId === undefined || template === undefined) {
+    return <Navigate to="/templates" replace />;
+  }
+
+  return (
+    <PreviewPage store={props.getStore(templateId)} templateName={template.name} />
   );
 }
 
@@ -163,6 +185,10 @@ export function App(props: { store?: DocumentStore }): JSX.Element {
         <Route
           path="/editor/:templateId"
           element={<EditorRoute getStore={getStore} />}
+        />
+        <Route
+          path="/preview/:templateId"
+          element={<PreviewRoute getStore={getStore} />}
         />
         <Route path="*" element={<Navigate to="/templates" replace />} />
       </Routes>

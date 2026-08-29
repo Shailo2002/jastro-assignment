@@ -141,7 +141,7 @@ describe('history panel', () => {
   it('explains what produces content when nothing has changed yet', () => {
     render(<EditorShell store={store} />)
 
-    expect(within(panel()).getByText(/Nothing has changed yet/)).toBeInTheDocument()
+    expect(within(panel()).getByText('No changes made yet')).toBeInTheDocument()
     expect(allCards()).toHaveLength(0)
   })
 

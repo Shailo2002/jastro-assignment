@@ -151,9 +151,9 @@ describe('the panel switcher', () => {
   /**
    * Where the chrome lives is behaviour, not decoration. The split is by what a
    * control reframes: choosing a panel or a preview device changes the shape of
-   * every region at once, so both sit in the top bar with the project; fit, the
-   * scope a commit writes to, and the selection describe the edit about to be
-   * made, so they stay beside the canvas they describe. This is the assertion
+   * every region at once, so both sit in the top bar with the project; the scope a
+   * commit writes to and the selection describe the edit about to be made, so
+   * they stay beside the canvas they describe. This is the assertion
    * that keeps the two bands from drifting back together.
    */
   it('sits in the top bar, leaving the canvas its own edit chrome', () => {
@@ -173,7 +173,6 @@ describe('the panel switcher', () => {
 
     // What states the pending edit stays with the canvas.
     for (const control of [
-      screen.getByRole('button', { name: /Fit to canvas/ }),
       screen.getByRole('group', { name: 'Edit scope' }),
       screen.getByRole('status', { name: 'Selection' }),
     ]) {
@@ -181,8 +180,10 @@ describe('the panel switcher', () => {
       expect(banner).not.toContainElement(control)
     }
 
-    // The project's own state and the one action that discards it stay above.
-    expect(within(banner).getByText('Original template')).toBeInTheDocument()
+    // Where the work stands rides the canvas it describes, like a watermark;
+    // the one action that discards it stays above.
+    expect(within(main).getByText('Original template')).toBeInTheDocument()
+    expect(within(banner).queryByText('Original template')).toBeNull()
     expect(within(banner).getByRole('button', { name: /Reset project/ })).toBeInTheDocument()
   })
 

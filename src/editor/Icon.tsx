@@ -5,11 +5,13 @@ import {
   ChevronRight,
   Clock,
   Code,
+  ExternalLink,
   Layers,
   Lock,
   Monitor,
   PanelLeft,
   PanelRight,
+  RotateCcw,
   Scan,
   Smartphone,
   SlidersHorizontal,
@@ -61,6 +63,8 @@ export type IconName =
   | 'send'
   | 'selection'
   | 'fit'
+  | 'external'
+  | 'reset'
 
 const GLYPHS: Readonly<Record<IconName, LucideIcon>> = {
   lock: Lock,
@@ -82,6 +86,8 @@ const GLYPHS: Readonly<Record<IconName, LucideIcon>> = {
   send: ArrowUp,
   selection: SquareDashedMousePointer,
   fit: Scan,
+  external: ExternalLink,
+  reset: RotateCcw,
 }
 
 /** Base geometry every editor icon shares; callers add size and colour. */

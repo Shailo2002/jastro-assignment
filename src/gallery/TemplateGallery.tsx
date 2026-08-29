@@ -496,6 +496,23 @@ export function TemplateGallery(props: TemplateGalleryProps): JSX.Element {
                           motion-reduce:transform-none motion-reduce:transition-none"
                       >
                         <TemplateThumbnail document={previewDocument} />
+                        {/* A transparent sheet over the preview, so clicking
+                            the template opens the same editor the button below
+                            opens. The thumbnail underneath is `inert`, so this
+                            sheet - not the render - is the click target. It is
+                            a mouse shortcut onto an action that is already
+                            reachable, so it stays out of the tab order and out
+                            of the accessible tree rather than naming the
+                            destination a second time. */}
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          aria-hidden="true"
+                          className="absolute inset-0 cursor-pointer rounded-card border-0 bg-transparent p-0"
+                          onClick={() => {
+                            props.onSelectTemplate(template.id);
+                          }}
+                        />
                       </div>
 
                       <div className="flex flex-1 flex-col gap-1 px-0.5 pt-3.5">

@@ -265,9 +265,6 @@ export interface HistoryTimelineView {
   readonly emptyText: string
 }
 
-const TIMELINE_EXPLAINER =
-  'Edits from the inspector, the code panel, an accepted AI proposal, and a restore all appear here.'
-
 /**
  * Chronological order across elements.
  *
@@ -323,7 +320,7 @@ export function describeHistoryTimeline(input: {
       title,
       summary: timelineSummary(entries),
       entries,
-      emptyText: `No changes recorded for ${title} yet. ${TIMELINE_EXPLAINER}`,
+      emptyText: `No changes to ${title} yet`,
     }
   }
 
@@ -346,6 +343,6 @@ export function describeHistoryTimeline(input: {
     title: 'Whole layout',
     summary: timelineSummary(entries),
     entries,
-    emptyText: `Nothing has changed yet. ${TIMELINE_EXPLAINER} Select an element on the canvas or in Layers to narrow this to its own history.`,
+    emptyText: 'No changes made yet',
   }
 }

@@ -48,6 +48,33 @@ describe('App', () => {
     ).toBeInTheDocument()
   })
 
+  it('renders the template on its own page, with no editor around it', () => {
+    window.history.replaceState(null, '', '#/preview/nova-portfolio')
+    render(<App />)
+
+    // The template itself, named by the page and rendered by the same renderer.
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Nova Portfolio preview' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Digital products with clarity and character.' }),
+    ).toBeInTheDocument()
+
+    // None of the editor: no dock, no toolbar, no selection surface.
+    expect(screen.queryByRole('main', { name: 'Template preview' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Preview viewport/ })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Edit scope' })).toBeNull()
+  })
+
+  it('redirects an unknown preview route to the gallery', async () => {
+    window.history.replaceState(null, '', '#/preview/not-a-template')
+    render(<App store={createDocumentStore({ storage: null })} />)
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Choose a starting point' }),
+    ).toBeInTheDocument()
+  })
+
   it('redirects an unknown template route to the gallery', async () => {
     window.history.replaceState(null, '', '#/editor/not-a-template')
     render(<App store={createDocumentStore({ storage: null })} />)

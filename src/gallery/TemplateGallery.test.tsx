@@ -53,6 +53,20 @@ describe('template gallery', () => {
     expect(onSelectTemplate).toHaveBeenCalledExactlyOnceWith('nova-portfolio')
   })
 
+  it('opens a template when its preview is clicked', async () => {
+    const onSelectTemplate = vi.fn()
+    const user = userEvent.setup()
+    render(<TemplateGallery savedTemplateIds={new Set()} onSelectTemplate={onSelectTemplate} />)
+
+    const card = screen.getByRole('heading', { level: 2, name: 'Nova Portfolio' }).closest('article')
+    expect(card).not.toBeNull()
+    const preview = (card as HTMLElement).querySelector('button[aria-hidden="true"]')
+    expect(preview).not.toBeNull()
+    await user.click(preview as HTMLElement)
+
+    expect(onSelectTemplate).toHaveBeenCalledExactlyOnceWith('nova-portfolio')
+  })
+
   it('collapses the rail to icons without losing a control or its name', async () => {
     const user = userEvent.setup()
     render(<TemplateGallery savedTemplateIds={new Set()} onSelectTemplate={vi.fn()} />)
