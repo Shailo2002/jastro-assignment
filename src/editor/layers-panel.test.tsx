@@ -64,6 +64,22 @@ function layer(id: string): HTMLElement {
   return node
 }
 
+function twisty(id: string): HTMLElement {
+  const node = layer(id).querySelector<HTMLElement>('[data-twisty]')
+  if (node === null) throw new Error(`No twisty for "${id}".`)
+  return node
+}
+
+function visibleIds(): string[] {
+  return [...layers().querySelectorAll<HTMLElement>('[data-target-id]')].map(
+    (node) => node.getAttribute('data-target-id') ?? '',
+  )
+}
+
+function isVisible(id: string): boolean {
+  return layers().querySelector(`[data-target-id="${id}"]`) !== null
+}
+
 function selectedIds(surface: HTMLElement): string[] {
   return [...surface.querySelectorAll<HTMLElement>('[aria-selected="true"]')].map(
     (node) => node.getAttribute('data-target-id') ?? '',
@@ -210,5 +226,163 @@ describe('layers keyboard navigation', () => {
     })
     await user.keyboard('{ArrowDown}')
     expect(tabbable()).toHaveLength(1)
+  })
+})
+
+
+describe('layers tree folding', () => {
+  it('marks a branch as expanded and leaves a leaf without the state', () => {
+    renderWithLayers()
+
+    expect(layer('hero.section')).toHaveAttribute('aria-expanded', 'true')
+    expect(layer('hero.actions')).toHaveAttribute('aria-expanded', 'true')
+    expect(layer('hero.heading')).not.toHaveAttribute('aria-expanded')
+  })
+
+  it('states each row position within its own sibling group', () => {
+    renderWithLayers()
+
+    expect(layer('hero.eyebrow')).toHaveAttribute('aria-posinset', '1')
+    expect(layer('hero.eyebrow')).toHaveAttribute('aria-setsize', '5')
+    expect(layer('hero.image')).toHaveAttribute('aria-posinset', '5')
+    expect(layer('hero.cta.primary')).toHaveAttribute('aria-setsize', '2')
+  })
+
+  it('hides descendants when a branch is folded from the twisty', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    expect(isVisible('hero.heading')).toBe(true)
+    await user.click(twisty('hero.section'))
+
+    expect(layer('hero.section')).toHaveAttribute('aria-expanded', 'false')
+    expect(isVisible('hero.heading')).toBe(false)
+    expect(isVisible('hero.cta.primary')).toBe(false)
+    // Siblings of the folded branch are untouched.
+    expect(isVisible('features.section')).toBe(true)
+  })
+
+  it('leaves the canvas offering every element while a branch is folded', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    const before = canvas().querySelectorAll('[data-target-id]').length
+    await user.click(twisty('hero.section'))
+
+    expect(canvas().querySelectorAll('[data-target-id]')).toHaveLength(before)
+    expect(canvas().querySelector('[data-target-id="hero.heading"]')).not.toBeNull()
+  })
+
+  it('does not change the selection when the twisty is used', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    await user.click(layer('features.heading'))
+    await user.click(twisty('hero.section'))
+
+    expect(selectedIds(layers())).toEqual(['features.heading'])
+  })
+
+  it('restores the inner fold when an outer branch is reopened', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    await user.click(twisty('hero.actions'))
+    await user.click(twisty('hero.section'))
+    await user.click(twisty('hero.section'))
+
+    expect(isVisible('hero.actions')).toBe(true)
+    expect(isVisible('hero.cta.primary')).toBe(false)
+  })
+
+  it('reopens the branches above an element selected on the canvas', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    await user.click(twisty('hero.section'))
+    expect(isVisible('hero.cta.primary')).toBe(false)
+
+    const target = canvas().querySelector<HTMLElement>('[data-target-id="hero.cta.primary"]')
+    if (target === null) throw new Error('No canvas target for "hero.cta.primary".')
+    await user.click(target)
+
+    expect(isVisible('hero.cta.primary')).toBe(true)
+    expect(layer('hero.section')).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('folds and unfolds every branch from one control', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    await user.click(screen.getByRole('button', { name: 'Collapse all' }))
+    expect(visibleIds()).toEqual([
+      'hero.section',
+      'features.section',
+      'cta.section',
+      'footer.section',
+    ])
+
+    await user.click(screen.getByRole('button', { name: 'Expand all' }))
+    expect(visibleIds().length).toBe(Object.keys(store.getState().document.elements).length)
+  })
+})
+
+describe('layers tree keyboard folding', () => {
+  it('closes a branch with ArrowLeft and opens it again with ArrowRight', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    act(() => {
+      layer('hero.section').focus()
+    })
+    await user.keyboard('{ArrowLeft}')
+    expect(layer('hero.section')).toHaveAttribute('aria-expanded', 'false')
+    expect(isVisible('hero.heading')).toBe(false)
+
+    await user.keyboard('{ArrowRight}')
+    expect(layer('hero.section')).toHaveAttribute('aria-expanded', 'true')
+    expect(isVisible('hero.heading')).toBe(true)
+  })
+
+  it('steps into an open branch with ArrowRight and out to the parent with ArrowLeft', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    act(() => {
+      layer('hero.section').focus()
+    })
+    await user.keyboard('{ArrowRight}')
+    expect(document.activeElement).toBe(layer('hero.eyebrow'))
+
+    await user.keyboard('{ArrowLeft}')
+    expect(document.activeElement).toBe(layer('hero.section'))
+  })
+
+  it('folds without selecting anything', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    act(() => {
+      layer('hero.section').focus()
+    })
+    await user.keyboard('{ArrowLeft}')
+
+    expect(selectedIds(layers())).toEqual([])
+    expect(selectedIds(canvas())).toEqual([])
+  })
+
+  it('keeps a tabbable row after every branch is folded', async () => {
+    const user = userEvent.setup()
+    renderWithLayers()
+
+    act(() => {
+      layer('hero.cta.primary').focus()
+    })
+    await user.click(screen.getByRole('button', { name: 'Collapse all' }))
+
+    const tabbable = within(layers())
+      .getAllByRole('treeitem')
+      .filter((item) => item.getAttribute('tabindex') === '0')
+    expect(tabbable).toHaveLength(1)
   })
 })

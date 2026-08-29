@@ -15,6 +15,12 @@ export interface RovingFocusApi {
   register(index: number): (node: HTMLButtonElement | null) => void
   /** Handles arrow/Home/End; returns true when the key was consumed. */
   handleNavigationKey(event: KeyboardEvent<HTMLElement>): boolean
+  /**
+   * Moves focus to `index` and makes it the tabbable item. For movement the
+   * group's own key handling does not cover - the layers tree stepping to a
+   * parent row, or recovering focus after a row is folded away.
+   */
+  focusAt(index: number): void
   /** Keeps the tabbable item in step with whatever the user focused. */
   onItemFocus(index: number): void
 }
@@ -35,17 +41,25 @@ export function useRovingFocus(count: number): RovingFocusApi {
     [],
   )
 
+  const focusAt = useCallback(
+    (index: number): void => {
+      if (index < 0 || index >= count) return
+      setFocusIndex(index)
+      nodesRef.current[index]?.focus()
+    },
+    [count],
+  )
+
   const handleNavigationKey = useCallback(
     (event: KeyboardEvent<HTMLElement>): boolean => {
       const target = nextRovingIndex(count, activeIndex, event.key)
       if (target === undefined) return false
 
       event.preventDefault()
-      setFocusIndex(target)
-      nodesRef.current[target]?.focus()
+      focusAt(target)
       return true
     },
-    [count, activeIndex],
+    [count, activeIndex, focusAt],
   )
 
   const onItemFocus = useCallback((index: number): void => {
@@ -56,6 +70,7 @@ export function useRovingFocus(count: number): RovingFocusApi {
     tabIndexFor: (index) => (index === activeIndex ? 0 : -1),
     register,
     handleNavigationKey,
+    focusAt,
     onItemFocus,
   }
 }

@@ -298,6 +298,11 @@ A control that separates its TARGET from its SKIN - every toolbar chip, where a 
 - Drag reorder must have Move up/Move down keyboard alternatives.
 - Deep names truncate without horizontal page overflow.
 - Empty state explains that the current template has no editable children.
+- Depth is drawn, not merely indented: each row carries the guide rails of the ancestors whose sibling chains continue past it, and its own elbow - `├` while more siblings follow, `└` at the end of a run. The rails overhang the seam between rows so a chain reads as one line rather than a column of dashes.
+- A branch folds. Folding is presentation and lives in the panel: it is not committed, not versioned, not persisted, and it never reaches the shared flattening, so a folded element is still drawn on the canvas, still selectable there, and still in the document. Its state is on the row as `aria-expanded`, and a fold nested inside a fold is remembered, so reopening an outer branch restores what was inside rather than flattening it open.
+- Right opens a closed branch and then steps into it; Left closes an open one and then steps out to its parent - the ARIA tree keys. Only this panel reads the horizontal arrows that way; the canvas is a flat listbox and keeps them as previous/next. The twisty is a pointer shortcut for the same two keys, drawn as a hit area inside the row's own button rather than a second tab stop nested in it, which would double the length of the tree for a keyboard user.
+- Folding may never hide what is selected. A selection made anywhere else - canvas, AI rail, a history card - opens the branches above its target, and only ever opens them, so nothing the reviewer unfolded is closed under them. Collapse all likewise moves focus back into the tree rather than stranding it on a row it has just unmounted.
+- The tree is flat markup with `aria-level`, `aria-posinset`, and `aria-setsize`, not nested `role="group"` lists: roving focus stays one index over the rows actually on screen, and depth costs no nested scroll containers.
 
 ### Inspector fields
 

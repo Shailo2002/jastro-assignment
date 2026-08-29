@@ -1,6 +1,8 @@
 import {
   ArrowUp,
+  ChevronDown,
   ChevronLeft,
+  ChevronRight,
   Clock,
   Code,
   Layers,
@@ -45,6 +47,8 @@ export type IconName =
   | 'panel-left'
   | 'panel-right'
   | 'chevron-left'
+  | 'chevron-right'
+  | 'chevron-down'
   | 'monitor'
   | 'tablet'
   | 'smartphone'
@@ -64,6 +68,8 @@ const GLYPHS: Readonly<Record<IconName, LucideIcon>> = {
   'panel-left': PanelLeft,
   'panel-right': PanelRight,
   'chevron-left': ChevronLeft,
+  'chevron-right': ChevronRight,
+  'chevron-down': ChevronDown,
   monitor: Monitor,
   tablet: Tablet,
   smartphone: Smartphone,
