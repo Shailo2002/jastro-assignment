@@ -350,8 +350,12 @@ export function EditorShell(props: {
       className={
         embedded
           ? // Inside a host page the frame decides the height; the shell fills
-            // it and keeps its own scrolling, at every width.
-            "flex h-full flex-col overflow-hidden bg-ambient text-sm"
+            // it and keeps its own scrolling, at every width. Its ambient field
+            // is the inset one, painted on this box rather than fixed to the
+            // viewport: fixed, it would line up pixel for pixel with the host
+            // page's own field and the frame would read as a hole cut in the
+            // page instead of a separate view of the product.
+            "flex h-full flex-col overflow-hidden bg-ambient-inset text-sm"
           : "flex h-[100dvh] flex-col overflow-hidden bg-ambient text-sm max-[900px]:h-auto max-[900px]:min-h-[100dvh] max-[900px]:overflow-visible"
       }
     >

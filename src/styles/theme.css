@@ -111,6 +111,14 @@
   background-attachment: fixed;
 }
 
+/* The ambient field scoped to the element that asks for it, rather than to the
+   viewport: the editor embedded in the landing hero. Left at the default
+   `scroll` attachment on purpose - the image is sized and centred on this box,
+   so the frame gets a ground of its own instead of a window onto the page's. */
+@utility bg-ambient-inset {
+  background: var(--ambient-inset);
+}
+
 /* The landing page's brand marquee. The track holds two copies of the row, so
    -50% lands exactly on the seam and the loop never jumps. Reduced motion is
    handled by the global media rule in global.css, which collapses the

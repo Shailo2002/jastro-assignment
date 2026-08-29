@@ -94,6 +94,18 @@
     var(--ambient-image) center / cover no-repeat,
     var(--surface-canvas);
 
+  /* The same field, but belonging to one box instead of the viewport: for the
+     editor mounted inside a host page (the landing hero's demo frame), where
+     the viewport-fixed field would paint exactly the pixels already showing
+     behind the frame and the product would read as a hole in the page rather
+     than as its own window. A deeper scrim - never lighter, so the contrast
+     the token layer promises still holds - is what separates the two grounds. */
+  --ambient-inset-scrim: rgb(0 0 0 / 66%);
+  --ambient-inset:
+    linear-gradient(var(--ambient-inset-scrim), var(--ambient-inset-scrim)),
+    var(--ambient-image) center / cover no-repeat,
+    var(--surface-canvas);
+
   /* Named shadow levels. --elevation-hairline is the brief's inset rim light that
      separates a raised control from a black surface without adding a border. */
   --elevation-hairline:
