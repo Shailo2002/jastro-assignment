@@ -347,7 +347,12 @@ test('the ambient background keeps the faintest text at AA', async ({ page }) =>
 test('touch-intended controls are at least 44 x 44 px', async ({ page }) => {
   await page.goto('/#/editor/aster-labs')
 
-  const controls = page.getByRole('banner').getByRole('button')
+  // Both strips of chrome: the top bar holds the project's controls, the canvas
+  // toolbar every control that acts on what is on screen.
+  const controls = page
+    .getByRole('banner')
+    .getByRole('button')
+    .or(page.locator('.canvas-toolbar').getByRole('button'))
   const count = await controls.count()
   expect(count).toBeGreaterThan(4)
 

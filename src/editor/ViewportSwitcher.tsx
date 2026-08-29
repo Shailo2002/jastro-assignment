@@ -29,7 +29,9 @@ function nextViewport(current: Viewport): Viewport {
  * One button that cycles through the three previews rather than a segmented
  * row of three. The top bar is chrome around the thing under review, and the
  * viewport is a single question with a single current answer, so it costs one
- * control - the same shape the rest of the bar's icon actions use.
+ * control - the same shape the rest of the bar's icon actions use. It sits in
+ * that bar, beside the panel switcher: both choose what the shell shows, and
+ * neither is a fact about the edit being made.
  *
  * Being icon-only, the whole state lives in the accessible name, and the name
  * says both halves out loud: what is on screen NOW, and what one press will

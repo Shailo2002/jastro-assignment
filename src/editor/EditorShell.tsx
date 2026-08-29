@@ -9,11 +9,8 @@ import type { EditSource } from "../model/history";
 import type { ElementId } from "../model/ids";
 import type { Proposal } from "../engine/proposal";
 import type { EditablePropertyPatch } from "../model/properties";
-import {
-  VIEWPORT_WIDTHS,
-  type EditScope,
-  type Viewport,
-} from "../model/viewport";
+import type { EditScope, Viewport } from "../model/viewport";
+import { CanvasToolbar } from "./CanvasToolbar";
 import { CodePanel, type CodeDraft } from "./CodePanel";
 import { ConversationRail } from "./ConversationRail";
 import { EditorDock } from "./EditorDock";
@@ -25,17 +22,16 @@ import { LayersPanel } from "./LayersPanel";
 import { PreviewFrame } from "./PreviewFrame";
 import { RecoveryNotice } from "./RecoveryNotice";
 import { ResetProjectDialog } from "./ResetProjectDialog";
-import { ScopeSwitcher } from "./ScopeSwitcher";
 import { SelectionOverlay } from "./SelectionOverlay";
-import { SelectionSummary } from "./SelectionSummary";
 import { PanelSwitcher } from "./PanelSwitcher";
+import { PersistenceChip } from "./PersistenceChip";
+import { ViewportSwitcher } from "./ViewportSwitcher";
 import {
   PANEL_DOCK_IDS,
   PANEL_HEADING_IDS,
   PANEL_TITLES,
   type DockedPanel,
 } from "./editor-panels";
-import { ViewportSwitcher } from "./ViewportSwitcher";
 import {
   collectElementIds,
   flattenResolvedDocument,
@@ -84,9 +80,12 @@ function CanvasSelectionLayer(props: {
  * writes the next change docked under it - and stays visible, because both of
  * them are reference material for whatever is being edited. The centre is the
  * rendered template and nothing else: it is what is under review, so no editor
- * surface ever takes its place. The right is one dock holding one panel at a time -
- * Design, Code, or Layers - chosen by a segmented switcher the same shape as
- * the viewport control, because these are mutually exclusive choices too.
+ * surface ever takes its place. The right is one dock holding one panel at a
+ * time - Design, Code, or Layers - chosen from the top bar, which also holds
+ * the project itself and the preview viewport: those three are the controls
+ * that reframe every region at once. The canvas toolbar at the foot of the
+ * workspace keeps what describes the edit about to be made - fit, the scope a
+ * commit writes to, and the selection.
  *
  * Four pieces of state live here and are deliberately NOT part of the canonical
  * document: the preview viewport (what is on screen), the selection (which
@@ -290,16 +289,25 @@ export function EditorShell(props: {
 
   return (
     <div
-      className="flex h-[100dvh] flex-col overflow-hidden bg-surface-canvas text-sm
+      className="flex h-[100dvh] flex-col overflow-hidden bg-ambient text-sm
         max-[900px]:h-auto max-[900px]:min-h-[100dvh] max-[900px]:overflow-visible"
     >
-      {/* ONE bar. Identity, the Scope Lock statement, the two controls that
-          decide where an edit lands, and the shell's only destructive action -
-          in that reading order. A second strip under it would have said the
-          same things twice and stolen a row from the thing under review. */}
+      {/* The top bar carries the project - what is being edited, whether it is
+          saved, and the shell's only destructive action - and the two controls
+          that reframe the whole window: which device the preview stands in for,
+          and which panel the dock holds. Both change the shape of every region
+          at once, so they belong to the shell rather than to the canvas. What
+          is left describes the EDIT about to be made - fit, the scope a commit
+          writes to, the selection - and stays on the canvas toolbar at the foot
+          of the workspace it describes.
+
+          The bar has no surface of its own: it sits directly on the ambient
+          field, and its chips and buttons are the only things that draw. A
+          panel and a rule here would have made a fourth edge competing with
+          the three cards below, when the cards are what the eye should count. */}
       <header
         className="flex min-h-[52px] flex-none flex-wrap items-center gap-x-3 gap-y-2
-          border-b border-default bg-surface-shell/88 px-3 py-1 backdrop-blur-[18px]"
+          px-3 py-1"
       >
         <div className="flex min-w-0 flex-none flex-nowrap items-center gap-2">
           {props.onBackToTemplates === undefined ? null : (
@@ -328,17 +336,9 @@ export function EditorShell(props: {
           </div>
         </div>
 
-        {/* The control that decides where an edit is written. The statement of
-            what it would touch - Scope Lock - is drawn once, at the head of the
-            composer, rather than twice. */}
-        <ScopeSwitcher value={editScope} onChange={setEditScope} />
-
-        <div className="ms-auto flex min-w-0 flex-none flex-nowrap items-center gap-2">
-          <ViewportSwitcher value={viewport} onChange={setViewport} />
-
-          {/* One switcher, not three toggles: the dock holds one panel, so the
-              control that chooses it reports exactly one pressed item. */}
-          <PanelSwitcher value={panel} onChange={setPanel} />
+        <div className="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
+          {/* Where the work stands, beside the action that would discard it. */}
+          <PersistenceChip status={persistence} revision={state.document.revision} />
 
           <ToolbarButton
             type="button"
@@ -350,6 +350,21 @@ export function EditorShell(props: {
           >
             Reset&hellip;
           </ToolbarButton>
+
+          {/* A hairline, not a gap: the project ends here and the view begins,
+              so the destructive action is never mistaken for one of the view
+              controls beside it. */}
+          <span
+            className="mx-1 h-5 w-px flex-none bg-default"
+            aria-hidden="true"
+          />
+
+          {/* What the shell shows: which device the preview stands in for, and
+              which panel the dock holds. The switcher ends the bar at the edge
+              the dock opens from, so the control and the thing it opens stay
+              neighbours. */}
+          <ViewportSwitcher value={viewport} onChange={setViewport} />
+          <PanelSwitcher value={panel} onChange={setPanel} />
         </div>
       </header>
 
@@ -387,101 +402,83 @@ export function EditorShell(props: {
           onRestore={restore}
         />
 
-        {/* The workspace carries the same ambient field as the gallery, so the
-            two surfaces read as one product; the preview frame paints its own
-            opaque background on top, so nothing under review is tinted. */}
+        {/* The shell carries the same ambient field as the gallery, so the two
+            surfaces read as one product; the workspace and the card inside it
+            are transparent so that field runs under the preview, and the
+            preview frame paints its own opaque background on top, so nothing
+            under review is tinted. */}
         {/* Above 1100px the dock insets this surface instead of covering it, so
             a panel never hides the part of the canvas being edited. Every dock
             is the same width, so the inset is one value; with the dock closed
             there is no inset at all. Below 1100px it overlays - the only honest
             answer when there is no room for both. */}
         <main
-          className="flex min-h-0 min-w-0 bg-ambient transition-[margin] duration-fast
+          className="flex min-h-0 min-w-0 flex-col transition-[margin] duration-fast
             min-[1101px]:group-data-[panel=design]/body:me-92
             min-[1101px]:group-data-[panel=code]/body:me-92
             min-[1101px]:group-data-[panel=layers]/body:me-92"
           aria-label="Template preview"
         >
-          {/* Empty space in the workspace deselects, the way it does in every
-              canvas tool: pressing on anything here that is not a control - the
-              matting around the frame, the frame's own background - clears the
-              selection. Overlay targets and the controls above the frame are
-              real buttons, so they are excluded by the same test rather than by
-              a list of coordinates. */}
+          {/* One workspace card: the preview and the strip that describes it
+              share a single rounded, bordered surface, floating inside the
+              ambient field rather than running to the edges of the window. The
+              template scrolls within the card and the strip is its foot, so the
+              two read as one object under review instead of a canvas with a
+              window-wide bar tacked beneath it. The card clips, which is what
+              rounds the strip's bottom corners without either piece having to
+              know the other's radius. */}
           <div
-            className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-3 pb-6"
-            onMouseDown={(event) => {
-              const target = event.target;
-              if (!(target instanceof HTMLElement)) return;
-              if (
-                target.closest("button, a, input, select, textarea") !== null
-              ) {
-                return;
-              }
-              clearSelection();
-            }}
+            className="m-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-panel
+              border border-default shadow-soft"
           >
+            {/* Empty space in the workspace deselects, the way it does in every
+                canvas tool: pressing on anything here that is not a control -
+                the matting around the frame, the frame's own background -
+                clears the selection. Overlay targets and the controls above the
+                frame are real buttons, so they are excluded by the same test
+                rather than by a list of coordinates. */}
             <div
-              className="flex min-w-0 flex-none flex-wrap items-center justify-between
-              gap-x-4 gap-y-2 px-1"
+              className="flex min-h-0 min-w-0 flex-1 flex-col overflow-auto"
+              onMouseDown={(event) => {
+                const target = event.target;
+                if (!(target instanceof HTMLElement)) return;
+                if (
+                  target.closest("button, a, input, select, textarea") !== null
+                ) {
+                  return;
+                }
+                clearSelection();
+              }}
             >
-              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                <p className="m-0 text-[13px] text-secondary">
-                  Previewing {viewport} at {VIEWPORT_WIDTHS[viewport]}px &middot;
-                  revision {state.document.revision}
-                </p>
-                {/* Persistence sits with the revision counter rather than in the
-                    top bar: both are facts about the document on screen, not
-                    controls, and the bar is for controls. */}
-                <p
-                  className="group/persist m-0 inline-flex min-h-7 items-center gap-2 rounded-pill
-                    border border-default px-2 py-0.5 text-xs whitespace-nowrap text-secondary
-                    data-[tone=warning]:border-status-warning data-[tone=warning]:text-primary"
-                  data-tone={persistence.tone}
-                >
-                  {/* The dot repeats the tone; the label beside it always states
-                      it in words, so the status never rests on colour. */}
-                  <span
-                    className="size-2 rounded-pill bg-muted
-                      group-data-[tone=saved]/persist:bg-status-success
-                      group-data-[tone=warning]/persist:bg-status-warning"
-                    aria-hidden="true"
+              <PreviewFrame
+                document={state.document}
+                viewport={viewport}
+                fit={fit}
+                renderOverlay={({ frameRef, scale }) => (
+                  <CanvasSelectionLayer
+                    frameRef={frameRef}
+                    scale={scale}
+                    changeKey={`${state.document.revision}:${viewport}:${String(fit)}`}
+                    rows={rows}
+                    selection={selection}
                   />
-                  {persistence.label}
-                  <span className="sr-only">. {persistence.detail}</span>
-                </p>
-              </div>
-              <div className="flex min-w-0 flex-wrap items-center gap-3">
-                <SelectionSummary
-                  rows={rows}
-                  selectedIds={selection.selectedIds}
-                />
-                <ToolbarButton
-                  type="button"
-                  variant="chrome"
-                  aria-pressed={fit}
-                  onClick={() => {
-                    setFit((current) => !current);
-                  }}
-                >
-                  Fit to canvas
-                </ToolbarButton>
-              </div>
+                )}
+              />
             </div>
 
-            <PreviewFrame
-              document={state.document}
+            {/* The card's foot, not scrolled with its contents: what states the
+                pending edit stays with the canvas it describes, however far a
+                tall template scrolls, and inside the dock's inset, so an open
+                panel never covers it. */}
+            <CanvasToolbar
               viewport={viewport}
               fit={fit}
-              renderOverlay={({ frameRef, scale }) => (
-                <CanvasSelectionLayer
-                  frameRef={frameRef}
-                  scale={scale}
-                  changeKey={`${state.document.revision}:${viewport}:${String(fit)}`}
-                  rows={rows}
-                  selection={selection}
-                />
-              )}
+              onFitChange={setFit}
+              scope={editScope}
+              onScopeChange={setEditScope}
+              rows={rows}
+              selectedIds={selection.selectedIds}
+              revision={state.document.revision}
             />
           </div>
         </main>

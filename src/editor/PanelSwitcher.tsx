@@ -25,6 +25,11 @@ import {
  * dock has been closed no item is pressed, which is the honest report: nothing
  * is docked.
  *
+ * It ends the top bar at the edge the dock opens from, so the control and the
+ * thing it opens are neighbours, and it sits above every region rather than on
+ * the canvas toolbar because docking a panel resizes the whole workspace, not
+ * only the canvas.
+ *
  * It changes nothing but which panel is visible - not the document, not the
  * selection, not the edit scope.
  */

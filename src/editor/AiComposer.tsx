@@ -67,7 +67,7 @@ export function AiComposer(props: {
 
   return (
     <div
-      className="relative flex min-w-0 flex-none flex-col gap-2 bg-surface-shell px-3 py-2.5
+      className="relative flex min-w-0 flex-none flex-col gap-2 bg-surface-shell px-3 pt-2 pb-2.5
         before:pointer-events-none before:absolute before:inset-x-0 before:-top-10
         before:h-10 before:bg-gradient-to-t before:from-surface-shell before:to-transparent"
     >

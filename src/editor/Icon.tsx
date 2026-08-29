@@ -8,6 +8,7 @@ import {
   Monitor,
   PanelLeft,
   PanelRight,
+  Scan,
   Smartphone,
   SlidersHorizontal,
   Sparkles,
@@ -55,6 +56,7 @@ export type IconName =
   | 'sparkle'
   | 'send'
   | 'selection'
+  | 'fit'
 
 const GLYPHS: Readonly<Record<IconName, LucideIcon>> = {
   lock: Lock,
@@ -73,6 +75,7 @@ const GLYPHS: Readonly<Record<IconName, LucideIcon>> = {
   sparkle: Sparkles,
   send: ArrowUp,
   selection: SquareDashedMousePointer,
+  fit: Scan,
 }
 
 /** Base geometry every editor icon shares; callers add size and colour. */

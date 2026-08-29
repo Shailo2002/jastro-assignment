@@ -27,7 +27,7 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 - [ ] Cmd/Ctrl+K focuses the search field and reopens a collapsed rail.
 - [ ] Collapsing the rail animates its width, keeps the identity mark in place, and moves the collapse toggle to the row under it; expanding reverses it.
 - [ ] With reduced motion on, collapsing still works and arrives immediately.
-- [ ] The ambient background image is visible behind the catalog and the editor workspace, stays fixed while the page scrolls, and never sits behind the rail or a panel.
+- [ ] The ambient background image is visible behind the catalog and behind the whole editor shell - under the top bar and in the gutters around all three cards - stays fixed while the page scrolls, and never sits behind the rail card, the dock, or the preview frame.
 - [ ] Recent work lists a template only after that template has saved work, and each entry opens that template's editor by pointer and keyboard.
 - [ ] The rail names the local user with an avatar, name, and address, and claims no workspace switcher, account menu, or paid tier.
 - [ ] The product mark renders in the rail, in the editor toolbar, and as the browser tab icon, and stays sharp when the rail collapses.
@@ -38,7 +38,9 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 - [ ] Usable at 1280 x 720.
 - [ ] Initial editor view shows the canvas with the Design panel docked, and only that panel.
 - [ ] The panel switcher marks exactly one of Design, Code, and Layers as pressed.
-- [ ] The left rail and the right dock do not cover essential toolbar actions.
+- [ ] The left rail and the right dock do not cover essential toolbar actions in either bar.
+- [ ] The rail, the workspace, and the dock read as three cards on one field: each rounded and bordered, with an even gutter around and between them, and no full-height rule dividing the rail from the canvas.
+- [ ] The top bar draws no panel, border, or blur of its own; only its chips and buttons paint, and the field runs unbroken behind it.
 - [ ] Switching Design/Code/Layers keeps the selection, the code draft, and any pending proposal.
 - [ ] The rendered template stays on screen whichever panel is docked.
 - [ ] No unintended page-level horizontal scroll.
@@ -49,7 +51,7 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 - [ ] Tablet viewport near 768 px has no template clipping.
 - [ ] Mobile viewport near 375 px has no template clipping.
 - [ ] Switching view does not change canonical data.
-- [ ] Current preview and edit scope are both visible.
+- [ ] Current preview and edit scope are both visible at once: the viewport control in the top bar, the scope switcher on the canvas toolbar.
 
 ## Selection
 
@@ -67,7 +69,12 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 - [ ] Selection and keyboard focus look different (solid selection border vs dashed focus ring).
 - [ ] The toolbar reports the selected count and readable names as text.
 - [ ] The most recently added target is marked as the active/primary one.
-- [ ] Selecting never changes the revision number shown in the canvas status line.
+- [ ] Selecting never changes the revision number shown in the top bar.
+- [ ] The preview and the canvas toolbar share one rounded, bordered card floating in the ambient field, with the toolbar as its foot behind a hairline and the card's bottom corners rounding the strip.
+- [ ] An open dock never covers the canvas toolbar: the card, and the strip at its foot, end where the panel begins.
+- [ ] A desktop preview at Fit fills the card with no second rim inside it; Tablet and Mobile draw their own rounded rim with matting either side.
+- [ ] Nothing sits above the preview frame but the frame itself, and the top bar carries only the project name, `rev N` with the saved state, reset, and - after a hairline - the viewport control and the Design/Code/Layers switch.
+- [ ] At 1280px with a panel docked the toolbar is still one row; narrower, it takes a second row rather than overflowing sideways.
 - [ ] Overlay boxes stay aligned with the template at every preview size and when Fit is off.
 
 ## Manual editing
@@ -91,6 +98,7 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 - [ ] Each panel closes from the cross in its top corner, and focus lands back on its switch.
 - [ ] With the dock closed no switch is pressed and the canvas takes the full workspace.
 - [ ] Reopening a panel finds it as it was left, including an unapplied code draft.
+- [ ] The rail reads as one conversation: no band of empty space between the last transcript entry and the composer.
 
 ## Scope Lock
 
@@ -98,7 +106,7 @@ Automated gate after moving component styling into `className` (Tailwind utiliti
 - [ ] The protected views are named for a viewport-scoped edit (hover the indicator, or read it with a screen reader).
 - [ ] Affected element names are reachable the same way.
 - [ ] It updates immediately when the selection or the scope changes.
-- [ ] Preview viewport and edit scope are visibly different controls: the viewport is one cycling device button, the scope a row of named chips.
+- [ ] Preview viewport and edit scope are visibly different controls in different bars: the viewport is one cycling device button in the top bar, the scope a row of named chips on the canvas toolbar.
 
 ## Viewport isolation
 

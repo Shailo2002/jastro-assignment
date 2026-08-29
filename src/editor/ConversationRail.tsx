@@ -38,6 +38,12 @@ import {
  * change log, and a banner restating what the surface is would have cost the
  * transcript a fifth of its height to say nothing that the content does not.
  *
+ * The rail is a card, the same rounded, bordered surface the dock and the
+ * workspace are: the three regions of the editor are three objects floating on
+ * one ambient field, rather than panes divided by rules. Its own surface is
+ * opaque, because a transcript has to be readable over whatever the field is
+ * doing behind it.
+ *
  * The rail owns the running, the per-card decisions, and the focus moves; the
  * three components under it are presentation. Nothing here is durable: the
  * instruction, the run, and the outcomes are transient UI state held by the
@@ -152,15 +158,20 @@ export function ConversationRail(props: {
 
   return (
     <aside
-      className="flex min-h-0 min-w-0 flex-col border-r border-default bg-surface-shell
-        max-[900px]:border-r-0 max-[900px]:border-b"
+      className="m-2 flex min-h-0 min-w-0 flex-col overflow-hidden rounded-panel
+        border border-default bg-surface-shell shadow-soft"
       aria-label="History and AI"
     >
       {/* The transcript. It scrolls; the composer under it does not move.
           Capped on a stacked layout so the composer stays reachable when the
-          rail sits above the canvas instead of beside it. */}
+          rail sits above the canvas instead of beside it.
+
+          It runs all the way down to the composer: no padding of its own at the
+          foot, because a gap there would read as a seam between two surfaces
+          when it is one conversation, and the composer's own padding is already
+          the space between the last message and the field. */}
       <div
-        className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-auto px-3 pt-0 pb-3
+        className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-auto px-3 pt-0 pb-0
           max-[900px]:max-h-[60vh]"
         ref={feedRef}
       >

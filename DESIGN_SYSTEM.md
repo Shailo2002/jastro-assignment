@@ -132,10 +132,11 @@ weakened past 40%; `e2e/accessibility.spec.ts` decodes the real asset in a
 browser and re-measures it. A replacement image that cannot pass that
 measurement must be darkened or scrimmed harder, not shipped.
 
-Every main surface uses the field: the gallery catalog, the editor workspace,
-and the document body under both. It is `background-attachment: fixed`, so
-content scrolls across a still field. Surfaces that need an opaque plane - the
-rail, panels, docks, the preview frame - paint over it.
+Every main surface uses the field: the gallery catalog, the whole editor shell
+- behind the top bar and all three of its regions - and the document body under
+both. It is `background-attachment: fixed`, so content scrolls across a still
+field. Surfaces that need an opaque plane - the rail, panels, docks, the preview
+frame - paint over it.
 
 Two brief values are deliberately adjusted so the palette can meet the AA
 requirement stated below, and both adjustments are recorded beside the token in
@@ -161,16 +162,41 @@ Recommended typography:
 At 1280 px, the editor must remain usable:
 
 ```text
-top toolbar: 52px - project | edit scope | viewport,
-                    Design/Code/Layers, reset
-left rail:   320px - one conversation, no title block: the change transcript
-                    above, the AI composer docked at its foot
-main:        minmax(0, 1fr) - the preview canvas, always
+top toolbar: 52px - no surface of its own, drawn straight on the field:
+                    project | revision and saved state, reset |
+                    viewport, Design/Code/Layers
+left rail:   320px - one conversation card, no title block: the change
+                    transcript above, the AI composer docked at its foot with
+                    no gap between them
+main:        minmax(0, 1fr) - one workspace card floating in the ambient
+                    field: the preview canvas fills it, with the canvas
+                    toolbar as the card's foot: fit, scope | selection
 right dock:  360px, the same for every panel - one at a time, Design by default,
              dismissable from its own corner
 ```
 
-Scope Lock governs every surface - an inspector edit, a code apply, an accepted proposal, a restore - so it is drawn once, at the head of the composer, which is the one surface that is always mounted and never scrolls away - and only when there is a selection to lock, since over an empty selection it would promise nothing. It sat in the top bar until the composer began stating the selection too; two places saying the same thing is one place too many, and the bar is for controls. The scope switcher that sets it stays in the bar. Only the short statement is drawn; the protected views and the affected element names live in the region's accessible name and its tooltip, complete rather than truncated. The persistence status is not a control, so it sits with the revision counter above the canvas.
+Scope Lock governs every surface - an inspector edit, a code apply, an accepted proposal, a restore - so it is drawn once, at the head of the composer, which is the one surface that is always mounted and never scrolls away - and only when there is a selection to lock, since over an empty selection it would promise nothing. It sat in the top bar until the composer began stating the selection too; two places saying the same thing is one place too many, and the bar is for controls. The scope switcher that sets it sits on the canvas toolbar, with the rest of what states the edit about to be made. Only the short statement is drawn; the protected views and the affected element names live in the region's accessible name and its tooltip, complete rather than truncated. The persistence status is a fact about the project rather than about the view of it, so it sits in the top bar with the revision counter, beside the action that would discard the work.
+
+The editor is three cards on one field. The rail, the workspace, and the dock
+are the same object - a rounded, bordered surface with an 8px gutter around it -
+and the ambient field runs behind all three, unbroken, from the top of the
+window to the bottom. The top bar has no surface of its own: it is drawn
+directly on the field, and its chips and buttons are the only things there that
+paint. A panel and a rule under the bar would have added a fourth edge for the
+eye to count, and a full-height divider beside the rail would have made the rail
+a pane cut out of the window rather than a card resting on it. The rail's own
+surface stays opaque, because a transcript has to stay readable whatever the
+field is doing behind it.
+
+The preview and the strip that describes it are ONE card: a rounded, bordered surface floating inside the ambient field, with the template filling it and the toolbar as its foot behind a hairline. They are one object under review, not a canvas with a window-wide bar tacked beneath it, so the card clips its contents and the strip inherits its bottom corners rather than either piece knowing the other's radius. The card itself paints no background: the ambient field runs under it, and the preview frame's own opaque surface is what keeps the template untinted.
+
+A desktop preview scaled to fit IS the width of the card, so the frame draws no rim of its own there - a second border a pixel inside the card's would read as two frames around one template. A tablet or mobile preview is narrower, and there the frame takes back its rim, radius, and shadow, which is what separates the device under review from the matting beside it. The rule is measured, not inferred from the viewport, because Fit, the dock's inset, and the window all move the answer.
+
+Chrome is split by what a control REFRAMES, not by what it is about. The preview viewport and the Design/Code/Layers switch change the shape of every region at once - which device the whole shell stands in for, and whether the dock takes its inset - so they belong to the top bar, above all three regions, with the project itself. The workspace then carries exactly one strip of chrome, pinned to its foot, holding what states the edit about to be made: Fit, the edit scope, and the selection. The canvas above it is the template and nothing else. In the top bar a hairline separates the project's own state and reset from the two view controls, and the panel switcher ends the bar at the edge the dock opens from, next to the thing it opens.
+
+When room runs out each bar gives way in a fixed order, never by overflowing: on the canvas toolbar the selected element's name truncates, then the word `Scope` and the whole visible selection summary step back to text for assistive technology only - the composer's Scope Lock is still stating the selection on screen - and only then does the strip take a second line. It stays one line at 1280 px with a panel docked.
+
+The scope control prints the word `Scope` once and then one word per choice. The old labels ("Desktop only") existed to keep the control apart from the preview viewport by wording alone; naming the question out loud is both shorter and less ambiguous, and the full wording with the width it stands for stays in every item's accessible name.
 
 Every dock is the same width whatever it holds, so the canvas beside it never resizes as the reviewer moves between panels. Each one can be dismissed from a close control in its top corner, which returns focus to the switch that opened it and gives the canvas the whole workspace; nothing about the document, the selection, or an unapplied draft changes when it does.
 
@@ -216,11 +242,24 @@ Every interactive component must define default, hover, focus-visible, active, d
 
 ### Top toolbar
 
-- Anatomy: project name, viewport switcher, edit-scope switcher, preview/fit control, reset.
-- Viewport and scope are different controls and must not be visually ambiguous.
-- Selected segmented-control items must expose `aria-pressed="true"`.
+- Anatomy: back to templates, project name | revision and saved state, reset | viewport switcher, panel switcher.
+- No background, no border, no blur: the bar sits on the ambient field and only its controls draw. The three cards below it are what the eye should count.
+- It carries the two controls that reframe the whole shell - the preview viewport and the Design/Code/Layers switch - and nothing that states a pending edit; that is the canvas toolbar's work.
+- A hairline, not a gap, divides the project group from the view group, so reset is never mistaken for a view control.
 - Reset must use danger styling only at confirmation time, not dominate routine controls.
-- On overflow, low-priority labels may shorten but the current viewport and scope must remain visible.
+
+### Canvas toolbar
+
+- Anatomy: fit | edit-scope switcher | selection summary.
+- The foot of the workspace card, inside the dock's inset: it never scrolls with a tall preview, an open panel never covers it, and it takes the card's bottom corners.
+- Viewport and scope are different controls, in different bars, and must not be visually ambiguous.
+- Selected segmented-control items must expose `aria-pressed="true"`; a lone on/off toggle lifts its surface instead of taking the action fill, so the strip never reads as though several unrelated things were chosen.
+- On overflow, low-priority labels may shorten or drop, but the scope must remain visible - as must the viewport and the panel switcher in the bar above.
+
+### Conversation rail
+
+- A card, the same rounded, bordered, opaque surface the dock is, with the same gutter around it - not a pane divided from the canvas by a rule.
+- It clips its contents, so the transcript at its head and the composer at its foot take the card's corners.
 
 ### Scope Lock indicator
 
@@ -247,6 +286,7 @@ Every interactive component must define default, hover, focus-visible, active, d
 - Multi-selection: every target shows an outline; the active/primary target receives a stronger handle treatment.
 - Keyboard focus and selected state must be visually distinguishable.
 - Handles must not obscure content at 375 px preview.
+- The frame draws its rim, radius, and shadow only when it does not fill the workspace card; when it fills the card, the card's edge is the preview's edge.
 - Long labels must truncate with a tooltip; stable IDs remain available in inspector/debug details.
 
 ### Layers tree
@@ -283,7 +323,7 @@ Every interactive component must define default, hover, focus-visible, active, d
 - The composer carries no standing paragraph of prose at all, and nothing at all is drawn over an empty selection: with nothing selected there is no Scope Lock chip, because a lock has nothing to promise there, the canvas states `Nothing selected` once above the thing being selected, and every control that would run is visibly disabled.
 - The instruction field is a textarea that grows with what is typed, to a five-line cap, then scrolls: an instruction is a sentence and should be readable in full, but the composer may never climb over the transcript.
 - One focus ring per control. The composer box draws the field's focus itself; the text inside it paints no second boundary, because a field that fills its container edge to edge does not need one.
-- The seam between the transcript and the composer is a fade, not a rule. A line drawn across the rail cut one continuous surface into two panels; the transcript now runs out under the composer instead.
+- The seam between the transcript and the composer is a fade, not a rule, and there is no gap across it: the transcript keeps no padding at its foot, so the only space between the last message and the field is the composer's own. A line - or a band of empty rail - cut one continuous conversation into two panels.
 - Run action is disabled without selection and explains why.
 - Each proposal card shows element name/ID, scope, before, after, validation status, Accept, and Reject.
 - Accept/reject outcomes are independent.

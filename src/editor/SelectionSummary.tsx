@@ -13,6 +13,11 @@ import type { ElementTreeRow } from './element-tree'
 export function SelectionSummary(props: {
   rows: readonly ElementTreeRow[]
   selectedIds: readonly ElementId[]
+  /**
+   * Extra classes for the names, so a caller short of room can drop them at a
+   * width of its own choosing. `sr-only` there keeps them in the summary.
+   */
+  namesClassName?: string
 }): JSX.Element {
   const { rows, selectedIds } = props
 
@@ -26,15 +31,15 @@ export function SelectionSummary(props: {
     // Named, because the rail's history panel owns a live region too and the
     // two must be distinguishable to anyone listing them.
     <p
-      className="m-0 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-[13px]"
+      className="m-0 flex min-w-0 flex-nowrap items-baseline gap-x-2 text-[13px]"
       role="status"
       aria-live="polite"
       aria-label="Selection"
     >
-      <span className="font-semibold text-primary">
+      <span className="flex-none font-semibold text-primary">
         {selectedIds.length === 0 ? 'Nothing selected' : `${selectedIds.length} selected`}
       </span>
-      <span className="min-w-0 truncate text-muted">
+      <span className={`min-w-0 truncate text-muted ${props.namesClassName ?? ''}`}>
         {names.length === 0 ? 'Choose an element on the canvas or in Layers.' : names.join(', ')}
       </span>
     </p>

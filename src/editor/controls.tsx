@@ -137,6 +137,7 @@ export function IconButton({
   icon,
   variant = 'panel',
   tone = 'neutral',
+  pressedStyle = 'choice',
   className = '',
   ...rest
 }: ComponentProps<'button'> & {
@@ -148,6 +149,12 @@ export function IconButton({
    * variant so no caller ends up with two background utilities on one span.
    */
   tone?: 'neutral' | 'primary'
+  /**
+   * How `aria-pressed` is drawn. `choice` inverts the well, for one option
+   * among peers; `toggle` lifts it, for a control that is its own on/off and
+   * would otherwise read as "selected" beside unrelated neighbours.
+   */
+  pressedStyle?: 'choice' | 'toggle'
 }): JSX.Element {
   if (variant === 'chrome') {
     // The filled well's disabled skin is chosen here rather than with a
@@ -158,10 +165,11 @@ export function IconButton({
         ? 'border-dashed border-default bg-surface-panel text-muted'
         : 'border-action-primary bg-action-primary text-on-accent' +
           ' group-hover/chip:bg-action-primary-hover'
+    const pressed = pressedStyle === 'toggle' ? CHIP_TOGGLED : CHIP_PRESSED
     const well =
       tone === 'primary'
         ? primaryWell
-        : `border-transparent group-hover/chip:bg-surface-elevated ${CHIP_PRESSED}`
+        : `border-transparent group-hover/chip:bg-surface-elevated ${pressed}`
     return (
       <button
         className={`group/chip inline-flex size-touch cursor-pointer items-center justify-center
