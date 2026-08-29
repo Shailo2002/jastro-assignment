@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 340" width="980" height="340" role="img" aria-label="Stylised night ridge line with waypoint markers tracing a lit path to the summit">
+  <defs>
+    <linearGradient id="wpSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#151b45" />
+      <stop offset="60%" stop-color="#0c1130" />
+      <stop offset="100%" stop-color="#0a0e21" />
+    </linearGradient>
+    <linearGradient id="wpRidgeFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#232b63" />
+      <stop offset="100%" stop-color="#141a3d" />
+    </linearGradient>
+    <linearGradient id="wpRidgeNear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#181f4e" />
+      <stop offset="100%" stop-color="#0e1330" />
+    </linearGradient>
+    <linearGradient id="wpPath" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38cde0" />
+      <stop offset="55%" stop-color="#8b7cf6" />
+      <stop offset="100%" stop-color="#fbbf24" />
+    </linearGradient>
+    <radialGradient id="wpMoonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="wpSummitGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="980" height="340" rx="16" fill="url(#wpSky)" />
+
+  <!-- stars -->
+  <g fill="#aab4ff">
+    <circle cx="90" cy="58" r="1.6" /><circle cx="180" cy="112" r="1.2" opacity="0.7" />
+    <circle cx="260" cy="44" r="1.4" opacity="0.8" /><circle cx="345" cy="90" r="1.1" opacity="0.6" />
+    <circle cx="430" cy="38" r="1.6" /><circle cx="520" cy="98" r="1.2" opacity="0.7" />
+    <circle cx="600" cy="52" r="1.3" opacity="0.8" /><circle cx="700" cy="30" r="1.5" />
+    <circle cx="905" cy="90" r="1.4" opacity="0.8" /><circle cx="150" cy="160" r="1.1" opacity="0.5" />
+    <circle cx="480" cy="140" r="1.1" opacity="0.5" /><circle cx="835" cy="46" r="1.2" opacity="0.7" />
+    <circle cx="55" cy="120" r="1.2" opacity="0.6" /><circle cx="640" cy="120" r="1.1" opacity="0.5" />
+  </g>
+
+  <!-- moon -->
+  <circle cx="810" cy="78" r="60" fill="url(#wpMoonGlow)" />
+  <circle cx="810" cy="78" r="26" fill="#fbe6ad" />
+  <circle cx="801" cy="72" r="5" fill="#ecd28f" opacity="0.7" />
+  <circle cx="820" cy="86" r="3.5" fill="#ecd28f" opacity="0.6" />
+
+  <!-- far ridge -->
+  <path d="M0 232 L120 160 L215 214 L330 130 L440 206 L560 118 L672 196 L780 148 L890 210 L980 172 L980 340 L0 340 Z" fill="url(#wpRidgeFar)" />
+  <!-- near ridge -->
+  <path d="M0 288 L95 232 L205 276 L335 196 L470 268 L610 176 L745 258 L860 212 L980 262 L980 340 L0 340 Z" fill="url(#wpRidgeNear)" />
+
+  <!-- waypoint path -->
+  <path d="M70 300 C 200 288, 260 246, 355 232 S 540 236, 620 196 S 770 158, 858 118" fill="none" stroke="url(#wpPath)" stroke-width="3" stroke-dasharray="1 12" stroke-linecap="round" />
+
+  <!-- waypoint markers -->
+  <g>
+    <circle cx="70" cy="300" r="7" fill="#0a0e21" stroke="#38cde0" stroke-width="2.5" />
+    <circle cx="355" cy="232" r="7" fill="#0a0e21" stroke="#5aa8ea" stroke-width="2.5" />
+    <circle cx="620" cy="196" r="7" fill="#0a0e21" stroke="#8b7cf6" stroke-width="2.5" />
+  </g>
+
+  <!-- summit flag -->
+  <circle cx="858" cy="118" r="30" fill="url(#wpSummitGlow)" />
+  <circle cx="858" cy="118" r="9" fill="#fbbf24" />
+  <circle cx="858" cy="118" r="14" fill="none" stroke="#fbbf24" stroke-opacity="0.5" stroke-width="2" />
+  <path d="M858 108 v-26 l20 7 -20 7" fill="#fbbf24" stroke="#fbbf24" stroke-width="2" stroke-linejoin="round" />
+</svg>

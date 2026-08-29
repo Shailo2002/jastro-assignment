@@ -98,8 +98,20 @@ export function EditorShell(props: {
   store: DocumentStore;
   onBackToTemplates?: () => void;
   templateName?: string;
+  /**
+   * True when the shell is mounted inside another page - the landing page's
+   * live demo - rather than standing as the /editor route. Presentation only:
+   * the root fills its container instead of the viewport, and the shell's
+   * page-level landmarks step down (the h1 becomes a paragraph, the main a
+   * labelled section) so the host page keeps a single h1 and a single main.
+   * Editing, validation, and history do not change shape at all.
+   */
+  embedded?: boolean;
 }): JSX.Element {
   const { store } = props;
+  const embedded = props.embedded === true;
+  const Title = embedded ? ("p" as const) : ("h1" as const);
+  const Workspace = embedded ? ("section" as const) : ("main" as const);
   const state = useDocumentStore(store);
   const [viewport, setViewport] = useState<Viewport>("desktop");
   const [editScope, setEditScope] = useState<EditScope>("all");
@@ -321,8 +333,13 @@ export function EditorShell(props: {
 
   return (
     <div
-      className="flex h-[100dvh] flex-col overflow-hidden bg-ambient text-sm
-        max-[900px]:h-auto max-[900px]:min-h-[100dvh] max-[900px]:overflow-visible"
+      className={
+        embedded
+          ? // Inside a host page the frame decides the height; the shell fills
+            // it and keeps its own scrolling, at every width.
+            "flex h-full flex-col overflow-hidden bg-ambient text-sm"
+          : "flex h-[100dvh] flex-col overflow-hidden bg-ambient text-sm max-[900px]:h-auto max-[900px]:min-h-[100dvh] max-[900px]:overflow-visible"
+      }
     >
       {/* The top bar carries the project - what is being edited, whether it is
           saved, and the shell's only destructive action - and the two controls
@@ -356,12 +373,12 @@ export function EditorShell(props: {
           {/* Product identity, the same mark the gallery rail shows. */}
           <BrandMark className="size-[22px] flex-none" />
           <div className="flex min-w-0 items-baseline gap-2">
-            <h1 className="m-0 min-w-0 truncate text-[13px] font-semibold tracking-[-0.01em] text-primary">
+            <Title className="m-0 min-w-0 truncate text-[13px] font-semibold tracking-[-0.01em] text-primary">
               <span className="sr-only">Scoped AI Template Editor</span>
               <span aria-hidden="true">
                 {props.templateName ?? "Aster Labs"}
               </span>
-            </h1>
+            </Title>
             <span className="text-[11px] text-muted max-[1240px]:hidden">
               main
             </span>
@@ -370,7 +387,10 @@ export function EditorShell(props: {
 
         <div className="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
           {/* Where the work stands, beside the action that would discard it. */}
-          <PersistenceChip status={persistence} revision={state.document.revision} />
+          <PersistenceChip
+            status={persistence}
+            revision={state.document.revision}
+          />
 
           <ToolbarButton
             type="button"
@@ -444,7 +464,7 @@ export function EditorShell(props: {
             is the same width, so the inset is one value; with the dock closed
             there is no inset at all. Below 1100px it overlays - the only honest
             answer when there is no room for both. */}
-        <main
+        <Workspace
           className="flex min-h-0 min-w-0 flex-col transition-[margin] duration-fast
             min-[1101px]:group-data-[panel=design]/body:me-92
             min-[1101px]:group-data-[panel=code]/body:me-92
@@ -513,7 +533,7 @@ export function EditorShell(props: {
               revision={state.document.revision}
             />
           </div>
-        </main>
+        </Workspace>
 
         {/* The dock overlays the right edge; the layer itself is inert so the
             canvas keeps taking pointer input everywhere the dock is not. All

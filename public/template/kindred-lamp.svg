@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-labelledby="title">
+  <title id="title">A paper table lamp with a warm glow and a brass stem</title>
+  <rect width="400" height="300" rx="10" fill="#f1e6d4"/>
+  <circle cx="200" cy="120" r="76" fill="#fff3da" opacity="0.55"/>
+  <path d="M156 76h88l30 78H126l30-78Z" fill="#f6d8ae"/>
+  <path d="M170 84l-14 62M230 84l14 62" stroke="#e9c391" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="200" cy="118" r="16" fill="#fff3da"/>
+  <path d="M200 154v66" stroke="#8a5a2e" stroke-width="9" stroke-linecap="round"/>
+  <ellipse cx="200" cy="234" rx="52" ry="12" fill="#c9a276"/>
+  <ellipse cx="200" cy="230" rx="52" ry="10" fill="#d8b389"/>
+</svg>

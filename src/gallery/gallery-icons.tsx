@@ -17,6 +17,9 @@ export type GalleryIconName =
   | 'megaphone'
   | 'portfolio'
   | 'chart'
+  | 'sparkle'
+  | 'bag'
+  | 'calendar'
   | 'arrow-right'
   | 'panel-left'
   | 'clock'
@@ -56,6 +59,25 @@ const PATHS: Readonly<Record<GalleryIconName, JSX.Element>> = {
       <path d="M8 17v-5" />
       <path d="M13 17V8" />
       <path d="M18 17v-8" />
+    </>
+  ),
+  sparkle: (
+    <>
+      <path d="M12 3.5 14 9.5 20 11.5 14 13.5 12 19.5 10 13.5 4 11.5 10 9.5Z" />
+      <path d="M18.5 3.5v3M20 5h-3" />
+    </>
+  ),
+  bag: (
+    <>
+      <path d="M5.5 8h13l-1 12.5h-11L5.5 8Z" />
+      <path d="M9 10.5V7a3 3 0 0 1 6 0v3.5" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+      <path d="M3.5 10h17" />
+      <path d="M8 3v4M16 3v4" />
     </>
   ),
   'arrow-right': <path d="M5 12h13m-5-6 6 6-6 6" />,

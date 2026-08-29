@@ -316,8 +316,12 @@ describe('layers tree folding', () => {
 
     await user.click(screen.getByRole('button', { name: 'Collapse all' }))
     expect(visibleIds()).toEqual([
+      'nav.section',
       'hero.section',
+      'proof.section',
       'features.section',
+      'metrics.section',
+      'quote.section',
       'cta.section',
       'footer.section',
     ])

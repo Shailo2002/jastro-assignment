@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 260" role="img" aria-labelledby="title">
+  <title id="title">Weekly active users, trending upward over twelve weeks</title>
+  <defs>
+    <linearGradient id="oc-line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="oc-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34d399" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#34d399" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="720" height="260" rx="10" fill="#081410"/>
+  <g stroke="#1c382f" stroke-width="1">
+    <path d="M24 60H696M24 116H696M24 172H696M24 228H696"/>
+  </g>
+  <g fill="#476b5e" font-family="Arial, sans-serif" font-size="11">
+    <text x="26" y="52">24K</text>
+    <text x="26" y="108">18K</text>
+    <text x="26" y="164">12K</text>
+    <text x="26" y="220">6K</text>
+  </g>
+  <path d="M24 228C80 220 110 196 160 200S250 236 300 190 380 130 430 148 520 96 580 108 660 60 696 52V228H24Z" fill="url(#oc-fill)"/>
+  <path d="M24 228C80 220 110 196 160 200S250 236 300 190 380 130 430 148 520 96 580 108 660 60 696 52" fill="none" stroke="url(#oc-line)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="696" cy="52" r="7" fill="#34d399"/>
+  <circle cx="696" cy="52" r="12" fill="#34d399" opacity="0.25"/>
+</svg>

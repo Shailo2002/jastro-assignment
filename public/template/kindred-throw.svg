@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-labelledby="title">
+  <title id="title">A folded wool throw with woven terracotta stripes</title>
+  <rect width="400" height="300" rx="10" fill="#efe4d2"/>
+  <rect x="66" y="66" width="268" height="176" rx="14" fill="#f7efe2" stroke="#dcc9ab" stroke-width="2"/>
+  <g stroke="#c9a276" stroke-width="14" stroke-linecap="round">
+    <path d="M92 108h216M92 148h216M92 188h216"/>
+  </g>
+  <g stroke="#b4511a" stroke-width="14" stroke-linecap="round" opacity="0.8">
+    <path d="M140 84v140M260 84v140"/>
+  </g>
+  <g stroke="#dcc9ab" stroke-width="3" stroke-linecap="round">
+    <path d="M74 250v14M104 250v14M134 250v14M164 250v14M194 250v14M224 250v14M254 250v14M284 250v14M314 250v14"/>
+  </g>
+</svg>

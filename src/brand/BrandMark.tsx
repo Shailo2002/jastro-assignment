@@ -37,10 +37,13 @@ export function BrandMark({ className = 'size-6' }: { className?: string }): JSX
           <rect width="48" height="48" fill={`url(#${id('sheen')})`} />
           <g filter={`url(#${id('glyphShadow')})`}>
             <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M39 24C39 32.2843 32.2843 39 24 39C16.644 39 10.5247 33.705 9.24572 26.7185C9.24186 26.6974 9.23805 26.6763 9.23428 26.6552C9.08034 25.7934 9 24.9061 9 24C9 23.2766 9.05121 22.5652 9.1502 21.8691C10.0858 15.2901 15.2901 10.0858 21.8691 9.1502C21.8801 9.14863 21.8912 9.14707 21.9022 9.14553C22.5877 9.0496 23.2881 9 24 9C24.9283 9 25.8368 9.08432 26.7185 9.24572C33.705 10.5247 39 16.644 39 24ZM35.25 24C35.25 30.2132 30.2132 35.25 24 35.25C19.3179 35.25 15.3038 32.3897 13.6098 28.3212C14.3057 28.4388 15.0207 28.5 15.75 28.5C22.7916 28.5 28.5 22.7916 28.5 15.75C28.5 15.0207 28.4388 14.3057 28.3212 13.6098C32.3897 15.3038 35.25 19.3179 35.25 24ZM24.2388 12.7525C24.5699 13.6901 24.75 14.699 24.75 15.75C24.75 20.7206 20.7206 24.75 15.75 24.75C14.699 24.75 13.6901 24.5699 12.7525 24.2388C12.7508 24.1594 12.75 24.0798 12.75 24C12.75 17.7868 17.7868 12.75 24 12.75C24.0798 12.75 24.1594 12.7508 24.2388 12.7525Z"
+              d="M33 25.5C33 29.6421 29.6421 33 25.5 33C21.3579 33 18 29.6421 18 25.5H12C12 32.9558 18.0442 39 25.5 39C32.9558 39 39 32.9558 39 25.5C39 18.0442 32.9558 12 25.5 12V18C29.6421 18 33 21.3579 33 25.5Z"
               fill={`url(#${id('glyph')})`}
+            />
+            <path
+              opacity="0.5"
+              d="M16.5 9C16.5 13.1421 13.1421 16.5 9 16.5V22.5C16.4558 22.5 22.5 16.4558 22.5 9H16.5Z"
+              fill={`url(#${id('glyphSmall')})`}
             />
           </g>
         </g>
@@ -138,7 +141,25 @@ export function BrandMark({ className = 'size-6' }: { className?: string }): JSX
           <stop stopColor="white" stopOpacity="0" />
           <stop offset="1" stopColor="white" stopOpacity="0.12" />
         </linearGradient>
-        <linearGradient id={id('glyph')} x1="24" y1="9" x2="24" y2="39" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id={id('glyph')}
+          x1="25.5"
+          y1="12"
+          x2="25.5"
+          y2="39"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="white" stopOpacity="0.8" />
+          <stop offset="1" stopColor="white" stopOpacity="0.5" />
+        </linearGradient>
+        <linearGradient
+          id={id('glyphSmall')}
+          x1="15.75"
+          y1="9"
+          x2="15.75"
+          y2="22.5"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop stopColor="white" stopOpacity="0.8" />
           <stop offset="1" stopColor="white" stopOpacity="0.5" />
         </linearGradient>

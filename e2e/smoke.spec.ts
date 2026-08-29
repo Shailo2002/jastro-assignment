@@ -12,7 +12,7 @@ test('template gallery opens the selected template without console errors', asyn
   })
   page.on('pageerror', (error) => consoleErrors.push(error.message))
 
-  await page.goto('/')
+  await page.goto('/#/templates')
 
   await expect(page.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeVisible()
   await page.getByRole('button', { name: /Use template|Continue editing/ }).first().click()
@@ -56,7 +56,7 @@ test('every preview size is inspectable without editor-shell horizontal overflow
 })
 
 test('viewport controls are reachable and operable by keyboard', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#/templates')
 
   const search = page.getByRole('searchbox', { name: 'Search templates' })
   await search.focus()
@@ -68,6 +68,12 @@ test('viewport controls are reachable and operable by keyboard', async ({ page }
   await expect(page.getByRole('button', { name: /Portfolio/ })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('button', { name: /SaaS/ })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: /AI/ })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: /Commerce/ })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: /Event/ })).toBeFocused()
   await page.keyboard.press('Tab')
 
   // The real template thumbnail contains links, but its inert preview must not

@@ -63,7 +63,7 @@
      an interactive state. White on --accent-brand measures 5.58:1.
      --brand-mark is the fill of the product mark itself; it is never used as a
      surface or as text, so it carries no contrast obligation of its own. */
-  --brand-mark: #db2777;
+  --brand-mark: #2563eb;
   --accent-brand: #6b4de0;
   --accent-brand-soft: rgb(107 77 224 / 18%);
   --accent-warm: #ff7a4d;
@@ -145,6 +145,10 @@
     'Camera Plain Variable', ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', 'Inter', sans-serif;
   --face-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* The landing page's display accent: the platform serif, used in italic for
+     the one word each headline leans on. Like every face here it resolves
+     locally - no webfont is fetched, so the page renders offline. */
+  --face-serif: ui-serif, Georgia, 'Iowan Old Style', 'Times New Roman', serif;
 
   /* Type scale */
   --type-xs: 12px;

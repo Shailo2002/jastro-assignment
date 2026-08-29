@@ -74,6 +74,17 @@ async function analyze(page: Page) {
   return new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
 }
 
+test('the landing page, live demo included, has no serious or critical axe findings', async ({ page }) => {
+  await page.goto('/')
+  // The hero demo is the real editor; wait for it so the scan covers it too.
+  await expect(page.getByRole('region', { name: 'Template preview' })).toBeVisible()
+  const results = await analyze(page)
+
+  expect(
+    results.violations.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical'),
+  ).toEqual([])
+})
+
 test('the gallery has no serious or critical axe findings', async ({ page }) => {
   await page.goto('/#/templates')
   const results = await analyze(page)

@@ -4,18 +4,25 @@ import { elementId } from '../model/ids'
 import { TEMPLATE_CATALOG } from './template-catalog'
 
 describe('template catalog', () => {
-  it('contains four distinct factories that create valid fresh documents', () => {
-    expect(TEMPLATE_CATALOG).toHaveLength(4)
-    expect(new Set(TEMPLATE_CATALOG.map((template) => template.id)).size).toBe(4)
+  it('contains six distinct factories that create valid fresh documents', () => {
+    expect(TEMPLATE_CATALOG).toHaveLength(6)
+    expect(new Set(TEMPLATE_CATALOG.map((template) => template.id)).size).toBe(6)
 
     const documents = TEMPLATE_CATALOG.map((template) => template.createDocument())
-    expect(new Set(documents.map((document) => document.id)).size).toBe(4)
+    expect(new Set(documents.map((document) => document.id)).size).toBe(6)
     expect(documents.every((document) => document.revision === 0)).toBe(true)
 
     const secondNovaDocument = TEMPLATE_CATALOG[1]!.createDocument()
     expect(secondNovaDocument).not.toBe(documents[1])
-    expect(secondNovaDocument.elements[elementId('hero.heading')]).not.toBe(
-      documents[1]!.elements[elementId('hero.heading')],
+    expect(secondNovaDocument.elements[elementId('intro.heading')]).not.toBe(
+      documents[1]!.elements[elementId('intro.heading')],
     )
+  })
+
+  it('gives every template its own structure, not a re-skin of one layout', () => {
+    const signatures = TEMPLATE_CATALOG.map((template) =>
+      template.createDocument().rootElementIds.join('|'),
+    )
+    expect(new Set(signatures).size).toBe(TEMPLATE_CATALOG.length)
   })
 })

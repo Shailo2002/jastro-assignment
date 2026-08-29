@@ -231,6 +231,29 @@ A control that separates its TARGET from its SKIN - every toolbar chip, where a 
 - Its ids are namespaced per instance, because a fixed id would be duplicated the moment two copies mount and the first one on the page would capture every reference.
 - Its fill is the `--brand-mark` token. The mark is never a surface and never text, so it carries no contrast obligation - but it must not be recoloured per placement.
 
+### Landing page
+
+The marketing page at `/` borrows Vetra's landing shape directly - centered
+dark hero, glowing product frame, brand marquee, bento features, pricing,
+closing call - which the rest of this document only echoes. Its rules:
+
+- The product shot is not a shot. The hero frame mounts the real `EditorShell`
+  (`embedded` mode) over a throwaway in-memory storage: fully interactive,
+  never persisted, incapable of reaching a visitor's saved projects. Below the
+  editor's own 900px breakpoint the frame holds an inert real render instead -
+  small screens get the truth about the template, never a broken editor.
+- Embedded, the shell steps its page landmarks down (h1 to paragraph, main to
+  labelled section) so the landing keeps a single h1 and a single main.
+- In-page navigation is buttons over `scrollIntoView`, never `#anchor` hrefs:
+  the app lives under a HashRouter, so a fragment is a route.
+- Display type may use arbitrary `clamp()` sizes (one-off geometry), and the
+  serif accent words use the `--face-serif` token in italic. Both faces resolve
+  locally; the landing fetches nothing, like the rest of the app.
+- Motion is two gestures: a one-time staggered rise in the hero on mount, and
+  `Reveal` (fade-up on first scroll into view) for everything below it. Reduced
+  motion keeps the fades and drops the travel; the marquee collapses through
+  the global reduced-motion rule.
+
 ### Gallery navigation rail
 
 - The rail is one column of 44 px rows: identity, search, filters, saved-work report, and a footer callout.

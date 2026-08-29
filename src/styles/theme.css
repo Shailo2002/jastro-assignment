@@ -66,9 +66,10 @@
   --text-xl: var(--type-xl);
   --text-xl--line-height: 1.15;
 
-  /* Faces: font-ui, font-mono. */
+  /* Faces: font-ui, font-mono, font-serif. */
   --font-ui: var(--face-ui);
   --font-mono: var(--face-mono);
+  --font-serif: var(--face-serif);
 
   /* Radii: rounded-xs ... rounded-pill. */
   --radius-xs: var(--corner-xs);
@@ -108,4 +109,21 @@
 @utility bg-ambient {
   background: var(--ambient-page);
   background-attachment: fixed;
+}
+
+/* The landing page's brand marquee. The track holds two copies of the row, so
+   -50% lands exactly on the seam and the loop never jumps. Reduced motion is
+   handled by the global media rule in global.css, which collapses the
+   animation to a single instant pass and leaves the first copy standing. */
+@keyframes landing-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility animate-marquee {
+  animation: landing-marquee 40s linear infinite;
 }

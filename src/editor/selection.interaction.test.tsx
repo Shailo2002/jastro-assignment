@@ -180,8 +180,8 @@ describe('keyboard selection', () => {
     await user.keyboard('{Enter}')
 
     const focused = document.activeElement as HTMLElement
-    expect(focused.getAttribute('data-target-id')).toBe('hero.eyebrow')
-    expect(selectedIds(canvas())).toEqual(['hero.eyebrow'])
+    expect(focused.getAttribute('data-target-id')).toBe('nav.brand')
+    expect(selectedIds(canvas())).toEqual(['nav.brand'])
   })
 
   it('adds to the selection with a modified Enter', async () => {

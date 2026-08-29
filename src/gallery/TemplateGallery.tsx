@@ -17,6 +17,9 @@ const CATEGORIES: readonly TemplateCatalogItem["category"][] = [
   "Marketing",
   "Portfolio",
   "SaaS",
+  "AI",
+  "Commerce",
+  "Event",
 ];
 
 /** One icon per catalog category, so a filter row reads without its count. */
@@ -26,6 +29,9 @@ const CATEGORY_ICONS: Readonly<
   Marketing: "megaphone",
   Portfolio: "portfolio",
   SaaS: "chart",
+  AI: "sparkle",
+  Commerce: "bag",
+  Event: "calendar",
 };
 
 /** Rail widths. Motion animates between them; nothing else declares a width. */

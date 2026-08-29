@@ -5,15 +5,22 @@ import { describe, expect, it, vi } from 'vitest'
 import { TemplateGallery } from './TemplateGallery'
 
 describe('template gallery', () => {
-  it('shows all four original starter templates', () => {
+  it('shows all six original starter templates', () => {
     render(<TemplateGallery savedTemplateIds={new Set()} onSelectTemplate={vi.fn()} />)
 
     expect(screen.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeInTheDocument()
-    for (const name of ['Aster Labs', 'Nova Portfolio', 'Orbit Metrics', 'Luma Studio']) {
+    for (const name of [
+      'Aster Labs',
+      'Nova Portfolio',
+      'Orbit Metrics',
+      'Luma Assistant',
+      'Kindred Goods',
+      'Waypoint Summit',
+    ]) {
       expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument()
     }
-    expect(screen.getByText('4 templates')).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /Use template/ })).toHaveLength(4)
+    expect(screen.getByText('6 templates')).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Use template/ })).toHaveLength(6)
   })
 
   it('filters by searchable template metadata and can recover from an empty result', async () => {
@@ -82,16 +89,16 @@ describe('template gallery', () => {
 
   it('reports saved work in the rail and on the card', () => {
     render(
-      <TemplateGallery savedTemplateIds={new Set(['luma-studio'])} onSelectTemplate={vi.fn()} />,
+      <TemplateGallery savedTemplateIds={new Set(['luma-assistant'])} onSelectTemplate={vi.fn()} />,
     )
 
     const recents = screen.getByText('Recent work').parentElement
     expect(recents).not.toBeNull()
-    expect(within(recents as HTMLElement).getByText('Luma Studio')).toBeInTheDocument()
+    expect(within(recents as HTMLElement).getByText('Luma Assistant')).toBeInTheDocument()
 
     // The card names the same state in the words of its one action, so the
     // saved state is never carried by the pill's fill alone.
-    const card = screen.getByRole('heading', { level: 2, name: 'Luma Studio' }).closest('article')
+    const card = screen.getByRole('heading', { level: 2, name: 'Luma Assistant' }).closest('article')
     expect(card).not.toBeNull()
     expect(
       within(card as HTMLElement).getByRole('button', { name: /Continue editing/ }),
@@ -103,15 +110,15 @@ describe('template gallery', () => {
     const onSelectTemplate = vi.fn()
     render(
       <TemplateGallery
-        savedTemplateIds={new Set(['luma-studio'])}
+        savedTemplateIds={new Set(['luma-assistant'])}
         onSelectTemplate={onSelectTemplate}
       />,
     )
 
     const recents = screen.getByText('Recent work').parentElement
-    await user.click(within(recents as HTMLElement).getByRole('button', { name: 'Luma Studio' }))
+    await user.click(within(recents as HTMLElement).getByRole('button', { name: 'Luma Assistant' }))
 
-    expect(onSelectTemplate).toHaveBeenCalledWith('luma-studio')
+    expect(onSelectTemplate).toHaveBeenCalledWith('luma-assistant')
   })
 
   it('names the local user in the rail without claiming an account service', () => {
@@ -127,7 +134,7 @@ describe('template gallery', () => {
   it('keeps the signed-in avatar and drops recent work when the rail collapses', async () => {
     const user = userEvent.setup()
     render(
-      <TemplateGallery savedTemplateIds={new Set(['luma-studio'])} onSelectTemplate={vi.fn()} />,
+      <TemplateGallery savedTemplateIds={new Set(['luma-assistant'])} onSelectTemplate={vi.fn()} />,
     )
 
     const rail = screen.getByRole('complementary', { name: 'Template library' })
@@ -141,13 +148,13 @@ describe('template gallery', () => {
     // tab order with them rather than lingering as an unreadable row.
     expect(within(rail).getByText('U')).toBeInTheDocument()
     expect(within(rail).queryByText('Recent work')).toBeNull()
-    expect(within(rail).queryByRole('button', { name: 'Luma Studio' })).toBeNull()
+    expect(within(rail).queryByRole('button', { name: 'Luma Assistant' })).toBeNull()
 
     // The project itself is still one click away, on its own card.
     expect(screen.getByRole('button', { name: /Continue editing/ })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-    expect(within(rail).getByRole('button', { name: 'Luma Studio' })).toBeInTheDocument()
+    expect(within(rail).getByRole('button', { name: 'Luma Assistant' })).toBeInTheDocument()
   })
 
   it('labels only the persisted template as a continuing project', () => {
@@ -158,6 +165,6 @@ describe('template gallery', () => {
       />,
     )
     expect(screen.getAllByRole('button', { name: /Continue editing/ })).toHaveLength(1)
-    expect(screen.getAllByRole('button', { name: /Use template/ })).toHaveLength(3)
+    expect(screen.getAllByRole('button', { name: /Use template/ })).toHaveLength(5)
   })
 })

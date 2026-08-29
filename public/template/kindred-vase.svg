@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-labelledby="title">
+  <title id="title">A terracotta hand-thrown stoneware vase</title>
+  <defs>
+    <linearGradient id="kv-glaze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d97742"/>
+      <stop offset="1" stop-color="#b4511a"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" rx="10" fill="#f4e9db"/>
+  <ellipse cx="200" cy="252" rx="86" ry="10" fill="#e3d3bf"/>
+  <path d="M200 58c-22 0-33 17-33 39 0 19 8 30 8 55 0 41-19 47-19 74 0 30 19 44 44 44s44-14 44-44c0-27-19-33-19-74 0-25 8-36 8-55 0-22-11-39-33-39Z" fill="url(#kv-glaze)"/>
+  <path d="M178 92c-6 22-3 43 2 60" stroke="#e5966b" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <rect x="180" y="46" width="40" height="16" rx="8" fill="#8a3f14"/>
+</svg>

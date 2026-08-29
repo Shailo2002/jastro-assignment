@@ -37,8 +37,11 @@ test('the whole reviewer journey holds together', async ({ page }) => {
   })
   page.on('pageerror', (error) => consoleErrors.push(error.message))
 
-  /* 1. Load the gallery and choose the catalogued template. */
+  /* 1. Land on the marketing page, step into the gallery, and choose the
+        catalogued template. */
   await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: /Edit templates with/ })).toBeVisible()
+  await page.getByRole('banner').getByRole('button', { name: 'Start editing' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Choose a starting point' })).toBeVisible()
   await page.getByRole('button', { name: /Use template|Continue editing/ }).first().click()
   await expect(page.getByRole('main', { name: 'Template preview' })).toBeVisible()
