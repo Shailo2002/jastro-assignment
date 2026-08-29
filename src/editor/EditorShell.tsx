@@ -9,7 +9,7 @@ import type { EditSource } from "../model/history";
 import type { ElementId } from "../model/ids";
 import type { Proposal } from "../engine/proposal";
 import type { EditablePropertyPatch } from "../model/properties";
-import type { EditScope, Viewport } from "../model/viewport";
+import { isViewport, type EditScope, type Viewport } from "../model/viewport";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { CodePanel, type CodeDraft } from "./CodePanel";
 import { ConversationRail } from "./ConversationRail";
@@ -335,6 +335,25 @@ export function EditorShell(props: {
    * away through the rule above - so reset lands on the same empty-selection
    * state a fresh editor opens in, by the same path.
    */
+  /**
+   * Choosing a scope answers "where does my next commit land"; the preview
+   * answers "what am I looking at". Left unlinked, the honest answer to the
+   * second question was routinely the wrong one - a person picking Mobile then
+   * edited a mobile override while staring at the desktop projection, and the
+   * change appeared to do nothing. So picking a scope also walks the preview to
+   * the view that scope writes to, and All - which writes the shared base -
+   * returns to desktop, the view the editor opens in and the width the base
+   * values are authored at.
+   *
+   * The link is deliberately one-way. The viewport switcher still moves the
+   * preview on its own, so a base edit can be checked at 375px without
+   * quietly redirecting the next commit into a mobile override.
+   */
+  const selectEditScope = (scope: EditScope): void => {
+    setEditScope(scope);
+    setViewport(isViewport(scope) ? scope : "desktop");
+  };
+
   const resetProject = (): void => {
     store.reset();
     selection.clear();
@@ -556,7 +575,7 @@ export function EditorShell(props: {
               viewport={viewport}
               previewHref={props.previewHref}
               scope={editScope}
-              onScopeChange={setEditScope}
+              onScopeChange={selectEditScope}
               rows={rows}
               selectedIds={selection.selectedIds}
               revision={state.document.revision}

@@ -101,6 +101,38 @@ describe('editor shell', () => {
   })
 
   it.each([
+    ['Tablet', 'Tablet'],
+    ['Mobile', 'Mobile'],
+    ['Desktop', 'Desktop'],
+    // `All views` writes the shared base, which is authored at desktop width.
+    ['All views', 'Desktop'],
+  ])('choosing the %s scope walks the preview to %s', async (scope, expected) => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    const scopeGroup = screen.getByRole('group', { name: 'Edit scope' })
+    await user.click(within(scopeGroup).getByRole('button', { name: new RegExp(`^${scope}`) }))
+
+    expect(viewportControl()).toHaveAccessibleName(new RegExp(`Preview viewport: ${expected}`))
+  })
+
+  it('leaves the scope alone when only the preview moves', async () => {
+    const user = userEvent.setup()
+    render(<EditorShell store={store} />)
+
+    const scopeGroup = screen.getByRole('group', { name: 'Edit scope' })
+    await user.click(within(scopeGroup).getByRole('button', { name: /^Mobile/ }))
+    expect(viewportControl()).toHaveAccessibleName(/Preview viewport: Mobile/)
+
+    // Looking at another width must never redirect where the next commit lands.
+    await previewViewport(user, 'Desktop')
+    expect(within(scopeGroup).getByRole('button', { name: /^Mobile/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it.each([
     ['tablet', '42px', '768px'],
     ['mobile', '32px', '375px'],
   ])('switching to %s resolves that viewport', async (viewport, expectedSize, expectedWidth) => {
